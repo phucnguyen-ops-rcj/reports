@@ -69,9 +69,13 @@ def main(file_path):
     out_path = save_report(report_text, out_dir)
     return loss_strats, strat_detail, loss_symbols, loss_sym_strats, out_path, report_text
 
-if __name__ == "__main__":
+
+def cli():
     file_path = "data/analysis_data.csv"
-    loss_strats, strat_detail, loss_symbols, loss_sym_strats, out_path, report_text = main(file_path)
+    _, _, _, _, out_path, report_text = main(file_path)
     print(out_path)
     print()
     print(report_text)
+
+if __name__ == "__main__":
+    cli()
