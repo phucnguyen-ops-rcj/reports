@@ -50,21 +50,7 @@ def format_report_table(df: pd.DataFrame, preferred_cols: list[str]) -> str:
     if "npnl_r+un" in table_df.columns:
         table_df = table_df.sort_values("npnl_r+un")
 
-    rename_map = {
-        "base_strategy": "strategy",
-        "mapped_symbol": "symbol",
-        "volume_$": "vol",
-        "npnl_r+un": "npnl",
-        "npnl/volume_%": "npnl%",
-    }
-    table_df = table_df.rename(columns=rename_map)
-
-    for col in ["vol", "npnl", "npnl%"]:
-        if col in table_df.columns:
-            table_df[col] = table_df[col].map(_format_metric_value)
-
-    return "```text\n" + table_df.to_string(index=False) + "\n```"
-
+    return table_df.to_string(index=False, justify="left", float_format=_format_metric_value)
 
 def _format_metric_value(value: float) -> str:
     if pd.isna(value):
