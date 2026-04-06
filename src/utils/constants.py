@@ -2,7 +2,7 @@
 import json
 from pathlib import Path
 
-_config_file = Path(__file__).resolve().parents[2] / "config.json"
+_config_file = Path(__file__).resolve().parents[1] / "config.json"
 
 with open(_config_file) as f:
     _data = json.load(f)
