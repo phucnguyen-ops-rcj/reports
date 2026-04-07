@@ -1,0 +1,183 @@
+# Signal CLI Setup
+
+This folder contains notes for onboarding a Signal phone number to `signal-cli-rest-api`.
+
+## Base URL
+
+Local:
+
+```text
+http://127.0.0.1:8080
+```
+
+Remote via SSH tunnel:
+
+```bash
+ssh -L 8080:127.0.0.1:8080 T1_newuser1
+```
+
+Then use:
+
+```text
+http://127.0.0.1:8080
+```
+
+## Link as Secondary Device
+
+Open this URL in a browser:
+
+```text
+http://127.0.0.1:8080/v1/qrcodelink?device_name=signal-api
+```
+
+On your phone:
+
+```text
+Signal -> Settings -> Linked Devices -> Link New Device
+```
+
+Scan the QR code.
+
+## Register a Number with Captcha
+
+Request the captcha challenge:
+
+```bash
+curl -X POST http://127.0.0.1:8080/v1/register/+84901234567/captcha
+```
+
+This returns a JSON object with a captcha image (base64 encoded PNG). Decode and solve the captcha manually to get the text token.
+
+Then register the number with the captcha token:
+
+```bash
+curl -X POST http://127.0.0.1:8080/v1/register/+84901234567/captcha/{captcha_text}
+```
+
+Replace `{captcha_text}` with the actual solved captcha text.
+
+## Send a Test Message
+
+```bash
+curl -X POST -H "Content-Type: application/json" \
+  http://127.0.0.1:8080/v2/send \
+  -d '{
+    "message": "hello from signal-cli-rest-api",
+    "number": "+84901234567",
+    "recipients": ["+84909876543"]
+  }'
+```
+
+If the API is on a different host or port, replace `http://127.0.0.1:8080` with the correct URL.
+
+## Set Signal Profile
+
+Update the profile with:
+
+- display name
+- about text
+- avatar
+
+Endpoint:
+
+```text
+PUT /v1/profiles/{accountNumber}
+```
+
+### Name Only
+
+```bash
+curl -X PUT \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "rcj_bot"
+  }' \
+  "http://127.0.0.1:8080/v1/profiles/+84559854979"
+```
+
+### Name and About
+
+```bash
+curl -X PUT \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "rcj_bot",
+    "about": "I am a bot"
+  }' \
+  "http://127.0.0.1:8080/v1/profiles/+84559854979"
+```
+
+### Name, About, and Avatar
+
+`base64_avatar` can be too large to inline directly in a shell command. The safer approach is to write the JSON body to a file.
+
+```bash
+AVATAR=$(base64 < profile.jpg | tr -d '\n')
+
+cat > /tmp/signal_profile.json <<EOF
+{
+  "name": "rcj_bot",
+  "about": "I am a bot",
+  "base64_avatar": "$AVATAR"
+}
+EOF
+
+curl -X PUT \
+  -H "Content-Type: application/json" \
+  --data @/tmp/signal_profile.json \
+  "http://127.0.0.1:8080/v1/profiles/+84559854979"
+```
+
+### If zsh says `argument list too long`
+
+Do not inline the base64 string into the `curl` command directly. Use a JSON file as shown above.
+
+If needed, resize the avatar before encoding it:
+
+```bash
+magick profile.jpg -resize 512x512\> -quality 85 /tmp/profile_small.jpg
+```
+
+Then base64-encode `/tmp/profile_small.jpg` instead.
+
+## Python Client
+
+Use `SignalClient` in `src/signal-cli/client.py` when you want to initialize the sender and API URL once.
+
+Example for a direct recipient:
+
+```python
+from pathlib import Path
+import importlib.util
+
+spec = importlib.util.spec_from_file_location("signal_client", "src/signal-cli/client.py")
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+SignalClient = module.SignalClient
+
+client = SignalClient(sender="+84901234567", base_url="http://127.0.0.1:8080")
+client.send("hello from python", recipient="+84909876543")
+client.send(Path("image.jpg"), recipient="+84909876543")
+client.send([Path("image.jpg"), Path("video.mp4")], recipient="+84909876543")
+```
+
+Example for a Signal group:
+
+```python
+client.send("hello group", group_id="group.ckRzaEd4VmRzNnJaASAEsasa")
+```
+
+Rules:
+
+- pass exactly one of `recipient` or `group_id`
+- pass a string for text
+- pass a `Path`, file-path string, or list of file paths for attachments
+- file attachments are sent through `base64_attachments`
+
+## Source Notes
+
+These steps are based on the upstream `signal-cli-rest-api` setup flow:
+
+- GitHub README: `bbernhard/signal-cli-rest-api`
+- QR link flow via `/v1/qrcodelink`
+- direct registration via `/v1/register/{number}` and `/v1/register/{number}/verify/{code}`

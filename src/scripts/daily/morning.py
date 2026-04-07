@@ -71,7 +71,7 @@ def main(file_path):
 
 
 def cli():
-    file_path = "data/analysis_data.csv"
+    file_path = "data/analysis_data_1.csv"
     _, _, _, _, out_path, report_text = main(file_path)
     print(out_path)
     print()
