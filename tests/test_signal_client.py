@@ -50,3 +50,11 @@ def test_send_file_message_to_recipient(client, tmp_path: Path):
 
     response = client.send(attachment, recipient=RECIPIENT)
     _assert_send_response(response)
+
+
+def test_send_text_and_file_message_to_recipient(client, tmp_path: Path):
+    attachment = tmp_path / "signal_test_attachment.txt"
+    attachment.write_text("pytest attachment content", encoding="utf-8")
+
+    response = client.send("pytest text with attachment", attachments=attachment, recipient=RECIPIENT)
+    _assert_send_response(response)

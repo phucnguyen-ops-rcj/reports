@@ -17,19 +17,20 @@ class SignalClient:
         self,
         message: str | Path | list[str | Path] | tuple[str | Path, ...],
         *,
+        attachments: str | Path | list[str | Path] | tuple[str | Path, ...] | None = None,
         recipient: str | None = None,
         group_id: str | None = None,
     ) -> dict[str, Any]:
         recipients = self._resolve_recipients(recipient=recipient, group_id=group_id)
-        text, attachments = self._normalize_message(message)
+        text, encoded_attachments = self._normalize_message(message, attachments=attachments)
 
         payload: dict[str, Any] = {
             "message": text,
             "number": self.sender,
             "recipients": recipients,
         }
-        if attachments:
-            payload["base64_attachments"] = attachments
+        if encoded_attachments:
+            payload["base64_attachments"] = encoded_attachments
 
         return self._post("/v2/send", payload)
 
@@ -41,28 +42,64 @@ class SignalClient:
     ) -> list[str]:
         if bool(recipient) == bool(group_id):
             raise ValueError("Pass exactly one of recipient or group_id.")
-        return [recipient] if recipient else [group_id]  # type: ignore[list-item]
+        if recipient:
+            return [recipient]
+
+        assert group_id is not None
+        if group_id.startswith("https://signal.group/#"):
+            raise ValueError(
+                "group_id must be the API group id from GET /v1/groups/{number}, not a Signal invite link."
+            )
+        if not group_id.startswith("group."):
+            raise ValueError(
+                "group_id must start with 'group.' and come from GET /v1/groups/{number}."
+            )
+        return [group_id]
 
     def _normalize_message(
         self,
         message: str | Path | list[str | Path] | tuple[str | Path, ...],
+        *,
+        attachments: str | Path | list[str | Path] | tuple[str | Path, ...] | None = None,
     ) -> tuple[str, list[str]]:
+        encoded_attachments = self._normalize_attachments(attachments)
+
         if isinstance(message, Path):
-            return "", [self._encode_file(message)]
+            return "", [self._encode_file(message), *encoded_attachments]
 
         if isinstance(message, str):
             path = Path(message)
             if path.exists() and path.is_file():
-                return "", [self._encode_file(path)]
-            return message, []
+                return "", [self._encode_file(path), *encoded_attachments]
+            return message, encoded_attachments
 
         if isinstance(message, (list, tuple)):
             if not message:
                 raise ValueError("message list cannot be empty.")
-            attachments = [self._encode_file(Path(item)) for item in message]
-            return "", attachments
+            list_attachments = [self._encode_file(Path(item)) for item in message]
+            return "", [*list_attachments, *encoded_attachments]
 
         raise TypeError("message must be text, a file path, or a list of file paths.")
+
+    def _normalize_attachments(
+        self,
+        attachments: str | Path | list[str | Path] | tuple[str | Path, ...] | None,
+    ) -> list[str]:
+        if attachments is None:
+            return []
+
+        if isinstance(attachments, Path):
+            return [self._encode_file(attachments)]
+
+        if isinstance(attachments, str):
+            return [self._encode_file(Path(attachments))]
+
+        if isinstance(attachments, (list, tuple)):
+            if not attachments:
+                raise ValueError("attachments list cannot be empty.")
+            return [self._encode_file(Path(item)) for item in attachments]
+
+        raise TypeError("attachments must be a file path or a list of file paths.")
 
     def _encode_file(self, file_path: Path) -> str:
         if not file_path.exists() or not file_path.is_file():

@@ -25,19 +25,26 @@
         "kucc4": "volume colo",
         "kucc4-2": "volume colo 2"
     },
-    "category_strategy_mapping": {
-        "Quoting": ["strategy1"],
-        "FDV": ["strategy2"],
-        "FR": ["strategy8", "strategy10"],
-        "Arb": ["strategy5", "strategy12"],
-        "1sec": ["strategy11"],
-        "Volume": ["strategy4", "strategy4-2", "kucc4", "kucc4-2"],
-        "Directional": ["strategy9", "strategy9-2"],
-        "RFQ": ["strategy13"],
-        "Others": ["strategy7", "strategy11"]
+    "strategy_category_mapping": {
+        "strategy1": "Quoting",
+        "strategy2": "FDV",
+        "strategy3": "1sec",
+        "strategy4": "Volume",
+        "strategy4-2": "Volume",
+        "strategy5": "Arb",
+        "strategy7": "Others",
+        "strategy8": "FR",
+        "strategy9": "Directional",
+        "strategy9-2": "Directional",
+        "strategy10": "FR",
+        "strategy11": "Others",
+        "strategy12": "Arb",
+        "strategy13": "RFQ",
+        "kucc4": "Volume",
+        "kucc4-2": "Volume"
     },
     "analysis_data_columns": ["market", "strategy", "symbol", "volume_$", "net_position", "net_position_$", "rpnl", "unpnl", "rpnlwfees", "npnl_r+un", "npnl/volume_%", "trade_count"],
-    "final_columns": ["volume_$", "npnl_r+un", "net_position_$", "unpnl", "rpnlwfees"],
+    "final_columns": ["strategy", "volume_$", "npnl_r+un", "npnl/volume_%", "net_position_$", "unpnl", "rpnlwfees"],
     "thresholds": {
         "loss_pnl": -1000
     }

@@ -70,7 +70,7 @@ curl -X POST -H "Content-Type: application/json" \
 
 If the API is on a different host or port, replace `http://127.0.0.1:8080` with the correct URL.
 
-## Set Signal Profile
+## Setup Signal Profile
 
 Update the profile with:
 
@@ -140,44 +140,9 @@ magick profile.jpg -resize 512x512\> -quality 85 /tmp/profile_small.jpg
 
 Then base64-encode `/tmp/profile_small.jpg` instead.
 
-## Python Client
-
-Use `SignalClient` in `src/signal-cli/client.py` when you want to initialize the sender and API URL once.
-
-Example for a direct recipient:
-
-```python
-from pathlib import Path
-import importlib.util
-
-spec = importlib.util.spec_from_file_location("signal_client", "src/signal-cli/client.py")
-module = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(module)
-SignalClient = module.SignalClient
-
-client = SignalClient(sender="+84901234567", base_url="http://127.0.0.1:8080")
-client.send("hello from python", recipient="+84909876543")
-client.send(Path("image.jpg"), recipient="+84909876543")
-client.send([Path("image.jpg"), Path("video.mp4")], recipient="+84909876543")
+## Get group id
 ```
-
-Example for a Signal group:
-
-```python
-client.send("hello group", group_id="group.ckRzaEd4VmRzNnJaASAEsasa")
+curl -X GET "http://127.0.0.1:8080/v1/receive/+1234567890"
 ```
-
-Rules:
-
-- pass exactly one of `recipient` or `group_id`
-- pass a string for text
-- pass a `Path`, file-path string, or list of file paths for attachments
-- file attachments are sent through `base64_attachments`
-
-## Source Notes
-
-These steps are based on the upstream `signal-cli-rest-api` setup flow:
-
-- GitHub README: `bbernhard/signal-cli-rest-api`
-- QR link flow via `/v1/qrcodelink`
-- direct registration via `/v1/register/{number}` and `/v1/register/{number}/verify/{code}`
+```
+curl -X GET "http://127.0.0.1:8080/v1/groups/+1234567890"

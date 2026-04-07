@@ -9,12 +9,13 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
+    "matplotlib>=3.10.8",
     "pandas>=3.0.2",
     "pytest>=9.0.2",
 ]
 
 [project.scripts]
-daily_morning = "src.scripts.daily.morning:cli"
+daily_morning = "src.scripts.daily.net_pnl:cli"
 test_signal = "tests.cli:test_signal_client"
 
 [tool.setuptools.packages.find]
