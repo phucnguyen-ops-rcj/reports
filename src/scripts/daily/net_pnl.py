@@ -147,8 +147,8 @@ def main(file_path):
     
     # Generate and send report
     out_dir = Path(__file__).resolve().parents[3] / "results" / "daily" / "morning"
-    recipient = None
-    group_id = None     # "group.ZEFBVWtxRGNHTm90WDUwdWhxcjc3SE0rYnJxOFk4L1RMWFdxNFhmMW9mZz0="
+    recipient = "+84906303607"
+    group_id ="group.ZEFBVWtxRGNHTm90WDUwdWhxcjc3SE0rYnJxOFk4L1RMWFdxNFhmMW9mZz0="
     png_path, csv_path, text_path = _generate_and_send_report(report_text, final_df, out_dir, recipient, group_id)
 
     return report_text, png_path, csv_path, text_path

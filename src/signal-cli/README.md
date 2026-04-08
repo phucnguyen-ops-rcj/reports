@@ -63,8 +63,8 @@ curl -X POST -H "Content-Type: application/json" \
   http://127.0.0.1:8080/v2/send \
   -d '{
     "message": "hello from signal-cli-rest-api",
-    "number": "+84901234567",
-    "recipients": ["+84909876543"]
+    "number": "+84559854979",
+    "recipients": ["+84906303607"]
   }'
 ```
 
