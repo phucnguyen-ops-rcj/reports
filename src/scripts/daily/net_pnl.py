@@ -14,8 +14,9 @@ from src.utils.format_message import build_daily_report, save_report, save_csv
 from src.utils.visualization import dataframe_to_png_styled
 
 def _load_signal_client():
-    client_path = Path(__file__).resolve().parents[2] / "signal-cli" / "client.py"
+    client_path = Path(__file__).resolve().parents[2] / "clients" / "signal.py"
     spec = importlib.util.spec_from_file_location("signal_client", client_path)
+    assert spec is not None
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
     spec.loader.exec_module(module)
