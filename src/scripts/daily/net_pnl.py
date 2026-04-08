@@ -10,7 +10,8 @@ from src.utils.dataframe import (
     filter_rows_below_threshold,
     map_column_with_fallback,
 )
-from src.utils.format_message import build_daily_report, save_report, save_csv
+from src.utils.format_message import build_daily_report
+from src.utils.save_data import save_report, save_csv
 from src.utils.visualization import dataframe_to_png_styled
 
 def _load_signal_client():
@@ -150,13 +151,13 @@ def main(file_path):
     out_dir = Path(__file__).resolve().parents[3] / "results" / "daily" / "morning"
     recipient = "+84906303607"
     group_id ="group.ZEFBVWtxRGNHTm90WDUwdWhxcjc3SE0rYnJxOFk4L1RMWFdxNFhmMW9mZz0="
-    png_path, csv_path, text_path = _generate_and_send_report(report_text, final_df, out_dir, recipient, group_id)
+    png_path, csv_path, text_path = _generate_and_send_report(report_text, final_df, out_dir, None, None)
 
     return report_text, png_path, csv_path, text_path
 
 
 def cli():
-    file_path = "data/UI 8 April 0830H SG.csv"
+    file_path = "data/analysis_data_3.csv"
     text, png_path, csv_path, text_path = main(file_path)
     print(png_path)
     print(csv_path)

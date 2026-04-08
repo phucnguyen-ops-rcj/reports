@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
-from pathlib import Path
+from typing import Any
 from src.utils.constants import CATEGORY_STRATEGY_MAPPING
 import pandas as pd
 
@@ -105,19 +104,18 @@ def build_daily_report(
     return "\n".join(lines).strip() + "\n"
 
 
-def save_report(report_text: str, output_dir: str | Path, prefix: str = "report") -> Path:
-    out_dir = Path(output_dir)
-    out_dir.mkdir(parents=True, exist_ok=True)
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    out_path = out_dir / f"{prefix}_{timestamp}.txt"
-    # out_path.write_text(report_text, encoding="utf-8")
-    return out_path
+def build_market_summary_report(market_summary: dict[str, Any]) -> str:
+    if not market_summary:
+        return "No market summary data available."
 
+    total_market_cap = market_summary.total_market_cap_usd
+    total_volume = market_summary.total_volume_usd
+    market_cap_change_24h = market_summary.market_cap_change_percentage_24h_usd
 
-def save_csv(df: pd.DataFrame, output_dir: str | Path, prefix: str = "data") -> Path:
-    out_dir = Path(output_dir)
-    out_dir.mkdir(parents=True, exist_ok=True)
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    out_path = out_dir / f"{prefix}_{timestamp}.csv"
-    # df.to_csv(out_path, index=False)
-    return out_path
+    lines = [
+        "Global Cryptocurrency Market Summary:",
+        f"Total Market Cap: ${total_market_cap:,.2f}",
+        f"Market Cap Change (24H): {market_cap_change_24h:+.2f}%",
+        f"Total 24H Volume: ${total_volume:,.2f}",
+    ]
+    return "\n".join(lines)
