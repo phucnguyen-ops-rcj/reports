@@ -29,4 +29,7 @@ def wrangle_data(df):
     # convert str type to float: npnl_r+un and npnl/volume_%
     df["npnl_r+un"] = df["npnl_r+un"].astype(float)
     df["npnl/volume_%"] = df["npnl/volume_%"].str.rstrip("%").astype(float) / 100
+    
+    # round numeric columns to 2 decimal places
+    df = df.round(2)
     return df

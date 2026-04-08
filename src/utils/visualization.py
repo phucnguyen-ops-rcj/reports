@@ -77,12 +77,12 @@ def dataframe_to_png_styled(df: pd.DataFrame, output_path: str | Path, title: st
     out_path.parent.mkdir(parents=True, exist_ok=True)
     
     # Format numeric values to 2 decimal places
-    df_display = df.copy()
-    for col in df_display.columns:
-        if pd.api.types.is_numeric_dtype(df_display[col]):
-            df_display[col] = df_display[col].apply(
-                lambda x: f"{x:.2f}" if isinstance(x, (int, float)) and np.isfinite(x) else x
-            )
+    df_display = df.copy().round(2)
+    # for col in df_display.columns:
+    #     if pd.api.types.is_numeric_dtype(df_display[col]):
+    #         df_display[col] = df_display[col].apply(
+    #             lambda x: f"{x:.2f}" if isinstance(x, (int, float)) and np.isfinite(x) else x
+    #         )
     
     fig, ax = plt.subplots(figsize=(14, 8))
     ax.axis('tight')

@@ -35,7 +35,7 @@ def calculate_ratio_column(
     scale: float = 1.0,
 ) -> pd.DataFrame:
     result = df.copy()
-    result[target_col] = result[numerator_col] / result[denominator_col] * scale
+    result[target_col] = round(result[numerator_col] / result[denominator_col] * scale, 2)
     return result
 
 

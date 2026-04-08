@@ -10,7 +10,7 @@ from src.utils.dataframe import (
     filter_rows_below_threshold,
     map_column_with_fallback,
 )
-from src.utils.report import build_daily_report, save_report, save_csv
+from src.utils.format_message import build_daily_report, save_report, save_csv
 from src.utils.visualization import dataframe_to_png_styled
 
 def _load_signal_client():
@@ -52,17 +52,22 @@ def _build_strategy_summary_table(df):
     w_category_strat_sum_df["category_total_npnl"] = w_category_strat_sum_df.groupby("category")["npnl_r+un"].transform("sum")
     w_category_strat_sum_df = calculate_ratio_column(w_category_strat_sum_df, "npnl_r+un", "volume_$", "npnl/volume_%", scale=100)
     w_category_strat_sum_df.sort_values(["category_total_npnl", "strategy"], inplace=True, ascending=[True, True])
+    category_total_npnl_sum = (
+        w_category_strat_sum_df
+        .drop_duplicates(subset=["category"])["category_total_npnl"]
+        .sum()
+    )
     
     _total_row = pd.DataFrame({
         "strategy": ["Total"],
         "volume_$": [w_category_strat_sum_df["volume_$"].sum()],
         "npnl_r+un": [w_category_strat_sum_df["npnl_r+un"].sum()],
-        "npnl/volume_%": [w_category_strat_sum_df["npnl_r+un"].sum() / strat_sum["volume_$"].sum() * 100],
+        "npnl/volume_%": [round(w_category_strat_sum_df["npnl_r+un"].sum() / strat_sum["volume_$"].sum() * 100, 2)],
         "net_position_$": [w_category_strat_sum_df["net_position_$"].sum()],
         "unpnl": [w_category_strat_sum_df["unpnl"].sum()],
         "rpnlwfees": [w_category_strat_sum_df["rpnlwfees"].sum()],
         "category": ["-"],
-        "category_total_npnl": ["-"],
+        "category_total_npnl": [category_total_npnl_sum],
     })
     return pd.concat([w_category_strat_sum_df, _total_row], ignore_index=True)
 
@@ -95,8 +100,8 @@ def _build_symbol_strategy_detail(df, loss_symbols):
 
 def _generate_and_send_report(report_text, final_df, out_dir, recipient=None, group_id=None):
     """Generate report files and send via signal client."""
-    # text_path = save_report(report_text, out_dir)
-    # csv_path = save_csv(final_df, out_dir, prefix="daily_net_pnl_by_strategy")
+    text_path = save_report(report_text, out_dir)
+    csv_path = save_csv(final_df, out_dir, prefix="daily_net_pnl_by_strategy")
     png_path = dataframe_to_png_styled(
         final_df, 
         out_dir / "daily_net_pnl_by_strategy.png",
@@ -109,7 +114,7 @@ def _generate_and_send_report(report_text, final_df, out_dir, recipient=None, gr
         send_kwargs = {"recipient": recipient} if recipient else {"group_id": group_id}
         client.send(report_text, attachments=png_path, **send_kwargs)
     
-    return png_path
+    return png_path, csv_path, text_path
 
 
 def main(file_path):
@@ -143,17 +148,18 @@ def main(file_path):
     # Generate and send report
     out_dir = Path(__file__).resolve().parents[3] / "results" / "daily" / "morning"
     recipient = None
-    group_id = "group.ZEFBVWtxRGNHTm90WDUwdWhxcjc3SE0rYnJxOFk4L1RMWFdxNFhmMW9mZz0="
-    png_path = _generate_and_send_report(report_text, final_df, out_dir, recipient, group_id)
+    group_id = None     # "group.ZEFBVWtxRGNHTm90WDUwdWhxcjc3SE0rYnJxOFk4L1RMWFdxNFhmMW9mZz0="
+    png_path, csv_path, text_path = _generate_and_send_report(report_text, final_df, out_dir, recipient, group_id)
 
-    return report_text, png_path
+    return report_text, png_path, csv_path, text_path
 
 
 def cli():
-    file_path = "data/analysis_data_1.csv"
-    text, png_path = main(file_path)
+    file_path = "data/UI 8 April 0830H SG.csv"
+    text, png_path, csv_path, text_path = main(file_path)
     print(png_path)
-    print(text)
+    print(csv_path)
+    print(text_path)
 
 if __name__ == "__main__":
     cli()
