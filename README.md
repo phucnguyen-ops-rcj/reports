@@ -6,6 +6,9 @@ This project uses user-level `systemd` units on Ubuntu to run report scripts on 
 
 - Service: `~/.config/systemd/user/reports-daily-morning.service`
 - Timer: `~/.config/systemd/user/reports-daily-morning.timer`
+- Wrapper script: `/home/newuser1/work/new_project/training/reports/run_daily_morning.sh`
+
+The service calls the wrapper script, and the wrapper runs the morning jobs in order.
 
 ## Example service
 
@@ -20,7 +23,7 @@ Type=oneshot
 WorkingDirectory=/home/newuser1/work/new_project/training/reports
 Environment=HOME=/home/newuser1
 Environment=PATH=/home/newuser1/.local/bin:/usr/bin:/bin
-ExecStart=/home/newuser1/.local/bin/uv run market
+ExecStart=/home/newuser1/work/new_project/training/reports/run_daily_morning.sh
 StandardOutput=append:/home/newuser1/work/new_project/training/reports/logs/daily_morning.log
 StandardError=append:/home/newuser1/work/new_project/training/reports/logs/daily_morning.log
 
@@ -47,6 +50,7 @@ WantedBy=timers.target
 ```bash
 mkdir -p ~/.config/systemd/user
 mkdir -p /home/newuser1/work/new_project/training/reports/logs
+chmod +x /home/newuser1/work/new_project/training/reports/run_daily_morning.sh
 systemctl --user daemon-reload
 systemctl --user enable --now reports-daily-morning.timer
 ```
@@ -91,6 +95,7 @@ journalctl --user -u reports-daily-morning.service -n 100 --no-pager
 ## Notes
 
 - Use one `.service` and one `.timer` per scheduled script.
+- If one schedule should run multiple scripts, put them in a wrapper script and call that script from one `ExecStart`.
 - `start` runs now; `enable` makes the timer start automatically in future sessions.
 - After editing `.service` or `.timer`, run `systemctl --user daemon-reload`.
 - Restart the `.timer` only if you changed the schedule and want the new timing applied immediately.
