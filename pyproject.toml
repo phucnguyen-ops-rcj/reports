@@ -12,6 +12,7 @@ dependencies = [
     "matplotlib>=3.10.8",
     "pandas>=3.0.2",
     "pytest>=9.0.2",
+    "pytz>=2026.1.post1",
 ]
 
 [project.scripts]
