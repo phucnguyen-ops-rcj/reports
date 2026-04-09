@@ -18,7 +18,7 @@ def main():
     client = CoinGeckoClient()
     summary = client.get_global_market_summary()
     report = build_market_summary_report(summary)
-    out_dir = Path(__file__).resolve().parents[3] / "results" / "daily" / "morning"
+    out_dir = Path(__file__).resolve().parents[3] / "results" / "daily"
     text_path = save_report(report, out_dir)
 
     # send report via Signal
