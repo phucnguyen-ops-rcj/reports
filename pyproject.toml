@@ -15,7 +15,8 @@ dependencies = [
 ]
 
 [project.scripts]
-daily_morning = "src.scripts.daily.net_pnl:cli"
+net_pnl = "src.scripts.daily.net_pnl:main"
+market = "src.scripts.daily.market:main"
 test_signal = "tests.cli:test_signal_client"
 redis_export = "src.scripts.redis_export:main"
 redis_report = "src.scripts.redis_timeseries_report:main"

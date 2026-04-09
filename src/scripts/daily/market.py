@@ -14,12 +14,16 @@ def _load_signal_client():
     return module.SignalClient
 
 
-def main(recipient: str | None = None, group_id: str | None = None):
+def main():
     client = CoinGeckoClient()
     summary = client.get_global_market_summary()
     report = build_market_summary_report(summary)
     out_dir = Path(__file__).resolve().parents[3] / "results" / "daily" / "morning"
     text_path = save_report(report, out_dir)
+
+    # send report via Signal
+    recipient = None    # "+84906303607"
+    group_id = "group.ZEFBVWtxRGNHTm90WDUwdWhxcjc3SE0rYnJxOFk4L1RMWFdxNFhmMW9mZz0="
     if recipient or group_id:
         SignalClient = _load_signal_client()
         client = SignalClient()
@@ -30,6 +34,5 @@ def main(recipient: str | None = None, group_id: str | None = None):
 
 
 if __name__ == "__main__":
-    # "group.ZEFBVWtxRGNHTm90WDUwdWhxcjc3SE0rYnJxOFk4L1RMWFdxNFhmMW9mZz0="
-    text_path = main(recipient="+84906303607", group_id="group.ZEFBVWtxRGNHTm90WDUwdWhxcjc3SE0rYnJxOFk4L1RMWFdxNFhmMW9mZz0=")
+    text_path = main()
     print(f"Report saved to: {text_path}")
