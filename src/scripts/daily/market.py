@@ -23,12 +23,13 @@ def main(recipient: str | None = None, group_id: str | None = None):
     if recipient or group_id:
         SignalClient = _load_signal_client()
         client = SignalClient()
-        send_kwargs = {"recipient": recipient} if recipient else {"group_id": group_id}
+        send_kwargs = {"recipient": recipient, "group_id": group_id}    # prioritize recipient
         client.send(report, **send_kwargs)
-    print(report)
+    # print(report)
     return text_path
 
 
 if __name__ == "__main__":
-    text_path = main()
+    # "group.ZEFBVWtxRGNHTm90WDUwdWhxcjc3SE0rYnJxOFk4L1RMWFdxNFhmMW9mZz0="
+    text_path = main(recipient="+84906303607", group_id="group.ZEFBVWtxRGNHTm90WDUwdWhxcjc3SE0rYnJxOFk4L1RMWFdxNFhmMW9mZz0=")
     print(f"Report saved to: {text_path}")

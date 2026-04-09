@@ -113,7 +113,7 @@ def _generate_and_send_report(report_text, final_df, out_dir, recipient=None, gr
     if recipient or group_id:
         SignalClient = _load_signal_client()
         client = SignalClient()
-        send_kwargs = {"recipient": recipient} if recipient else {"group_id": group_id}
+        send_kwargs = {"recipient": recipient, "group_id": group_id}
         client.send(report_text, attachments=png_path, **send_kwargs)
     
     return png_path, csv_path, text_path
@@ -151,13 +151,13 @@ def main(file_path):
     out_dir = Path(__file__).resolve().parents[3] / "results" / "daily" / "morning"
     recipient = "+84906303607"
     group_id ="group.ZEFBVWtxRGNHTm90WDUwdWhxcjc3SE0rYnJxOFk4L1RMWFdxNFhmMW9mZz0="
-    png_path, csv_path, text_path = _generate_and_send_report(report_text, final_df, out_dir, None, None)
+    png_path, csv_path, text_path = _generate_and_send_report(report_text, final_df, out_dir, recipient, group_id)
 
     return report_text, png_path, csv_path, text_path
 
 
 def cli():
-    file_path = "data/analysis_data_3.csv"
+    file_path = "data/analysis_data_April_9th.csv"
     text, png_path, csv_path, text_path = main(file_path)
     print(png_path)
     print(csv_path)

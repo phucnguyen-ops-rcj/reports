@@ -47,5 +47,6 @@
     "final_columns": ["strategy", "volume_$", "npnl_r+un", "npnl/volume_%", "net_position_$", "unpnl", "rpnlwfees"],
     "thresholds": {
         "loss_pnl": -1000
-    }
+    },
+    "group_id": "group.ZEFBVWtxRGNHTm90WDUwdWhxcjc3SE0rYnJxOFk4L1RMWFdxNFhmMW9mZz0="
 }

@@ -3,7 +3,8 @@ from __future__ import annotations
 from typing import Any
 from src.utils.constants import CATEGORY_STRATEGY_MAPPING
 import pandas as pd
-
+from datetime import datetime
+import pytz
 
 def format_signed_number(value: float, digits: int = 0) -> str:
     return f"{value:+,.{digits}f}"
@@ -112,10 +113,11 @@ def build_market_summary_report(market_summary: dict[str, Any]) -> str:
     total_volume = market_summary.total_volume_usd
     market_cap_change_24h = market_summary.market_cap_change_percentage_24h_usd
 
+    sg_tz = pytz.timezone("Asia/Singapore")
     lines = [
-        "Global Cryptocurrency Market Summary:",
-        f"Total Market Cap: ${total_market_cap:,.2f}",
-        f"Market Cap Change (24H): {market_cap_change_24h:+.2f}%",
-        f"Total 24H Volume: ${total_volume:,.2f}",
+        f"Market Summary at {datetime.fromtimestamp(market_summary.updated_at, tz=sg_tz).strftime('%Y-%m-%d %H:%M:%S')} (SGT):",
+        f"  - Total Market Cap: ${total_market_cap:,.2f}",
+        f"  - Market Cap Change (24H): {market_cap_change_24h:+.2f}%",
+        f"  - Total 24H Volume: ${total_volume:,.2f}",
     ]
     return "\n".join(lines)

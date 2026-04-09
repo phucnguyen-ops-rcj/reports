@@ -40,8 +40,9 @@ class SignalClient:
         recipient: str | None,
         group_id: str | None,
     ) -> list[str]:
-        if bool(recipient) == bool(group_id):
-            raise ValueError("Pass exactly one of recipient or group_id.")
+        # prioritize recipient if both are provided, but allow both to be sent if desired by caller
+        # if bool(recipient) == bool(group_id):
+        #     raise ValueError("Pass exactly one of recipient or group_id.")
         if recipient:
             return [recipient]
 
