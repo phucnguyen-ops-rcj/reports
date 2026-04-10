@@ -15,13 +15,28 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+    # Signal messaging
     signal_base_url: str
     signal_sender: str
     signal_recipient: str | None = Field(default=None)
     signal_group_id: str
 
+    # CoinGecko API
     coingecko_base_url: str
     coingecko_api_key: str
+
+    # File paths
+    csv_input_path: str = Field(default="data/trades.csv")
+    output_dir: str = Field(default="results/daily")
+
+    # Logging
+    log_level: str = Field(default="INFO")
+
+    # Timezone
+    tz: str = Field(default="Asia/Singapore")
+
+    # Optional features
+    enable_signal_notifications: bool = Field(default=True)
 
 
 @lru_cache(maxsize=1)

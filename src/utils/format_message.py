@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from src.clients.coingecko import GlobalMarketSummary
 from src.utils.constants import CATEGORY_STRATEGY_MAPPING
+from src.settings import get_settings
 import pandas as pd
 from datetime import datetime
 import pytz
@@ -113,7 +114,7 @@ def build_market_summary_report(market_summary: GlobalMarketSummary) -> str:
     total_volume = market_summary.total_volume_usd
     market_cap_change_24h = market_summary.market_cap_change_percentage_24h_usd
 
-    sg_tz = pytz.timezone("Asia/Singapore")
+    sg_tz = pytz.timezone(get_settings().tz)
     lines = [
         f"Market Summary at {datetime.fromtimestamp(market_summary.updated_at, tz=sg_tz).strftime('%Y-%m-%d %H:%M:%S')} (SGT):",
         f"  - Total Market Cap: ${total_market_cap:,.2f}",

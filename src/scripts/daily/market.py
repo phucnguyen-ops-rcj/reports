@@ -1,36 +1,40 @@
 from src.clients.coingecko import CoinGeckoClient
+from src.clients.signal import SignalClient
 from src.settings import get_settings
 from src.utils.format_message import build_market_summary_report
 from pathlib import Path
-import importlib.util
+import logging
 from src.utils.save_data import save_report
 
-def _load_signal_client():
-    client_path = Path(__file__).resolve().parents[2] / "clients" / "signal.py"
-    spec = importlib.util.spec_from_file_location("signal_client", client_path)
-    assert spec is not None
-    module = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
-    spec.loader.exec_module(module)
-    return module.SignalClient
+logger = logging.getLogger(__name__)
 
 
 def main():
     app_settings = get_settings()
-    client = CoinGeckoClient()
-    summary = client.get_global_market_summary()
+    logging.basicConfig(level=app_settings.log_level.upper(), format='%(asctime)s - %(levelname)s - %(message)s')
+
+    coingecko_client = CoinGeckoClient()
+    summary = coingecko_client.get_global_market_summary()
     report = build_market_summary_report(summary)
-    out_dir = Path(__file__).resolve().parents[3] / "results" / "daily"
+    logger.info("Market summary report built successfully.")
+
+    out_dir = Path(app_settings.output_dir)
     text_path = save_report(report, out_dir)
+    logger.info(f"Report text saved to: {text_path}")
     print(report)
-    # send report via Signal
-    recipient = app_settings.signal_recipient
-    group_id = app_settings.signal_group_id
-    if recipient or group_id:
-        SignalClient = _load_signal_client()
-        client = SignalClient()
-        send_kwargs = {"recipient": recipient, "group_id": group_id}
-        client.send(report, **send_kwargs)
+
+    if app_settings.enable_signal_notifications:
+        recipient = app_settings.signal_recipient
+        group_id = app_settings.signal_group_id
+        if recipient or group_id:
+            try:
+                signal_client = SignalClient()
+                send_kwargs = {"recipient": recipient, "group_id": group_id}
+                signal_client.send(report, **send_kwargs)
+                logger.info("Report sent via Signal successfully.")
+            except Exception as exc:
+                logger.error(f"Failed to send Signal message: {exc}", exc_info=True)
+
     return text_path
 
 

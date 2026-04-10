@@ -1,7 +1,8 @@
 from pathlib import Path
-import importlib.util
+import logging
 import pandas as pd
 from src.settings import get_settings
+from src.clients.signal import SignalClient
 from src.utils.load_data import load_local_data
 from src.utils.constants import THRESHOLDS, FINAL_COLUMNS, STRATEGY_NAME_MAPPING, STRATEGY_CATEGORY_MAPPING
 from src.utils.dataframe import (
@@ -14,14 +15,7 @@ from src.utils.format_message import build_daily_report
 from src.utils.save_data import save_report, save_csv
 from src.utils.visualization import dataframe_to_png_styled
 
-def _load_signal_client():
-    client_path = Path(__file__).resolve().parents[2] / "clients" / "signal.py"
-    spec = importlib.util.spec_from_file_location("signal_client", client_path)
-    assert spec is not None
-    module = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
-    spec.loader.exec_module(module)
-    return module.SignalClient
+logger = logging.getLogger(__name__)
 
 
 def build_group_summary(df, by_cols):
@@ -101,58 +95,82 @@ def _build_symbol_strategy_detail(df, loss_symbols):
 
 
 def _generate_and_send_report(report_text, final_df, out_dir, recipient=None, group_id=None):
-    """Generate report files and send via signal client."""
+    """Generate report files and send via Signal client."""
     text_path = save_report(report_text, out_dir)
+    logger.info(f"Report text saved to: {text_path}")
+
     csv_path = save_csv(final_df, out_dir, prefix="daily_net_pnl_by_strategy")
+    logger.info(f"CSV saved to: {csv_path}")
+
     png_path = dataframe_to_png_styled(
-        final_df, 
+        final_df,
         out_dir / "daily_net_pnl_by_strategy.png",
         highlight_col="npnl_r+un"
     )
+    logger.info(f"PNG saved to: {png_path}")
 
     if recipient or group_id:
-        SignalClient = _load_signal_client()
-        client = SignalClient()
-        send_kwargs = {"recipient": recipient, "group_id": group_id}
-        client.send(report_text, attachments=png_path, **send_kwargs)
-    
+        try:
+            client = SignalClient()
+            send_kwargs = {"recipient": recipient, "group_id": group_id}
+            client.send(report_text, attachments=png_path, **send_kwargs)
+            logger.info("Report sent via Signal successfully.")
+        except Exception as exc:
+            logger.error(f"Failed to send Signal message: {exc}", exc_info=True)
+
     return png_path, csv_path, text_path
 
 
 def main():
     app_settings = get_settings()
-    file_path = "data/UI 10 April 0800H SG.csv"
-    df = load_local_data(file_path)
-    total_npnl = df["npnl_r+un"].sum()
+    logging.basicConfig(level=app_settings.log_level.upper(), format='%(asctime)s - %(levelname)s - %(message)s')
 
-    # Analyze base strategy losses
-    loss_base_strats = _analyze_base_strategy_losses(df)
-    
-    # Build strategy summary table
-    w_category_strat_sum_df = _build_strategy_summary_table(df)
-    
-    # Analyze symbol losses
-    loss_sym_df, loss_symbols, severe_symbols = _analyze_symbol_losses(df)
-    
-    # Build final table
-    final_df = pd.concat([w_category_strat_sum_df, loss_sym_df.rename(columns={"mapped_symbol": "strategy"})], ignore_index=True, sort=False)
-    
-    # Deep dive into symbol-strategy details
-    loss_sym_strats = _build_symbol_strategy_detail(df, loss_symbols)
+    try:
+        file_path = app_settings.csv_input_path
+        logger.info(f"Loading data from: {file_path}")
+        df = load_local_data(file_path)
+    except FileNotFoundError:
+        logger.error(f"CSV input file not found: {app_settings.csv_input_path}")
+        raise
+    except Exception as exc:
+        logger.error(f"Failed to load data: {exc}", exc_info=True)
+        raise
 
-    # Generate report
-    report_text = build_daily_report(
-        total_npnl,
-        loss_base_strats,
-        severe_symbols,
-        loss_symbols,
-        loss_sym_strats,
-    )
-    
-    # Generate and send report
-    out_dir = Path(__file__).resolve().parents[3] / "results" / "daily"
-    recipient = app_settings.signal_recipient
-    group_id = app_settings.signal_group_id
+    try:
+        total_npnl = df["npnl_r+un"].sum()
+
+        # Analyze base strategy losses
+        loss_base_strats = _analyze_base_strategy_losses(df)
+
+        # Build strategy summary table
+        w_category_strat_sum_df = _build_strategy_summary_table(df)
+
+        # Analyze symbol losses
+        loss_sym_df, loss_symbols, severe_symbols = _analyze_symbol_losses(df)
+
+        # Build final table
+        final_df = pd.concat([w_category_strat_sum_df, loss_sym_df.rename(columns={"mapped_symbol": "strategy"})], ignore_index=True, sort=False)
+
+        # Deep dive into symbol-strategy details
+        loss_sym_strats = _build_symbol_strategy_detail(df, loss_symbols)
+
+        # Build report text
+        report_text = build_daily_report(
+            total_npnl,
+            loss_base_strats,
+            severe_symbols,
+            loss_symbols,
+            loss_sym_strats,
+        )
+        logger.info("Report text built successfully.")
+    except Exception as exc:
+        logger.error(f"Failed to generate report: {exc}", exc_info=True)
+        raise
+
+    # Generate files and send — Signal failure is non-fatal and logged inside
+    out_dir = Path(app_settings.output_dir)
+    recipient = app_settings.signal_recipient if app_settings.enable_signal_notifications else None
+    group_id = app_settings.signal_group_id if app_settings.enable_signal_notifications else None
     png_path, csv_path, text_path = _generate_and_send_report(report_text, final_df, out_dir, recipient, group_id)
 
     return report_text, png_path, csv_path, text_path
