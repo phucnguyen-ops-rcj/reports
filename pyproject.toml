@@ -11,6 +11,8 @@ requires-python = ">=3.14"
 dependencies = [
     "matplotlib>=3.10.8",
     "pandas>=3.0.2",
+    "pydantic>=2.11.3",
+    "pydantic-settings>=2.9.1",
     "pytest>=9.0.2",
     "pytz>=2026.1.post1",
 ]
@@ -19,8 +21,6 @@ dependencies = [
 net_pnl = "src.scripts.daily.net_pnl:main"
 market = "src.scripts.daily.market:main"
 test_signal = "tests.cli:test_signal_client"
-redis_export = "src.scripts.redis_export:main"
-redis_report = "src.scripts.redis_timeseries_report:main"
 
 [tool.setuptools.packages.find]
 include = ["src*", "tests*"]

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from src.clients.coingecko import GlobalMarketSummary
 from src.utils.constants import CATEGORY_STRATEGY_MAPPING
 import pandas as pd
 from datetime import datetime
@@ -105,7 +105,7 @@ def build_daily_report(
     return "\n".join(lines).strip() + "\n"
 
 
-def build_market_summary_report(market_summary: dict[str, Any]) -> str:
+def build_market_summary_report(market_summary: GlobalMarketSummary) -> str:
     if not market_summary:
         return "No market summary data available."
 

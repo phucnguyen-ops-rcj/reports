@@ -1,7 +1,7 @@
 from pathlib import Path
 import importlib.util
-import os
 import pandas as pd
+from src.settings import get_settings
 from src.utils.load_data import load_local_data
 from src.utils.constants import THRESHOLDS, FINAL_COLUMNS, STRATEGY_NAME_MAPPING, STRATEGY_CATEGORY_MAPPING
 from src.utils.dataframe import (
@@ -120,7 +120,8 @@ def _generate_and_send_report(report_text, final_df, out_dir, recipient=None, gr
 
 
 def main():
-    file_path = "data/analysis_data_April_9th.csv"
+    app_settings = get_settings()
+    file_path = "data/UI 10 April 0800H SG.csv"
     df = load_local_data(file_path)
     total_npnl = df["npnl_r+un"].sum()
 
@@ -150,8 +151,8 @@ def main():
     
     # Generate and send report
     out_dir = Path(__file__).resolve().parents[3] / "results" / "daily"
-    recipient = None    # "+84906303607"
-    group_id ="group.ZEFBVWtxRGNHTm90WDUwdWhxcjc3SE0rYnJxOFk4L1RMWFdxNFhmMW9mZz0="
+    recipient = app_settings.signal_recipient
+    group_id = app_settings.signal_group_id
     png_path, csv_path, text_path = _generate_and_send_report(report_text, final_df, out_dir, recipient, group_id)
 
     return report_text, png_path, csv_path, text_path

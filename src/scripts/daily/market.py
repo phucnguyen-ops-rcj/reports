@@ -1,4 +1,5 @@
 from src.clients.coingecko import CoinGeckoClient
+from src.settings import get_settings
 from src.utils.format_message import build_market_summary_report
 from pathlib import Path
 import importlib.util
@@ -15,21 +16,21 @@ def _load_signal_client():
 
 
 def main():
+    app_settings = get_settings()
     client = CoinGeckoClient()
     summary = client.get_global_market_summary()
     report = build_market_summary_report(summary)
     out_dir = Path(__file__).resolve().parents[3] / "results" / "daily"
     text_path = save_report(report, out_dir)
-
+    print(report)
     # send report via Signal
-    recipient = None    # "+84906303607"
-    group_id = "group.ZEFBVWtxRGNHTm90WDUwdWhxcjc3SE0rYnJxOFk4L1RMWFdxNFhmMW9mZz0="
+    recipient = app_settings.signal_recipient
+    group_id = app_settings.signal_group_id
     if recipient or group_id:
         SignalClient = _load_signal_client()
         client = SignalClient()
-        send_kwargs = {"recipient": recipient, "group_id": group_id}    # prioritize recipient
+        send_kwargs = {"recipient": recipient, "group_id": group_id}
         client.send(report, **send_kwargs)
-    # print(report)
     return text_path
 
 

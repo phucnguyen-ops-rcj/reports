@@ -1,15 +1,24 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from enum import StrEnum
 from typing import Any
 from urllib.parse import urlencode
 import urllib.error
 import urllib.request
 
+from pydantic import BaseModel
 
-@dataclass(frozen=True)
-class GlobalMarketSummary:
+from src.settings import get_settings
+
+
+class QuoteCurrency(StrEnum):
+    USD = "usd"
+    BTC = "btc"
+    ETH = "eth"
+
+
+class GlobalMarketSummary(BaseModel):
     active_cryptocurrencies: int | None
     markets: int | None
     total_market_cap_usd: float | None
@@ -25,14 +34,16 @@ class CoinGeckoClient:
     def __init__(
         self,
         *,
-        base_url: str = "https://api.coingecko.com/api/v3",
+        base_url: str | None = None,
         timeout: float = 10.0,
-        api_key: str = "CG-Bm3HXzuGPGD9m8F3tA1kKD3s",
+        api_key: str | None = None,
         user_agent: str = "reports/1.0",
     ) -> None:
-        self.base_url = base_url.rstrip("/")
+        app_settings = get_settings()
+        resolved_base_url = base_url or app_settings.coingecko_base_url
+        self.base_url = resolved_base_url.rstrip("/")
         self.timeout = timeout
-        self.api_key = api_key
+        self.api_key = api_key if api_key is not None else app_settings.coingecko_api_key
         self.user_agent = user_agent
 
     def get_global_market_summary(self) -> GlobalMarketSummary:
@@ -51,13 +62,13 @@ class CoinGeckoClient:
         return GlobalMarketSummary(
             active_cryptocurrencies=self._to_int(data.get("active_cryptocurrencies")),
             markets=self._to_int(data.get("markets")),
-            total_market_cap_usd=self._nested_float(total_market_cap, "usd"),
+            total_market_cap_usd=self._nested_float(total_market_cap, QuoteCurrency.USD),
             market_cap_change_percentage_24h_usd=self._to_float(
                 data.get("market_cap_change_percentage_24h_usd")
             ),
-            total_volume_usd=self._nested_float(total_volume, "usd"),
-            btc_dominance_percentage=self._nested_float(market_cap_percentage, "btc"),
-            eth_dominance_percentage=self._nested_float(market_cap_percentage, "eth"),
+            total_volume_usd=self._nested_float(total_volume, QuoteCurrency.USD),
+            btc_dominance_percentage=self._nested_float(market_cap_percentage, QuoteCurrency.BTC),
+            eth_dominance_percentage=self._nested_float(market_cap_percentage, QuoteCurrency.ETH),
             volume_change_percentage_24h_usd=self._to_float(
                 data.get("volume_change_percentage_24h_usd")
             ),
@@ -114,10 +125,11 @@ class CoinGeckoClient:
         return headers
 
     @staticmethod
-    def _nested_float(value: Any, key: str) -> float | None:
+    def _nested_float(value: Any, key: QuoteCurrency | str) -> float | None:
         if not isinstance(value, dict):
             return None
-        return CoinGeckoClient._to_float(value.get(key))
+        lookup_key = key.value if isinstance(key, QuoteCurrency) else key
+        return CoinGeckoClient._to_float(value.get(lookup_key))
 
     @staticmethod
     def _to_float(value: Any) -> float | None:

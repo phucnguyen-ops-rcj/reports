@@ -9,7 +9,7 @@ wheels/
 # Virtual environments
 .venv
 .vscode
-
+.env
 # data folder
 /data
 
