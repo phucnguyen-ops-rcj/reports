@@ -107,7 +107,7 @@ def main():
         logger.error(f"Failed to generate trading volume report: {exc}", exc_info=True)
         raise
 
-    out_dir = Path(app_settings.output_dir)
+    out_dir = Path(app_settings.output_dir) / "trading_volume"
     recipient = app_settings.signal_recipient
     group_id = app_settings.signal_group_id
     png_path, csv_path = _generate_and_send_report("Trading Volume Report", volume_summary, out_dir, recipient, group_id)

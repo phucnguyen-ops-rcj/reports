@@ -168,7 +168,7 @@ def main():
         raise
 
     # Generate files and send — Signal failure is non-fatal and logged inside
-    out_dir = Path(app_settings.output_dir)
+    out_dir = Path(app_settings.output_dir) / "net_pnl"
     recipient = app_settings.signal_recipient
     group_id = app_settings.signal_group_id
     png_path, csv_path, text_path = _generate_and_send_report(report_text, final_df, out_dir, recipient, group_id)

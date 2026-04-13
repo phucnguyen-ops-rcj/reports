@@ -18,7 +18,7 @@ def main():
     report = build_market_summary_report(summary)
     logger.info("Market summary report built successfully.")
 
-    out_dir = Path(app_settings.output_dir)
+    out_dir = Path(app_settings.output_dir) / "market"
     text_path = save_report(report, out_dir)
     logger.info(f"Report text saved to: {text_path}")
     print(report)
