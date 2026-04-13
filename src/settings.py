@@ -14,6 +14,8 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
     )
+    # data source
+    source: str = Field(default="local", description="Data source: 'local' or 'api'")  # can be "local" or "api"
 
     # Signal messaging
     signal_base_url: str

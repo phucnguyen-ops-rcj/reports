@@ -1,4 +1,10 @@
-from .constants import SYMBOL_MAPPING, STRATEGY_CATEGORY_MAPPING, ANALYSIS_DATA_COLUMNS
+import pandas as pd
+from .constants import (
+    SYMBOL_MAPPING,
+    ANALYSIS_DATA_COLUMNS,
+    TRADING_VOLUME_DATA_COLUMNS,
+    MONITORING_SYMBOLS,
+)
 from .dataframe import (
     extract_prefix_column,
     map_column_with_fallback,
@@ -32,4 +38,18 @@ def wrangle_pnl_data(df):
     
     # round numeric columns to 2 decimal places
     df = df.round(2)
+    return df
+
+
+def wrangle_trading_volume_data(df):
+    # standardize column names
+    df.columns = TRADING_VOLUME_DATA_COLUMNS
+    df = df[df["base"].isin(MONITORING_SYMBOLS)].reset_index(drop=True)
+    # TODO: what happens if error is not empty
+    df["usd_volume_24h"] = df["usd_volume_24h"].str.replace(",", "", regex=False).astype(float)  # strip thousands separators before converting
+    # normalise timestamp: source format is "YYYY-MM-DD_HH-MM-SS", convert to standard datetime
+    df["timestamp_utc"] = pd.to_datetime(
+        df["timestamp_utc"].str.replace("_", " ", regex=False).str.replace(r"(\d{2})-(\d{2})-(\d{2})$", r"\1:\2:\3", regex=True),
+        format="%Y-%m-%d %H:%M:%S",
+    )
     return df

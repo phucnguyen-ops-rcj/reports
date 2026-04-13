@@ -128,7 +128,7 @@ def main():
     try:
         file_path = app_settings.csv_input_path
         logger.info(f"Loading data from: {file_path}")
-        df = load_pnl_data(file_path)
+        df = load_pnl_data(app_settings.source, file_path)
     except FileNotFoundError:
         logger.error(f"CSV input file not found: {app_settings.csv_input_path}")
         raise
