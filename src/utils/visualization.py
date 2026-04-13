@@ -11,55 +11,7 @@ from matplotlib.colors import Normalize
 from matplotlib.cm import ScalarMappable
 
 
-def dataframe_to_png(df: pd.DataFrame, output_path: str | Path, title: str = "", figsize: tuple = (12, 6)) -> Path:
-    """Convert DataFrame to PNG image using matplotlib.
-    
-    Args:
-        df: DataFrame to convert
-        output_path: Path to save PNG file
-        title: Optional title for the image
-        figsize: Figure size as (width, height) in inches
-        
-    Returns:
-        Path to saved PNG file
-    """
-    out_path = Path(output_path)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    
-    fig, ax = plt.subplots(figsize=figsize)
-    ax.axis('tight')
-    ax.axis('off')
-    
-    # Create table
-    table = ax.table(cellText=df.values, colLabels=df.columns, cellLoc='left', loc='center')
-    table.auto_set_font_size(False)
-    table.set_fontsize(9)
-    table.scale(1, 1.5)
-    
-    # Style header
-    for i in range(len(df.columns)):
-        table[(0, i)].set_facecolor('#4CAF50')
-        table[(0, i)].set_text_props(weight='bold', color='white')
-    
-    # Alternate row colors
-    for i in range(1, len(df) + 1):
-        for j in range(len(df.columns)):
-            if i % 2 == 0:
-                table[(i, j)].set_facecolor('#f0f0f0')
-            else:
-                table[(i, j)].set_facecolor('#ffffff')
-    
-    if title:
-        plt.title(title, fontsize=14, fontweight='bold', pad=20)
-    
-    plt.tight_layout()
-    plt.savefig(out_path, dpi=100, bbox_inches='tight')
-    plt.close(fig)
-    
-    return out_path
-
-
-def dataframe_to_png_styled(df: pd.DataFrame, output_path: str | Path, title: str = "", 
+def net_pnl_to_png_styled(df: pd.DataFrame, output_path: str | Path, title: str = "", 
                            highlight_col: str | None = None, cmap: str = "RdYlGn") -> Path:
     """Convert DataFrame to PNG with conditional formatting/highlighting.
     
@@ -120,4 +72,57 @@ def dataframe_to_png_styled(df: pd.DataFrame, output_path: str | Path, title: st
     plt.savefig(out_path, dpi=100, bbox_inches='tight')
     plt.close(fig)
     
+    return out_path
+
+
+def trading_volume_to_png_styled(df: pd.DataFrame, output_path: str | Path, title: str = "") -> Path:
+    """Convert trading volume DataFrame to PNG, highlighting rows that do not meet the requirement.
+
+    Args:
+        df: DataFrame to convert (must contain a boolean 'meets_requirement' column)
+        output_path: Path to save PNG file
+        title: Optional title for the image
+
+    Returns:
+        Path to saved PNG file
+    """
+    out_path = Path(output_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    df_display = df.copy().round(2)
+
+    fig, ax = plt.subplots(figsize=(14, 6))
+    ax.axis('tight')
+    ax.axis('off')
+
+    # Prepare cell colors — white by default, light red for rows that miss the requirement
+    color_array = np.ones((len(df_display), len(df_display.columns), 3))
+    if "meets_requirement" in df_display.columns:
+        for i, meets in enumerate(df_display["meets_requirement"]):
+            if not meets:
+                color_array[i, :] = [1.0, 0.85, 0.85]  # light red for failing rows
+
+    table = ax.table(
+        cellText=df_display.values,
+        colLabels=df_display.columns,
+        cellLoc='left',
+        loc='center',
+        cellColours=color_array,
+    )
+    table.auto_set_font_size(False)
+    table.set_fontsize(9)
+    table.scale(1, 2)
+
+    # Style header
+    for i in range(len(df_display.columns)):
+        table[(0, i)].set_facecolor('#2c3e50')
+        table[(0, i)].set_text_props(weight='bold', color='white')
+
+    if title:
+        plt.title(title, fontsize=14, fontweight='bold', pad=20)
+
+    plt.tight_layout()
+    plt.savefig(out_path, dpi=100, bbox_inches='tight')
+    plt.close(fig)
+
     return out_path

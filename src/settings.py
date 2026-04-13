@@ -28,7 +28,8 @@ class Settings(BaseSettings):
     coingecko_api_key: str
 
     # File paths
-    csv_input_path: str = Field(default="data/trades.csv")
+    net_pnl_input_path: str = Field(default="data/trades.csv")
+    trading_volume_input_path: str = Field(default="data/trading_volume.csv")
     output_dir: str = Field(default="results/daily")
 
     # Logging

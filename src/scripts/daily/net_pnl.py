@@ -13,7 +13,7 @@ from src.utils.dataframe import (
 )
 from src.utils.format_message import build_daily_report
 from src.utils.save_data import save_report, save_csv
-from src.utils.visualization import dataframe_to_png_styled
+from src.utils.visualization import net_pnl_to_png_styled
 
 logger = logging.getLogger(__name__)
 
@@ -102,7 +102,7 @@ def _generate_and_send_report(report_text, final_df, out_dir, recipient=None, gr
     csv_path = save_csv(final_df, out_dir, prefix="daily_net_pnl_by_strategy")
     logger.info(f"CSV saved to: {csv_path}")
 
-    png_path = dataframe_to_png_styled(
+    png_path = net_pnl_to_png_styled(
         final_df,
         out_dir / "daily_net_pnl_by_strategy.png",
         highlight_col="npnl_r+un"
@@ -169,8 +169,8 @@ def main():
 
     # Generate files and send — Signal failure is non-fatal and logged inside
     out_dir = Path(app_settings.output_dir)
-    recipient = app_settings.signal_recipient if app_settings.enable_signal_notifications else None
-    group_id = app_settings.signal_group_id if app_settings.enable_signal_notifications else None
+    recipient = app_settings.signal_recipient
+    group_id = app_settings.signal_group_id
     png_path, csv_path, text_path = _generate_and_send_report(report_text, final_df, out_dir, recipient, group_id)
 
     return report_text, png_path, csv_path, text_path

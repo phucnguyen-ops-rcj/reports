@@ -9,6 +9,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
+    "influxdb-client>=1.50.0",
     "matplotlib>=3.10.8",
     "pandas>=3.0.2",
     "pydantic>=2.11.3",
@@ -20,6 +21,7 @@ dependencies = [
 [project.scripts]
 net_pnl = "src.scripts.daily.net_pnl:main"
 market = "src.scripts.daily.market:main"
+trading_volume = "src.scripts.daily.trading_volume:main"
 test_signal = "tests.cli:test_signal_client"
 
 [tool.setuptools.packages.find]
