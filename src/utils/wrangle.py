@@ -5,7 +5,7 @@ from .dataframe import (
 )
 
 
-def wrangle_data(df):
+def wrangle_pnl_data(df):
     # remove nan rows
     df = df.dropna(axis=0).reset_index(drop=True)
     # standardize column names

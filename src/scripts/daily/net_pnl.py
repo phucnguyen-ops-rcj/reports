@@ -3,7 +3,7 @@ import logging
 import pandas as pd
 from src.settings import get_settings
 from src.clients.signal import SignalClient
-from src.utils.load_data import load_local_data
+from src.utils.load_data import load_pnl_data
 from src.utils.constants import THRESHOLDS, FINAL_COLUMNS, STRATEGY_NAME_MAPPING, STRATEGY_CATEGORY_MAPPING
 from src.utils.dataframe import (
     aggregate_metric_columns,
@@ -128,7 +128,7 @@ def main():
     try:
         file_path = app_settings.csv_input_path
         logger.info(f"Loading data from: {file_path}")
-        df = load_local_data(file_path)
+        df = load_pnl_data(file_path)
     except FileNotFoundError:
         logger.error(f"CSV input file not found: {app_settings.csv_input_path}")
         raise
