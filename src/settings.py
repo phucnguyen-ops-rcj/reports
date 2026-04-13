@@ -27,6 +27,10 @@ class Settings(BaseSettings):
     coingecko_base_url: str
     coingecko_api_key: str
 
+    # influxDB
+    influxdb_base_url: str
+    influxdb_token: str
+    influxdb_org: str
     # File paths
     net_pnl_input_path: str = Field(default="data/trades.csv")
     trading_volume_input_path: str = Field(default="data/trading_volume.csv")

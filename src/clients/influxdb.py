@@ -1,80 +1,32 @@
-from influxdb_client import InfluxDBClient
-import os
-import csv
-from datetime import datetime
+from __future__ import annotations
 
-print(os.environ.get("INFLUXDB_TOKEN"))
-INFLUX_BUCKET = "test"
-MEASUREMENT = "binance_ALTUSDT_ohlcv"
+import logging
+from influxdb_client import InfluxDBClient as _InfluxDBClient
+from src.settings import get_settings
+logger = logging.getLogger(__name__)
 
 
-def get_ohlcv_data(client): 
-    query = f'''
-    from(bucket: "{INFLUX_BUCKET}")
-        |> range(start: 0)
-        |> filter(fn: (r) => r._measurement == "{MEASUREMENT}")
-        |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
-        |> limit(n:10)
-    '''
+class InfluxDBClient:
+    def __init__(self, base_url: str | None = None, token: str | None = None, org: str | None = None) -> None:
+        app_settings = get_settings()
+        base_url = base_url.rstrip("/") if base_url else app_settings.influxdb_base_url.rstrip("/")
+        token = token if token else app_settings.influxdb_token
+        org = org if org else app_settings.influxdb_org
+        self._client = _InfluxDBClient(url=base_url, token=token, org=org)
 
-    query_api = client.query_api()
-    tables = query_api.query(query)
-
-    results = []
-
-    for table in tables:
-        for record in table.records:
-            results.append({
-                "time": record.get_time(),
-                "open": record.values.get("open"),
-                "high": record.values.get("high"),
-                "low": record.values.get("low"),
-                "close": record.values.get("close"),
-                "volume": record.values.get("volume"),
-                "exchange": record.values.get("exchange"),
-                "symbol": record.values.get("symbol"),
-            })
-
-    return results
+    def get_all_measurements(self, bucket) -> list[str]:
+        """Return all measurement names in the configured bucket."""
+        query = f'''
+        import "influxdata/influxdb/schema"
+        schema.measurements(bucket: "{bucket}")
+        '''
+        query_api = self._client.query_api()
+        tables = query_api.query(query)
+        # each record's _value field holds the measurement name
+        return [record.get_value() for table in tables for record in table.records]
 
 
-def write_to_csv(data):
-    with open("ohlcv_output.csv", "w", newline="") as csvfile:
-        writer = csv.writer(csvfile)
-
-        # Header
-        writer.writerow([
-            "time", "open", "high", "low", "close", "volume", "exchange", "symbol"
-        ])
-
-        # Rows
-        for row in data:
-            writer.writerow([
-                row["time"],
-                row["open"],
-                row["high"],
-                row["low"],
-                row["close"],
-                row["volume"],
-                row["exchange"],
-                row["symbol"],
-            ])
-
-
-def main():
-    client = InfluxDBClient(
-        url="http://localhost:8086",
-        token=os.environ.get("INFLUXDB_TOKEN"),
-        org="Blackbird",
-    )
-
-    data = get_ohlcv_data(client)
-
-    print(f"Fetched {len(data)} rows")
-
-    write_to_csv(data)
-    print("CSV written to ohlcv_output.csv")
-
-
-# if __name__ == "__main__":
-    # main()
+if __name__ == "__main__":
+    client = InfluxDBClient()
+    measurements = client.get_all_measurements("test")
+    print(measurements)

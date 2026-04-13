@@ -16,3 +16,7 @@ wheels/
 # results folder
 /results
 /logs
+
+# ignore csv, png files
+*.csv
+*.png
