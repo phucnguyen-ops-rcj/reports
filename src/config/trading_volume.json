@@ -1,38 +1,77 @@
 {
-    "monitoring_symbols": ["BASED", "WL", "EDGE", "MEZO", "OFC", "CL", "BZ", "NATGAS"],
-    "trading_volume_data_columns": ["timestamp_utc", "product", "base", "usd_volume_24h", "error"],
+    "monitoring_symbols": [
+        "BASED",
+        "WL",
+        "EDGE",
+        "MEZO",
+        "OFC",
+        "USDS"
+    ],
+    "trading_volume_data_columns": ["timestamp_utc", "product", "base", "usd_volume_24h"],
     "requirement_volume": {
         "kucoin": {
             "BASED": {
-                "spot": 2000000,
-                "perp": 2000000
+                "spot": 5000000,
+                "perp": 0
             },
             "WL": {
-                "spot": 1000000,
-                "perp": 1000000
+                "spot": 2000000,
+                "perp": 0
             },
             "EDGE": {
-                "spot": 500000,
-                "perp": 500000
+                "spot": 5000000,
+                "perp": 0
             },
             "MEZO": {
-                "spot": 2000000,
-                "perp": 2000000
+                "spot": 5000000,
+                "perp": 0
             },
             "OFC": {
+                "spot": 5000000,
+                "perp": 0
+            },
+            "USDS": {
                 "spot": 2000000,
-                "perp": 2000000
+                "perp": 0
+            },
+            "AZTEC": {
+                "spot": 1,
+                "perp": 0
+            },
+            "ESP": {
+                "spot": 1,
+                "perp": 0
+            },
+            "INX": {
+                "spot": 1,
+                "perp": 0
+            },
+            "ROBO": {
+                "spot": 1,
+                "perp": 0
+            },
+            "TRIA": {
+                "spot": 1,
+                "perp": 0
+            },
+            "WARD": {
+                "spot": 1,
+                "perp": 0
+            },
+            "ZAMA": {
+                "spot": 1,
+                "perp": 0
             },
             "CL": {
-                "spot": 2000000,
+                "spot": 0,
                 "perp": 2000000
             },
             "BZ": {
-                "spot": 2000000,
+                "spot": 0,
                 "perp": 2000000
             },
             "NATGAS": {
-                "spot": 2000000,
+                "spot": 0,
                 "perp": 2000000
             }
         }
