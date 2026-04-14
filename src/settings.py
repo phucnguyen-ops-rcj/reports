@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from functools import lru_cache
 from pathlib import Path
 
@@ -25,11 +26,11 @@ class Settings(BaseSettings):
 
     # CoinGecko API
     coingecko_base_url: str
-    coingecko_api_key: str
+    coingecko_api_key: str = Field(default_factory=lambda: os.environ["COINGECKO_API_KEY"])
 
     # influxDB
     influxdb_base_url: str
-    influxdb_token: str
+    influxdb_token: str = Field(default_factory=lambda: os.environ["INFLUXDB_TOKEN"])
     influxdb_org: str
     # File paths
     net_pnl_input_path: str = Field(default="data/trades.csv")
@@ -52,3 +53,4 @@ def get_settings() -> Settings:
 
 
 settings = get_settings()
+print(settings)

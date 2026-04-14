@@ -20,3 +20,5 @@ wheels/
 # ignore csv, png files
 *.csv
 *.png
+
+.claude/
