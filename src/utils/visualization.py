@@ -11,6 +11,16 @@ from matplotlib.colors import Normalize
 from matplotlib.cm import ScalarMappable
 
 
+def _format_numeric_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Format numeric columns with comma separators (e.g. 1000000 → 1,000,000.00)."""
+    for col in df.columns:
+        if pd.api.types.is_numeric_dtype(df[col]) and df[col].dtype != bool:
+            df[col] = df[col].apply(
+                lambda x: f"{x:,.2f}" if isinstance(x, (int, float)) and np.isfinite(x) else x
+            )
+    return df
+
+
 def net_pnl_to_png_styled(df: pd.DataFrame, output_path: str | Path, title: str = "", 
                            highlight_col: str | None = None, cmap: str = "RdYlGn") -> Path:
     """Convert DataFrame to PNG with conditional formatting/highlighting.
@@ -28,8 +38,7 @@ def net_pnl_to_png_styled(df: pd.DataFrame, output_path: str | Path, title: str 
     out_path = Path(output_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     
-    # Format numeric values to 2 decimal places
-    df_display = df.copy().round(2)
+    df_display = _format_numeric_columns(df.copy().round(2))
     # for col in df_display.columns:
     #     if pd.api.types.is_numeric_dtype(df_display[col]):
     #         df_display[col] = df_display[col].apply(
@@ -89,7 +98,7 @@ def trading_volume_to_png_styled(df: pd.DataFrame, output_path: str | Path, titl
     out_path = Path(output_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
-    df_display = df.copy().round(2)
+    df_display = _format_numeric_columns(df.copy().round(2))
 
     fig, ax = plt.subplots(figsize=(14, 6))
     ax.axis('tight')
