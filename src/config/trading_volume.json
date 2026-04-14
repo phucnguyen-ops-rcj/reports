@@ -5,7 +5,16 @@
         "EDGE",
         "MEZO",
         "OFC",
-        "USDS"
+        "USDS",
+        "AZTEC",
+        "ESP",
+        "INX",
+        "ROBO",
+        "TRIA",
+        "WARD",
+        "ZAMA",
+        "BZ",
+        "NATGAS"
     ],
     "trading_volume_data_columns": ["timestamp_utc", "product", "base", "usd_volume_24h"],
     "requirement_volume": {

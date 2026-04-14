@@ -57,7 +57,7 @@ def analyze_trading_volume(df):
     volume_summary["meets_requirement"] = volume_summary["average_up_to_date"] >= volume_summary["requirement"]
 
     # reorder columns and sort for consistent output
-    volume_summary = volume_summary[FINAL_ORDER].sort_values(["product", "requirement", "base"]).reset_index(drop=True)
+    volume_summary = volume_summary[FINAL_ORDER].sort_values(["product", "requirement", "base"], ascending=False).reset_index(drop=True)
     return volume_summary
 
 

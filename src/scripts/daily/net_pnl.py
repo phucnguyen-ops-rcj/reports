@@ -126,7 +126,7 @@ def main():
     logging.basicConfig(level=app_settings.log_level.upper(), format='%(asctime)s - %(levelname)s - %(message)s')
 
     try:
-        file_path = app_settings.csv_input_path
+        file_path = app_settings.net_pnl_input_path
         logger.info(f"Loading data from: {file_path}")
         df = load_pnl_data(app_settings.source, file_path)
     except FileNotFoundError:
