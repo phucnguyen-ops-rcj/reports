@@ -32,6 +32,11 @@ class Settings(BaseSettings):
     influxdb_base_url: str
     influxdb_token: str = Field(default_factory=lambda: os.environ["INFLUXDB_TOKEN"])
     influxdb_org: str
+
+    # KuCoin API
+    kucoin_spot_base_url: str
+    kucoin_future_base_url: str
+    
     # File paths
     net_pnl_input_path: str = Field(default="data/trades.csv")
     trading_volume_input_path: str = Field(default="data/trading_volume.csv")
