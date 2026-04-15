@@ -40,7 +40,8 @@ class Settings(BaseSettings):
     # File paths
     net_pnl_input_path: str = Field(default="data/trades.csv")
     trading_volume_input_path: str = Field(default="data/trading_volume.csv")
-    output_dir: str = Field(default="results/daily")
+    input_dir: str = Field(default="data")
+    output_dir: str = Field(default="results")
 
     # Logging
     log_level: str = Field(default="INFO")

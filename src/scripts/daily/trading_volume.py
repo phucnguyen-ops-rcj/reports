@@ -35,11 +35,9 @@ def analyze_trading_volume(df):
     volume_summary["average_up_to_date"] = volume_summary["total_usd_volume"] / volume_summary["days_since_listing"]
 
     # calculate last 24h volume from the most recent row per group
-    last_24h_threshold = pd.to_datetime("now") - pd.Timedelta(days=1)
     last_24h_volume = (
-        df[df["timestamp_utc"] >= last_24h_threshold]
-        .groupby(["product", "base"])["usd_volume_24h"]
-        .sum()
+        df.groupby(["product", "base"])["usd_volume_24h"]
+        .first()
         .reset_index()
         .rename(columns={"usd_volume_24h": "last_24h_usd_volume"})
     )
@@ -50,20 +48,20 @@ def analyze_trading_volume(df):
     # NOTE: if multiple exchanges are added in future, group by exchange and extend REQUIREMENT_VOLUME accordingly
     exchange_requirement_volume = REQUIREMENT_VOLUME.get("kucoin")
     volume_summary["requirement"] = volume_summary.apply(
-        lambda row: exchange_requirement_volume[row["base"]][row["product"]],
+        lambda row: exchange_requirement_volume[row["base"]],
         axis=1,
     )
     volume_summary = volume_summary[volume_summary["requirement"] > 0]  # exclude tokens with no requirement defined
     volume_summary["meets_requirement"] = volume_summary["average_up_to_date"] >= volume_summary["requirement"]
 
     # reorder columns and sort for consistent output
-    volume_summary = volume_summary[FINAL_ORDER].sort_values(["product", "requirement", "base"], ascending=False).reset_index(drop=True)
+    volume_summary = volume_summary[FINAL_ORDER].sort_values(["product", "requirement", "remaining_days"], ascending=False).reset_index(drop=True)
     return volume_summary
 
 
 def _generate_and_send_report(report_text, volume_summary, out_dir, recipient=None, group_id=None):
     """Save CSV and PNG report files, and send only the PNG via Signal."""
-    csv_path = save_csv(volume_summary, out_dir, prefix="daily_trading_volume")
+    csv_path = save_csv(volume_summary, out_dir, prefix="")
     logger.info(f"CSV saved to: {csv_path}")
 
     png_path = trading_volume_to_png_styled(

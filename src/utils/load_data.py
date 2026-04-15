@@ -1,8 +1,14 @@
 import pandas as pd
 import logging
 import time
+from pathlib import Path
+from src.settings import get_settings
+from src.utils.save_data import save_csv
 from src.utils.wrangle import wrangle_pnl_data, wrangle_trading_volume_data
 from typing import Literal
+from src.clients.kucoin import KucoinClient
+from src.utils.constants import MONITORING_SYMBOLS
+from datetime import datetime
 logger = logging.getLogger(__name__)
 
 
@@ -23,18 +29,20 @@ def load_pnl_data(source: Literal["local", "api"] = "local", file_path = None):
 def load_trading_volume_data(source: Literal["local", "api"] = "local", file_path = None):
     start_time = time.time()
     if source == "local":
+        # TODO: move this to else block when influxdb is implemented for net_pnl
         logger.info(f"Loading trading volume data from {file_path}...")
-        df = pd.read_csv(file_path)
+        # df = pd.read_csv(file_path)
+        kucoin_client = KucoinClient()
+        df = kucoin_client.get_history_volume(MONITORING_SYMBOLS, 100)
+        app_settings = get_settings()
+        out_dir = Path(app_settings.input_dir) / "trading_volume"
+        save_csv(df, out_dir, f"")
     else:
         logger.info(f"Loading trading volume data from API...")
     df = wrangle_trading_volume_data(df)
     end_time = time.time()
     logger.info(f"{len(df)} rows loaded in {end_time - start_time:.2f} seconds.")
     return df
-
-
-def load_api_data():
-    pass
 
 
 if __name__ == "__main__":

@@ -35,7 +35,3 @@ for exchange, requirements in REQUIREMENT_VOLUME.items():
     for symbol in MONITORING_SYMBOLS:
         if symbol not in requirements:
             raise ValueError(f"All monitoring symbols must have requirement volume defined in REQUIREMENT_VOLUME. Missing: {symbol} in exchange {exchange}")
-    for key, value in requirements.items():
-        if not isinstance(value, dict) or "spot" not in value or "perp" not in value:
-            raise ValueError(f"Invalid format for required volume of {key}. Expected a dictionary with 'spot' and 'perp' keys.")
-        

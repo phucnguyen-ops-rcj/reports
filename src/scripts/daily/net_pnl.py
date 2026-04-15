@@ -99,7 +99,7 @@ def _generate_and_send_report(report_text, final_df, out_dir, recipient=None, gr
     text_path = save_report(report_text, out_dir)
     logger.info(f"Report text saved to: {text_path}")
 
-    csv_path = save_csv(final_df, out_dir, prefix="daily_net_pnl_by_strategy")
+    csv_path = save_csv(final_df, out_dir, prefix="")
     logger.info(f"CSV saved to: {csv_path}")
 
     png_path = net_pnl_to_png_styled(

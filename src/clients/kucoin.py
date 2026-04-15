@@ -103,7 +103,6 @@ class KucoinClient:
             )
             if str(j.get("code")) != "200000":
                 raise ValueError(f"KuCoin spot kline error for {symbol}: {j}")
-            print(j.get("data"))
             return [
                 {
                     "date": datetime.fromtimestamp(int(row[0]), tz=timezone.utc).date(),
@@ -141,7 +140,6 @@ class KucoinClient:
             )
             if str(j.get("code")) != "200000":
                 raise ValueError(f"KuCoin futures kline error for {contract_id}: {j}")
-            print(j.get("data"))
             return [
                 {
                     "date": datetime.fromtimestamp(int(row[0]) / 1000, tz=timezone.utc).date(),
