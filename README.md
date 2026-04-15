@@ -45,6 +45,22 @@ Persistent=true
 WantedBy=timers.target
 ```
 
+## Environment variables
+
+Sensitive keys must be injected into the systemd user manager environment so they are available to the service via `os.environ`:
+
+```bash
+systemctl --user set-environment COINGECKO_API_KEY=<key> INFLUXDB_TOKEN=<token>
+```
+
+This persists for the lifetime of the current login session but **does not survive a reboot**. To re-apply automatically on login, add the command to `~/.bashrc` (or `~/.profile` for non-interactive sessions):
+
+To verify the vars are set:
+
+```bash
+systemctl --user show-environment | grep -E "COINGECKO|INFLUXDB"
+```
+
 ## Setup
 
 ```bash
