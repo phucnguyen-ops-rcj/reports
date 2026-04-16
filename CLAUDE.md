@@ -8,9 +8,9 @@ All commands use `uv` as the runner. The package is installed in editable mode s
 
 ```bash
 # Run a script directly
-uv run -m src.scripts.daily.market
-uv run -m src.scripts.daily.net_pnl
-uv run -m src.scripts.daily.trading_volume
+uv run -m src.scripts.net_pnl
+uv run -m src.scripts.market
+uv run -m src.scripts.trading_volume
 
 # Or via CLI entry points (after install)
 uv run market
@@ -71,6 +71,19 @@ CSV file (data/)
 
 - **Signal failures are non-fatal**: the `try/except` around `SignalClient.send()` in all entry points logs the error and continues, so a network issue never prevents report files from being saved.
 
+- **`app_settings` vs `get_settings()`**: `app_settings` is a module-level singleton (`app_settings = get_settings()` at the bottom of `settings.py`). Both are equivalent at runtime due to `@lru_cache`. Prefer `get_settings()` called inside functions for testability; `app_settings` is acceptable in entry-point scripts.
+
+## Type Checking (Pyrefly)
+
+Pyrefly is the active type checker (configured via `[tool.pyrefly]` in `pyproject.toml` with `search-path = ["."]`). Known patterns to follow:
+
+- **`df[list_of_cols]`** is typed as `DataFrame | Series` by pandas stubs — use `df.loc[:, cols]` to get an unambiguous `DataFrame`.
+- **`DataFrame.sort_values`** requires `by=` as a keyword argument, not positional, for Pyrefly to resolve the correct overload.
+- **`_to_float()` returns `float | None`** — use `(value or 0.0)` before arithmetic to narrow the type.
+- **`datetime.now(tz)`** requires `tzinfo`, not `str` — use `ZoneInfo(app_settings.tz)` (stdlib, no stubs needed) instead of `pytz.timezone(app_settings.tz)`.
+- **`pd.to_datetime("now") - Series`** — Pyrefly can't infer this returns `Series[Timedelta]`; suppress with `# pyrefly: ignore[missing-attribute]`.
+- To silence a false positive inline: `# pyrefly: ignore[<error-code>]`
+
 ## Code Conventions
 
 - **Comments for complex logic**: Any line performing business logic that isn't immediately obvious (pandas transforms, aggregations, conditional filtering, ratio calculations) should have a short inline comment explaining the "why" or the intended result. Example:
@@ -88,68 +101,9 @@ The systemd timer calls `run_daily_morning.sh`, which runs `market`, then `net_p
 
 ---
 
-# Karpathy-Inspired Claude Code Guidelines
+## Coding Behaviour
 
-Behavioral guidelines to reduce common LLM coding mistakes. Derived from [Andrej Karpathy's observations](https://x.com/karpathy/status/2015883857489522876) on LLM coding pitfalls.
-
-**Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
-
-## 1. Think Before Coding
-
-**Don't assume. Don't hide confusion. Surface tradeoffs.**
-
-Before implementing:
-- State your assumptions explicitly. If uncertain, ask.
-- If multiple interpretations exist, present them - don't pick silently.
-- If a simpler approach exists, say so. Push back when warranted.
-- If something is unclear, stop. Name what's confusing. Ask.
-
-## 2. Simplicity First
-
-**Minimum code that solves the problem. Nothing speculative.**
-
-- No features beyond what was asked.
-- No abstractions for single-use code.
-- No "flexibility" or "configurability" that wasn't requested.
-- No error handling for impossible scenarios.
-- If you write 200 lines and it could be 50, rewrite it.
-
-Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
-
-## 3. Surgical Changes
-
-**Touch only what you must. Clean up only your own mess.**
-
-When editing existing code:
-- Don't "improve" adjacent code, comments, or formatting.
-- Don't refactor things that aren't broken.
-- Match existing style, even if you'd do it differently.
-- If you notice unrelated dead code, mention it - don't delete it.
-
-When your changes create orphans:
-- Remove imports/variables/functions that YOUR changes made unused.
-- Don't remove pre-existing dead code unless asked.
-
-The test: Every changed line should trace directly to the user's request.
-
-## 4. Goal-Driven Execution
-
-**Define success criteria. Loop until verified.**
-
-Transform tasks into verifiable goals:
-- "Add validation" → "Write tests for invalid inputs, then make them pass"
-- "Fix the bug" → "Write a test that reproduces it, then make it pass"
-- "Refactor X" → "Ensure tests pass before and after"
-
-For multi-step tasks, state a brief plan:
-```
-1. [Step] → verify: [check]
-2. [Step] → verify: [check]
-3. [Step] → verify: [check]
-```
-
-Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
-
----
-
-**These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
+- **Ask before assuming**: surface ambiguity and tradeoffs before implementing; if multiple interpretations exist, present them.
+- **Minimum viable change**: no features, abstractions, or error handling beyond what was asked. If it could be 50 lines, don't write 200.
+- **Surgical edits**: touch only what the task requires. Don't improve adjacent code, fix formatting, or remove pre-existing dead code. Remove imports/variables that *your* changes made unused.
+- **Verify before closing**: every task should have a clear done-state (tests pass, script runs, error gone). State it upfront for multi-step work.
