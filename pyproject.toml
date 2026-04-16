@@ -30,3 +30,8 @@ include = ["src*", "tests*"]
 
 [tool.pyrefly]
 search-path = ["."]
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.5.1",
+]
