@@ -2,13 +2,12 @@ from __future__ import annotations
 
 import logging
 from influxdb_client import InfluxDBClient as _InfluxDBClient
-from src.settings import get_settings
+from src.settings import app_settings
 logger = logging.getLogger(__name__)
 
 
 class InfluxDBClient:
     def __init__(self, base_url: str | None = None, token: str | None = None, org: str | None = None) -> None:
-        app_settings = get_settings()
         base_url = base_url.rstrip("/") if base_url else app_settings.influxdb_base_url.rstrip("/")
         token = token if token else app_settings.influxdb_token
         org = org if org else app_settings.influxdb_org

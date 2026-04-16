@@ -1,13 +1,15 @@
 
 from datetime import datetime
 from pathlib import Path
+import pytz
 import pandas as pd
+from src.settings import app_settings
 
 
 def save_report(report_text: str, output_dir: str | Path, prefix: str = "report") -> Path:
     out_dir = Path(output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now(pytz.timezone(app_settings.tz)).strftime("%Y%m%d_%H%M%S")
     out_path = out_dir / f"{prefix}_{timestamp}.txt"
     # out_path.write_text(report_text, encoding="utf-8")
     return out_path

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from src.clients.coingecko import GlobalMarketSummary
 from src.utils.constants import CATEGORY_STRATEGY_MAPPING
-from src.settings import get_settings
+from src.settings import app_settings
 import pandas as pd
 from datetime import datetime
 import pytz
@@ -44,7 +44,7 @@ def format_report_table(df: pd.DataFrame, preferred_cols: list[str]) -> str:
         return "None"
 
     cols = [col for col in preferred_cols if col in df.columns]
-    table_df = df[cols].copy() if cols else df.copy()
+    table_df = df.loc[:, cols].copy() if cols else df.copy()
 
     if "npnl_r+un" in table_df.columns:
         table_df = table_df.sort_values("npnl_r+un")
@@ -114,9 +114,10 @@ def build_market_summary_report(market_summary: GlobalMarketSummary) -> str:
     total_volume = market_summary.total_volume_usd
     market_cap_change_24h = market_summary.market_cap_change_percentage_24h_usd
 
-    sg_tz = pytz.timezone(get_settings().tz)
+    sg_tz = pytz.timezone(app_settings.tz)
+    _now = market_summary.updated_at or datetime.now(sg_tz).timestamp()
     lines = [
-        f"Market Summary at {datetime.fromtimestamp(market_summary.updated_at, tz=sg_tz).strftime('%Y-%m-%d %H:%M:%S')} (SGT):",
+        f"Market Summary at {datetime.fromtimestamp(_now, tz=sg_tz).strftime('%Y-%m-%d %H:%M:%S')} (SGT):",
         f"  - Total Market Cap: ${total_market_cap:,.2f}",
         f"  - Market Cap Change (24H): {market_cap_change_24h:+.2f}%",
         f"  - Total 24H Volume: ${total_volume:,.2f}",

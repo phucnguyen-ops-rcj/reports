@@ -6,11 +6,10 @@ from pathlib import Path
 from typing import Any
 import urllib.error
 import urllib.request
-from src.settings import get_settings
+from src.settings import app_settings
 
 class SignalClient:
     def __init__(self, sender: str | None = None, base_url: str | None = None) -> None:
-        app_settings = get_settings()
         self.sender = sender or app_settings.signal_sender
         resolved_base_url = base_url or app_settings.signal_base_url
         self.base_url = resolved_base_url.rstrip("/")

@@ -3,7 +3,6 @@ import os
 import csv
 from datetime import datetime
 
-print(os.environ.get("INFLUXDB_TOKEN"))
 INFLUX_BUCKET = "test"
 MEASUREMENT = "binance_ALTUSDT_ohlcv"
 

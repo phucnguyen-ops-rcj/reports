@@ -8,7 +8,7 @@ import urllib.error
 import urllib.request
 
 import pandas as pd
-from src.settings import get_settings
+from src.settings import app_settings
 
 
 class KucoinClient:
@@ -19,7 +19,6 @@ class KucoinClient:
         futures_base_url: str | None = None,
         timeout: float = 10.0,
     ) -> None:
-        app_settings = get_settings()
         self.spot_base_url = spot_base_url.rstrip("/") if spot_base_url else app_settings.kucoin_spot_base_url
         self.futures_base_url = futures_base_url.rstrip("/") if futures_base_url else app_settings.kucoin_future_base_url
         self.timeout = timeout
@@ -108,7 +107,7 @@ class KucoinClient:
                     "date": datetime.fromtimestamp(int(row[0]), tz=timezone.utc).date(),
                     "product": "spot",
                     "base": base,
-                    "usd_volume_24h": self._to_float(row[6])*2,  # turnover = USDT notional
+                    "usd_volume_24h": (self._to_float(row[6]) or 0.0) * 2,  # turnover = USDT notional
                 }
                 for row in (j.get("data") or [])
             ]
@@ -145,7 +144,7 @@ class KucoinClient:
                     "date": datetime.fromtimestamp(int(row[0]) / 1000, tz=timezone.utc).date(),
                     "product": "perp",
                     "base": base,
-                    "usd_volume_24h": self._to_float(row[6])*2,  # turnover = USDT notional
+                    "usd_volume_24h": (self._to_float(row[6]) or 0.0) * 2,  # turnover = USDT notional
                 }
                 for row in (j.get("data") or [])
             ]

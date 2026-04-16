@@ -6,11 +6,10 @@ from pathlib import Path
 import pytest
 
 from src.clients.signal import SignalClient
-from src.settings import get_settings
+from src.settings import app_settings
 
 
 def _get_test_settings():
-    app_settings = get_settings()
     sender = os.environ.get("SIGNAL_TEST_SENDER", app_settings.signal_sender)
     recipient = os.environ.get("SIGNAL_TEST_RECIPIENT", app_settings.signal_recipient)
     base_url = os.environ.get("SIGNAL_TEST_BASE_URL", app_settings.signal_base_url)

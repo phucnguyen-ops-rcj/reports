@@ -1,6 +1,6 @@
 from src.clients.coingecko import CoinGeckoClient
 from src.clients.signal import SignalClient
-from src.settings import get_settings
+from src.settings import app_settings
 from src.utils.format_message import build_market_summary_report
 from pathlib import Path
 import logging
@@ -10,7 +10,6 @@ logger = logging.getLogger(__name__)
 
 
 def main():
-    app_settings = get_settings()
     logging.basicConfig(level=app_settings.log_level.upper(), format='%(asctime)s - %(levelname)s - %(message)s')
 
     coingecko_client = CoinGeckoClient()

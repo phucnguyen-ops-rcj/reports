@@ -1,7 +1,7 @@
 from pathlib import Path
 import logging
 import pandas as pd
-from src.settings import get_settings
+from src.settings import app_settings
 from src.clients.signal import SignalClient
 from src.utils.load_data import load_trading_volume_data
 from src.utils.constants import REQUIREMENT_VOLUME
@@ -30,7 +30,7 @@ def analyze_trading_volume(df):
         "timestamp_utc": "min",
         "usd_volume_24h": "sum",
     }).reset_index().rename(columns={"usd_volume_24h": "total_usd_volume"})
-    volume_summary["days_since_listing"] = (pd.to_datetime("now") - pd.to_datetime(volume_summary["timestamp_utc"])).dt.days + 1
+    volume_summary["days_since_listing"] = (pd.to_datetime("now") - pd.to_datetime(volume_summary["timestamp_utc"])).dt.days + 1    # pyrefly: ignore[missing-attribute]
     volume_summary["remaining_days"] = 14 - volume_summary["days_since_listing"]
     volume_summary["average_up_to_date"] = volume_summary["total_usd_volume"] / volume_summary["days_since_listing"]
 
@@ -83,7 +83,6 @@ def _generate_and_send_report(report_text, volume_summary, out_dir, recipient=No
 
 
 def main():
-    app_settings = get_settings()
     logging.basicConfig(level=app_settings.log_level.upper(), format='%(asctime)s - %(levelname)s - %(message)s')
 
     try:

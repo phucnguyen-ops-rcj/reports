@@ -9,7 +9,7 @@ import urllib.request
 
 from pydantic import BaseModel
 
-from src.settings import get_settings
+from src.settings import app_settings
 
 
 class QuoteCurrency(StrEnum):
@@ -29,7 +29,6 @@ class GlobalMarketSummary(BaseModel):
     volume_change_percentage_24h_usd: float | None
     updated_at: int | None
 
-
 class CoinGeckoClient:
     def __init__(
         self,
@@ -39,7 +38,6 @@ class CoinGeckoClient:
         api_key: str | None = None,
         user_agent: str = "reports/1.0",
     ) -> None:
-        app_settings = get_settings()
         resolved_base_url = base_url or app_settings.coingecko_base_url
         self.base_url = resolved_base_url.rstrip("/")
         self.timeout = timeout

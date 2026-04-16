@@ -1,7 +1,7 @@
 from pathlib import Path
 import logging
 import pandas as pd
-from src.settings import get_settings
+from src.settings import app_settings
 from src.clients.signal import SignalClient
 from src.utils.load_data import load_pnl_data
 from src.utils.constants import THRESHOLDS, FINAL_COLUMNS, STRATEGY_NAME_MAPPING, STRATEGY_CATEGORY_MAPPING
@@ -122,15 +122,14 @@ def _generate_and_send_report(report_text, final_df, out_dir, recipient=None, gr
 
 
 def main():
-    app_settings = get_settings()
     logging.basicConfig(level=app_settings.log_level.upper(), format='%(asctime)s - %(levelname)s - %(message)s')
-
     try:
         file_path = app_settings.net_pnl_input_path
         logger.info(f"Loading data from: {file_path}")
-        df = load_pnl_data(app_settings.source, file_path)
+        source = app_settings.source
+        df = load_pnl_data(source, file_path)
     except FileNotFoundError:
-        logger.error(f"CSV input file not found: {app_settings.csv_input_path}")
+        logger.error(f"CSV input file not found: {app_settings.net_pnl_input_path}")
         raise
     except Exception as exc:
         logger.error(f"Failed to load data: {exc}", exc_info=True)
