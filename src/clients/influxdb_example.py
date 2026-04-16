@@ -63,7 +63,7 @@ def write_to_csv(data):
 def main():
     client = InfluxDBClient(
         url="http://localhost:8086",
-        token=os.environ.get("INFLUXDB_TOKEN"),
+        token=os.environ.get("INFLUXDB_TOKEN", "api-token"),
         org="Blackbird",
     )
 
