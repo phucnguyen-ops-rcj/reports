@@ -104,7 +104,7 @@ class KucoinClient:
                 raise ValueError(f"KuCoin spot kline error for {symbol}: {j}")
             return [
                 {
-                    "date": datetime.fromtimestamp(int(row[0]), tz=timezone.utc).date(),
+                    "date": datetime.fromtimestamp(int(row[0]), tz=timezone.utc),
                     "product": "spot",
                     "base": base,
                     "usd_volume_24h": (self._to_float(row[6]) or 0.0) * 2,  # turnover = USDT notional
@@ -114,7 +114,7 @@ class KucoinClient:
         except Exception as exc:
             # Return one error row per day in the range so the token is still represented
             return [
-                {"date": (start_dt + timedelta(days=i)).date(), "product": "spot", "base": base, "usd_volume_24h": None}
+                {"date": (start_dt + timedelta(days=i)), "product": "spot", "base": base, "usd_volume_24h": None}
                 for i in range((end_dt - start_dt).days)
             ]
 
@@ -141,7 +141,7 @@ class KucoinClient:
                 raise ValueError(f"KuCoin futures kline error for {contract_id}: {j}")
             return [
                 {
-                    "date": datetime.fromtimestamp(int(row[0]) / 1000, tz=timezone.utc).date(),
+                    "date": datetime.fromtimestamp(int(row[0]) / 1000, tz=timezone.utc),
                     "product": "perp",
                     "base": base,
                     "usd_volume_24h": (self._to_float(row[6]) or 0.0) * 2,  # turnover = USDT notional
@@ -150,7 +150,7 @@ class KucoinClient:
             ]
         except Exception as exc:
             return [
-                {"date": (start_dt + timedelta(days=i)).date(), "product": "perp", "base": base, "usd_volume_24h": None}
+                {"date": (start_dt + timedelta(days=i)), "product": "perp", "base": base, "usd_volume_24h": None}
                 for i in range((end_dt - start_dt).days)
             ]
 

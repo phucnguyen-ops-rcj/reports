@@ -30,7 +30,8 @@ def analyze_trading_volume(df):
         "timestamp_utc": "min",
         "usd_volume_24h": "sum",
     }).reset_index().rename(columns={"usd_volume_24h": "total_usd_volume"})
-    volume_summary["days_since_listing"] = (pd.to_datetime("now") - pd.to_datetime(volume_summary["timestamp_utc"])).dt.days + 1    # pyrefly: ignore[missing-attribute]
+    utc_now = pd.Timestamp.now(tz="UTC")
+    volume_summary["days_since_listing"] = (utc_now.normalize() - volume_summary["timestamp_utc"].dt.normalize()).dt.days + 1
     volume_summary["remaining_days"] = 14 - volume_summary["days_since_listing"]
     volume_summary["average_up_to_date"] = volume_summary["total_usd_volume"] / volume_summary["days_since_listing"]
 
@@ -69,7 +70,8 @@ def _generate_and_send_report(report_text, volume_summary, out_dir, recipient=No
         out_dir / "daily_trading_volume.png",
     )
     logger.info(f"PNG saved to: {png_path}")
-
+    if not app_settings.enable_signal_notifications:
+        return png_path, csv_path
     if recipient or group_id:
         try:
             client = SignalClient()

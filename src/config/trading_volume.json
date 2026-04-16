@@ -1,20 +1,6 @@
 {
     "monitoring_symbols": [
-        "BASED",
-        "WL",
-        "EDGE",
-        "MEZO",
-        "OFC",
-        "USDS",
-        "AZTEC",
-        "ESP",
-        "INX",
-        "ROBO",
-        "TRIA",
-        "WARD",
-        "ZAMA",
-        "BZUSDTM",
-        "NATGASUSDTM"
+        "BASED"
     ],
     "trading_volume_data_columns": [
         "timestamp_utc",

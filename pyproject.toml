@@ -20,9 +20,9 @@ dependencies = [
 ]
 
 [project.scripts]
-net_pnl = "src.scripts.daily.net_pnl:main"
-market = "src.scripts.daily.market:main"
-trading_volume = "src.scripts.daily.trading_volume:main"
+net_pnl = "src.scripts.net_pnl:main"
+market = "src.scripts.market:main"
+trading_volume = "src.scripts.trading_volume:main"
 test_signal = "tests.cli:test_signal_client"
 
 [tool.setuptools.packages.find]

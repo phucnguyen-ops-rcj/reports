@@ -18,7 +18,7 @@ def save_report(report_text: str, output_dir: str | Path, prefix: str = "report"
 def save_csv(df: pd.DataFrame, output_dir: str | Path, prefix: str = "data") -> Path:
     out_dir = Path(output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now(pytz.timezone(app_settings.tz)).strftime("%Y%m%d_%H%M%S")
     out_path = out_dir / f"{prefix}_{timestamp}.csv"
     df.to_csv(out_path, index=False)
     return out_path

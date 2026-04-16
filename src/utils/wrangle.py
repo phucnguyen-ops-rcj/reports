@@ -54,5 +54,5 @@ def wrangle_trading_volume_data(df):
     # df.to_csv("data/trading_volume/trading_volume_wrangled.csv", index=False)  # save intermediate result for debugging
     # df["usd_volume_24h"] = df["usd_volume_24h"].str.replace(",", "", regex=False).astype(float)  # strip thousands separators before converting
     # normalise timestamp: source format is "YYYY-MM-DD"
-    df["timestamp_utc"] = pd.to_datetime(df["timestamp_utc"], format="%Y-%m-%d")
+    # df["timestamp_utc"] = pd.to_datetime(df["timestamp_utc"], format="%Y-%m-%d")
     return df

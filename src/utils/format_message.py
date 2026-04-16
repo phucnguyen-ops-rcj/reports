@@ -114,7 +114,7 @@ def build_market_summary_report(market_summary: GlobalMarketSummary) -> str:
     total_volume = market_summary.total_volume_usd
     market_cap_change_24h = market_summary.market_cap_change_percentage_24h_usd
 
-    sg_tz = pytz.timezone(app_settings.tz)
+    sg_tz = pytz.timezone(app_settings.tz)  # or datetime.timezone(timedelta(hours=8))
     _now = market_summary.updated_at or datetime.now(sg_tz).timestamp()
     lines = [
         f"Market Summary at {datetime.fromtimestamp(_now, tz=sg_tz).strftime('%Y-%m-%d %H:%M:%S')} (SGT):",

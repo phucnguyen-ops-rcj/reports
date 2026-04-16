@@ -108,7 +108,8 @@ def _generate_and_send_report(report_text, final_df, out_dir, recipient=None, gr
         highlight_col="npnl_r+un"
     )
     logger.info(f"PNG saved to: {png_path}")
-
+    if not app_settings.enable_signal_notifications:
+        return png_path, csv_path, text_path
     if recipient or group_id:
         try:
             client = SignalClient()
