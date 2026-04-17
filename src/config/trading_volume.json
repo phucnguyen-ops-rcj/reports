@@ -13,6 +13,7 @@
         "TRIA",
         "WARD",
         "ZAMA",
+        "RAVE",
         "CLUSDTM",
         "BZUSDTM",
         "NATGASUSDTM"
@@ -38,6 +39,7 @@
             "TRIA": 1,
             "WARD": 1,
             "ZAMA": 1,
+            "RAVE": 2000000,
             "CLUSDTM": 2000000,
             "BZUSDTM": 2000000,
             "NATGASUSDTM": 2000000
