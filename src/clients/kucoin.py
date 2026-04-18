@@ -19,8 +19,16 @@ class KucoinClient:
         futures_base_url: str | None = None,
         timeout: float = 10.0,
     ) -> None:
-        self.spot_base_url = spot_base_url.rstrip("/") if spot_base_url else app_settings.kucoin_spot_base_url
-        self.futures_base_url = futures_base_url.rstrip("/") if futures_base_url else app_settings.kucoin_future_base_url
+        self.spot_base_url = (
+            spot_base_url.rstrip("/")
+            if spot_base_url
+            else app_settings.kucoin_spot_base_url
+        )
+        self.futures_base_url = (
+            futures_base_url.rstrip("/")
+            if futures_base_url
+            else app_settings.kucoin_future_base_url
+        )
         self.timeout = timeout
 
     def get_history_volume(self, tokens: list[str], days: int = 30) -> pd.DataFrame:
@@ -34,21 +42,24 @@ class KucoinClient:
         Returns columns: date (date), product (str), base (str), usd_volume_24h (float)
         Errors per token/day are stored as NaN in usd_volume_24h.
         """
-        end_dt = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+        end_dt = datetime.now(timezone.utc).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
         start_dt = end_dt - timedelta(days=days)
 
         all_rows: list[dict[str, Any]] = []
         for raw in tokens:
             raw = raw.upper()
             if self._is_perp(raw):
-                base = raw.removesuffix("USDTM")
-                rows = self._fetch_history_futures(raw, base, start_dt, end_dt)
+                rows = self._fetch_history_futures(raw, start_dt, end_dt)
             else:
                 symbol = f"{raw}-USDT"
                 rows = self._fetch_history_spot(symbol, raw, start_dt, end_dt)
             all_rows.extend(rows)
 
-        return pd.DataFrame(all_rows, columns=["date", "product", "base", "usd_volume_24h"])
+        return pd.DataFrame(
+            all_rows, columns=["date", "product", "base", "usd_volume_24h"]
+        )
 
     def get_trading_volume(self, tokens: list[str]) -> pd.DataFrame:
         """
@@ -72,12 +83,16 @@ class KucoinClient:
                 "timestamp_utc": ts,
                 "product": r["product"],
                 "base": r["base"],
-                "usd_volume_24h": r["usd_volume_24h"],  # None on error → NaN in DataFrame
+                "usd_volume_24h": r[
+                    "usd_volume_24h"
+                ],  # None on error → NaN in DataFrame
             }
             for r in rows
         ]
 
-        return pd.DataFrame(records, columns=["timestamp_utc", "product", "base", "usd_volume_24h"])
+        return pd.DataFrame(
+            records, columns=["timestamp_utc", "product", "base", "usd_volume_24h"]
+        )
 
     # ---------- Private: history fetching ----------
 
@@ -107,19 +122,25 @@ class KucoinClient:
                     "date": datetime.fromtimestamp(int(row[0]), tz=timezone.utc),
                     "product": "spot",
                     "base": base,
-                    "usd_volume_24h": (self._to_float(row[6]) or 0.0) * 2,  # turnover = USDT notional
+                    "usd_volume_24h": (self._to_float(row[6]) or 0.0)
+                    * 2,  # turnover = USDT notional
                 }
                 for row in (j.get("data") or [])
             ]
-        except Exception as exc:
+        except Exception:
             # Return one error row per day in the range so the token is still represented
             return [
-                {"date": (start_dt + timedelta(days=i)), "product": "spot", "base": base, "usd_volume_24h": None}
+                {
+                    "date": (start_dt + timedelta(days=i)),
+                    "product": "spot",
+                    "base": base,
+                    "usd_volume_24h": None,
+                }
                 for i in range((end_dt - start_dt).days)
             ]
 
     def _fetch_history_futures(
-        self, contract_id: str, base: str, start_dt: datetime, end_dt: datetime
+        self, contract_id: str, start_dt: datetime, end_dt: datetime
     ) -> list[dict[str, Any]]:
         """
         GET /api/v1/kline/query with granularity=1440 (daily in minutes).
@@ -143,14 +164,20 @@ class KucoinClient:
                 {
                     "date": datetime.fromtimestamp(int(row[0]) / 1000, tz=timezone.utc),
                     "product": "perp",
-                    "base": base,
-                    "usd_volume_24h": (self._to_float(row[6]) or 0.0) * 2,  # turnover = USDT notional
+                    "base": contract_id,
+                    "usd_volume_24h": (self._to_float(row[6]) or 0.0)
+                    * 2,  # turnover = USDT notional
                 }
                 for row in (j.get("data") or [])
             ]
-        except Exception as exc:
+        except Exception:
             return [
-                {"date": (start_dt + timedelta(days=i)), "product": "perp", "base": base, "usd_volume_24h": None}
+                {
+                    "date": (start_dt + timedelta(days=i)),
+                    "product": "perp",
+                    "base": contract_id,
+                    "usd_volume_24h": None,
+                }
                 for i in range((end_dt - start_dt).days)
             ]
 
@@ -164,25 +191,56 @@ class KucoinClient:
         for raw in tokens:
             raw = raw.upper()
             if self._is_perp(raw):
-                base = raw.removesuffix("USDTM")
                 try:
                     vol = self._futures_turnover_24h(raw)
-                    rows.append({"timestamp_utc": stamp, "base": base, "product": "perp", "usd_volume_24h": vol})
+                    rows.append(
+                        {
+                            "timestamp_utc": stamp,
+                            "base": raw,
+                            "product": "perp",
+                            "usd_volume_24h": vol,
+                        }
+                    )
                 except Exception as exc:
-                    rows.append({"timestamp_utc": stamp, "base": base, "product": "perp", "usd_volume_24h": None, "error": str(exc)})
+                    rows.append(
+                        {
+                            "timestamp_utc": stamp,
+                            "base": raw,
+                            "product": "perp",
+                            "usd_volume_24h": None,
+                            "error": str(exc),
+                        }
+                    )
             else:
                 symbol = f"{raw}-USDT"
                 try:
                     vol = self._spot_turnover_24h(symbol)
-                    rows.append({"timestamp_utc": stamp, "base": raw, "product": "spot", "usd_volume_24h": vol})
+                    rows.append(
+                        {
+                            "timestamp_utc": stamp,
+                            "base": raw,
+                            "product": "spot",
+                            "usd_volume_24h": vol,
+                        }
+                    )
                 except Exception as exc:
-                    rows.append({"timestamp_utc": stamp, "base": raw, "product": "spot", "usd_volume_24h": None, "error": str(exc)})
+                    rows.append(
+                        {
+                            "timestamp_utc": stamp,
+                            "base": raw,
+                            "product": "spot",
+                            "usd_volume_24h": None,
+                            "error": str(exc),
+                        }
+                    )
 
         return rows
 
     def _spot_turnover_24h(self, symbol: str) -> float:
         """GET /api/v1/market/stats → data.volValue (24h USDT notional)."""
-        j = self._get(self.spot_base_url, "/api/v1/market/stats", params={"symbol": symbol})
+        j = self._get(
+            self.spot_base_url, "/api/v1/market/stats", params={"symbol": symbol}
+        )
         if str(j.get("code")) != "200000":
             raise ValueError(f"KuCoin spot error for {symbol}: {j}")
         return self._to_float(j.get("data", {}).get("volValue")) or 0.0
@@ -194,7 +252,9 @@ class KucoinClient:
             raise ValueError(f"KuCoin futures error for {contract_id}: {j}")
         return self._to_float(j.get("data", {}).get("turnoverOf24h")) or 0.0
 
-    def _get(self, base_url: str, endpoint: str, params: dict[str, str] | None = None) -> Any:
+    def _get(
+        self, base_url: str, endpoint: str, params: dict[str, str] | None = None
+    ) -> Any:
         """Generic JSON GET; raises ValueError on HTTP/network/parse errors."""
         query = f"?{urlencode(params)}" if params else ""
         req = urllib.request.Request(
@@ -207,13 +267,19 @@ class KucoinClient:
                 raw = resp.read().decode("utf-8")
         except urllib.error.HTTPError as exc:
             detail = exc.read().decode("utf-8", errors="replace")
-            raise ValueError(f"HTTP {exc.code} from {base_url}{endpoint}: {detail}") from exc
+            raise ValueError(
+                f"HTTP {exc.code} from {base_url}{endpoint}: {detail}"
+            ) from exc
         except urllib.error.URLError as exc:
-            raise ValueError(f"Network error from {base_url}{endpoint}: {exc.reason}") from exc
+            raise ValueError(
+                f"Network error from {base_url}{endpoint}: {exc.reason}"
+            ) from exc
         try:
             return json.loads(raw)
         except json.JSONDecodeError as exc:
-            raise ValueError(f"Invalid JSON from {base_url}{endpoint}: {raw[:200]}") from exc
+            raise ValueError(
+                f"Invalid JSON from {base_url}{endpoint}: {raw[:200]}"
+            ) from exc
 
     # ---------- Private: static helpers ----------
 
