@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pandas as pd
 from prefect import flow, task
-
+from typing import Literal
 from src.scripts.net_pnl import (
     _analyze_base_strategy_losses,
     _analyze_symbol_losses,
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 @task(name="Load PnL data")
-def task_load_data(source: str, input_path: str) -> pd.DataFrame:
+def task_load_data(source: Literal["api", "local"], input_path: str) -> pd.DataFrame:
     return load_pnl_data(source, input_path)
 
 
@@ -79,7 +79,7 @@ def task_send_signal(report_text: str, png_path: Path) -> None:
 
 @flow(name="Net PnL")
 def net_pnl_flow(
-    source: str = app_settings.source,
+    source: Literal["api", "local"] = app_settings.source,
     input_path: str = app_settings.net_pnl_input_path,
 ) -> tuple:
     df = task_load_data(source, input_path)

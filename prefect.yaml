@@ -36,6 +36,18 @@ deployments:
     work_queue_name: null
     job_variables: {}
   schedules:
-  - cron: 20 4 * * *
-    timezone: null
+  - cron: 30 9 * * *
+    timezone: "Asia/Singapore"
     day_or: true
+- name: market
+  entrypoint: src/flows/market.py:market_flow
+  work_pool:
+    name: default-agent-pool
+- name: net-pnl
+  entrypoint: src/flows/net_pnl.py:net_pnl_flow
+  work_pool:
+    name: default-agent-pool
+- name: trading-volume
+  entrypoint: src/flows/trading_volume.py:trading_volume_flow
+  work_pool:
+    name: default-agent-pool

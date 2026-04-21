@@ -43,21 +43,11 @@ _deploy() {
     echo "Deploying flows..."
     uv run prefect config set PREFECT_API_URL="$PREFECT_API_URL" > /dev/null
 
-    # create pool if it doesn't exist
-    uv run prefect work-pool create "$POOL" --type process 2>/dev/null || true
+    # create pool if it doesn't exist, overwrite to suppress "already exists" warning
+    uv run prefect work-pool create "$POOL" --type process --overwrite 2>/dev/null || true
 
-    uv run prefect deploy src/flows/daily.py:daily_flow \
-        --name "daily-morning" --cron "20 4 * * *" \
-        --pool "$POOL" --no-upload
-
-    uv run prefect deploy src/flows/market.py:market_flow \
-        --name "market-manual" --pool "$POOL" --no-upload
-
-    uv run prefect deploy src/flows/net_pnl.py:net_pnl_flow \
-        --name "net-pnl-manual" --pool "$POOL" --no-upload
-
-    uv run prefect deploy src/flows/trading_volume.py:trading_volume_flow \
-        --name "trading-volume-manual" --pool "$POOL" --no-upload
+    # deploy all flows from prefect.yaml, skip interactive prompts
+    uv run prefect --no-prompt deploy --all
 
     echo "Flows deployed."
 }
@@ -73,8 +63,13 @@ _start_worker() {
 if [[ "${1:-}" == "redeploy" ]]; then
     echo "=== Redeploying ==="
     _stop_pid_file "$WORKER_PID_FILE"
+    sleep 2
+
     uv sync
+
     _deploy
+    sleep 2
+
     _start_worker
     echo "=== Done. Worker restarted and flows redeployed. ==="
     exit 0
@@ -84,18 +79,27 @@ fi
 echo "=== Starting Prefect ==="
 
 # stop any leftover processes
-_stop_pid_file "$SERVER_PID_FILE"
 _stop_pid_file "$WORKER_PID_FILE"
+_stop_pid_file "$SERVER_PID_FILE"
 
 uv sync
 
-# start server in background
+# stop gracefully
+uv run prefect server stop 2>/dev/null || true
+_stop_pid_file "$WORKER_PID_FILE"
+_stop_pid_file "$SERVER_PID_FILE"
+sleep 2
+
+# start server
 uv run prefect server start &
 echo $! > "$SERVER_PID_FILE"
-echo "Server started (PID $(cat "$SERVER_PID_FILE")). UI: http://localhost:4200"
 
 _wait_for_server
+sleep 2
+
 _deploy
+sleep 2
+
 _start_worker
 
 echo ""

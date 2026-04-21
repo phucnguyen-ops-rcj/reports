@@ -3,20 +3,23 @@ from pathlib import Path
 
 import pandas as pd
 from prefect import flow, task
-
+from typing import Literal, List
 from src.scripts.trading_volume import analyze_trading_volume
 from src.clients.signal import SignalClient
 from src.settings import app_settings
 from src.utils.load_data import load_trading_volume_data
 from src.utils.save_data import save_csv
 from src.utils.visualization import trading_volume_to_png_styled
+from src.utils.constants import MONITORING_SYMBOLS
 
 logger = logging.getLogger(__name__)
 
 
 @task(name="Load trading volume data")
-def task_load_data(source: str, input_path: str) -> pd.DataFrame:
-    return load_trading_volume_data(source, input_path)
+def task_load_data(
+    source: Literal["api", "local"], input_path: str, symbols: List[str]
+) -> pd.DataFrame:
+    return load_trading_volume_data(source, input_path, symbols)
 
 
 @task(name="Analyze trading volume")
@@ -57,10 +60,11 @@ def task_send_signal(png_path: Path) -> None:
 
 @flow(name="Trading Volume")
 def trading_volume_flow(
-    source: str = app_settings.source,
+    source: Literal["api", "local"] = app_settings.source,
     input_path: str = app_settings.trading_volume_input_path,
+    symbols: List[str] = MONITORING_SYMBOLS,
 ) -> tuple:
-    df = task_load_data(source, input_path)
+    df = task_load_data(source, input_path, symbols)
     volume_summary = task_analyze(df)
     png_path, csv_path = task_save(volume_summary)
     try:
