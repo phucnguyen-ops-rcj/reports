@@ -62,6 +62,8 @@ _start_worker() {
 # ── redeploy mode: restart worker and re-deploy flows ──────────────────────────
 if [[ "${1:-}" == "redeploy" ]]; then
     echo "=== Redeploying ==="
+    # kill all orphaned workers (PID file only tracks the latest one)
+    pkill -f "prefect worker start" 2>/dev/null || true
     _stop_pid_file "$WORKER_PID_FILE"
     sleep 2
 
@@ -84,10 +86,9 @@ _stop_pid_file "$SERVER_PID_FILE"
 
 uv sync
 
-# stop gracefully
-uv run prefect server stop 2>/dev/null || true
-_stop_pid_file "$WORKER_PID_FILE"
-_stop_pid_file "$SERVER_PID_FILE"
+# kill all prefect processes (server + workers)
+pkill -f "prefect worker start" 2>/dev/null || true
+pkill -f "prefect server start" 2>/dev/null || true
 sleep 2
 
 # start server

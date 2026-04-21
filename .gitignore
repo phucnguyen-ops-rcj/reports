@@ -22,3 +22,7 @@ wheels/
 *.png
 
 .claude/
+
+# Prefect PID files
+.prefect_server.pid
+.prefect_worker.pid
