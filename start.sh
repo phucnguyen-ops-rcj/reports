@@ -54,7 +54,7 @@ _deploy() {
 
 _start_worker() {
     echo "Starting worker..."
-    uv run prefect worker start --pool "$POOL" &
+    nohup uv run prefect worker start --pool "$POOL" >  logs/prefect_worker.log 2>&1 &
     echo $! > "$WORKER_PID_FILE"
     echo "Worker started (PID $(cat "$WORKER_PID_FILE"))."
 }
@@ -92,7 +92,7 @@ pkill -f "prefect server start" 2>/dev/null || true
 sleep 2
 
 # start server
-uv run prefect server start &
+nohup uv run prefect server start > logs/prefect_server.log 2>&1 &
 echo $! > "$SERVER_PID_FILE"
 
 _wait_for_server
