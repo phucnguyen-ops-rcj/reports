@@ -306,6 +306,6 @@ class KucoinClient:
 
 if __name__ == "__main__":
     client = KucoinClient()
-    df = client.get_history_volume(["NATGASUSDTM"])
+    df = client.get_history_volume(["CHIP"])
     print(df.usd_volume_24h.sum())
     print(df)

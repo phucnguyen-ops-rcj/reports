@@ -77,6 +77,20 @@ if [[ "${1:-}" == "redeploy" ]]; then
     exit 0
 fi
 
+
+# __ stop all prefect processes __
+if [[ "${1:-}" == "stop" ]]; then
+    _stop_pid_file "$WORKER_PID_FILE"
+    _stop_pid_file "$SERVER_PID_FILE"
+    pkill -f "prefect worker start" 2>/dev/null || true
+    pkill -f "prefect server start" 2>/dev/null || true
+    echo "=== All services stopped ==="
+    exit 0
+fi
+
+
+
+
 # ── fresh start ────────────────────────────────────────────────────────────────
 echo "=== Starting Prefect ==="
 
@@ -110,3 +124,4 @@ echo "  Server: PID $(cat "$SERVER_PID_FILE")"
 echo "  Worker: PID $(cat "$WORKER_PID_FILE")"
 echo ""
 echo "To redeploy after code/env changes: ./start.sh redeploy"
+echo "To stop all services: ./start.sh stop"

@@ -122,7 +122,7 @@ def main():
     try:
         file_path = app_settings.trading_volume_input_path
         logger.info(f"Loading trading volume data from: {file_path}")
-        df = load_trading_volume_data(app_settings.source, file_path)
+        df = load_trading_volume_data(app_settings.source, file_path, ["CHIP"])
     except FileNotFoundError:
         logger.error(
             f"Trading volume input file not found: {app_settings.trading_volume_input_path}"
