@@ -6,6 +6,7 @@ from typing import Any
 from urllib.parse import urlencode
 import urllib.error
 import urllib.request
+from tqdm import tqdm
 
 import pandas as pd
 from src.settings import app_settings
@@ -48,7 +49,8 @@ class KucoinClient:
         start_dt = end_dt - timedelta(days=days)
 
         all_rows: list[dict[str, Any]] = []
-        for raw in tokens:
+        # use tqdm
+        for raw in tqdm(tokens, desc="Fetching history volume"):
             raw = raw.upper()
             if self._is_perp(raw):
                 rows = self._fetch_history_futures(raw, start_dt, end_dt)
