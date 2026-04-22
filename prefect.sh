@@ -92,36 +92,39 @@ fi
 
 
 # ── fresh start ────────────────────────────────────────────────────────────────
-echo "=== Starting Prefect ==="
+if [[ "${1:-}" == "start" ]]; then
+    echo "=== Starting Prefect ==="
 
-# stop any leftover processes
-_stop_pid_file "$WORKER_PID_FILE"
-_stop_pid_file "$SERVER_PID_FILE"
+    # stop any leftover processes
+    _stop_pid_file "$WORKER_PID_FILE"
+    _stop_pid_file "$SERVER_PID_FILE"
 
-uv sync
+    uv sync
 
-# kill all prefect processes (server + workers)
-pkill -f "prefect worker start" 2>/dev/null || true
-pkill -f "prefect server start" 2>/dev/null || true
-sleep 2
+    # kill all prefect processes (server + workers)
+    pkill -f "prefect worker start" 2>/dev/null || true
+    pkill -f "prefect server start" 2>/dev/null || true
+    sleep 2
 
-# start server
-nohup uv run prefect server start > logs/prefect_server.log 2>&1 &
-echo $! > "$SERVER_PID_FILE"
+    # start server
+    nohup uv run prefect server start > logs/prefect_server.log 2>&1 &
+    echo $! > "$SERVER_PID_FILE"
 
-_wait_for_server
-sleep 2
+    _wait_for_server
+    sleep 2
 
-_deploy
-sleep 2
+    _deploy
+    sleep 2
 
-_start_worker
+    _start_worker
 
-echo ""
-echo "=== All services running ==="
-echo "  UI:     http://localhost:4200"
-echo "  Server: PID $(cat "$SERVER_PID_FILE")"
-echo "  Worker: PID $(cat "$WORKER_PID_FILE")"
-echo ""
-echo "To redeploy after code/env changes: ./start.sh redeploy"
-echo "To stop all services: ./start.sh stop"
+    echo ""
+    echo "=== All services running ==="
+    echo "  UI:     http://localhost:4200"
+    echo "  Server: PID $(cat "$SERVER_PID_FILE")"
+    echo "  Worker: PID $(cat "$WORKER_PID_FILE")"
+    echo ""
+    echo "To redeploy after code/env changes: ./start.sh redeploy"
+    echo "To stop all services: ./start.sh stop"
+    exit 0
+fi

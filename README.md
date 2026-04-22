@@ -2,10 +2,38 @@
 
 Daily trading report pipeline that fetches market data, calculates P&L, and analyzes trading volume — then sends results via Signal.
 
+## Prerequisites
+
+### 1. Signal (signal-cli REST API)
+
+```bash
+docker run -d \
+  --name signal-cli \
+  -p 8080:8080 \
+  bbernhard/signal-cli-rest-api
+```
+
+Register your number following the [signal-cli-rest-api docs](https://github.com/bbernhard/signal-cli-rest-api). Set `SIGNAL_BASE_URL`, `SIGNAL_SENDER`, and `SIGNAL_RECIPIENT` or `SIGNAL_GROUP_ID` in `.env`.
+
+### 2. PostgreSQL (Prefect database)
+
+```bash
+docker run -d \
+  --name prefect-postgres \
+  -e POSTGRES_USER=prefect \
+  -e POSTGRES_PASSWORD=prefect \
+  -e POSTGRES_DB=prefect \
+  -p 5432:5432 \
+  postgres:16
+```
+
+Set `PREFECT_SERVER_DATABASE_CONNECTION_URL` in `.env` (see `.env.example`).
+
 ## Quickstart
 
 ```bash
 cp .env.example .env   # fill in required values
+uv add asyncpg         # required for PostgreSQL async driver (first time only)
 ./start.sh             # start Prefect server + deploy flows + start worker
 ```
 
