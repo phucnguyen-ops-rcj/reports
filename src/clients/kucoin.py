@@ -6,7 +6,7 @@ from typing import Any
 from urllib.parse import urlencode
 import urllib.error
 import urllib.request
-from tqdm import tqdm
+from tqdm import tqdm  # pyrefly: ignore[untyped-import]
 
 import pandas as pd
 from src.settings import app_settings
