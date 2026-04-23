@@ -34,7 +34,7 @@ Set `PREFECT_SERVER_DATABASE_CONNECTION_URL` in `.env` (see `.env.example`).
 ```bash
 cp .env.example .env   # fill in required values
 uv add asyncpg         # required for PostgreSQL async driver (first time only)
-./start.sh             # start Prefect server + deploy flows + start worker
+./prefect.sh           # fresh start: kill old processes, start server + deploy + worker
 ```
 
 UI available at `http://localhost:4200`.
@@ -57,21 +57,18 @@ uv run -m src.scripts.trading_volume
 
 ## Prefect orchestration
 
-`start.sh` manages the local Prefect server, deployments, and worker:
+`prefect.sh` manages the local Prefect server, deployments, and worker:
 
 ```bash
-./start.sh            # fresh start
-./start.sh redeploy   # redeploy flows + restart worker after code/env changes
+./prefect.sh           # fresh start: kill old, start server + deploy + worker
+./prefect.sh stop      # gracefully stop server and worker
+./prefect.sh start     # restart stopped server and worker (no redeploy)
+./prefect.sh redeploy  # redeploy flows on running server + restart worker
 ```
 
-Flows are defined in `prefect.yaml`. The `daily-morning` deployment runs all three flows in parallel on a cron schedule (`30 1 * * *` UTC = 09:30 local). The other three deployments (`market`, `net-pnl`, `trading-volume`) are manual-trigger only.
+Flows are defined in `prefect.yaml`. The `daily-morning` deployment runs all three flows in parallel on a cron schedule (`30 1 * * *` UTC). The other three deployments (`market`, `net-pnl`, `trading-volume`) are manual-trigger only.
 
-To stop everything:
-
-```bash
-pkill -f "prefect server start" 2>/dev/null || true
-pkill -f "prefect worker start" 2>/dev/null || true
-```
+Logs: `logs/prefect_server.log`, `logs/prefect_worker.log`.
 
 ## Environment
 
