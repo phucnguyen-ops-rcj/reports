@@ -15,6 +15,7 @@
         "ZAMA",
         "RAVE",
         "CHIP",
+        "STAY",
         "CLUSDTM",
         "BZUSDTM",
         "NATGASUSDTM"
@@ -42,6 +43,7 @@
             "ZAMA": 1,
             "RAVE": 2000000,
             "CHIP": 5000000,
+            "STAY": 2000000,
             "CLUSDTM": 2000000,
             "BZUSDTM": 2000000,
             "NATGASUSDTM": 2000000
