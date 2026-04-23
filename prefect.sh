@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
-# start.sh — start Prefect server + deploy all flows + start worker
+# prefect.sh — manage Prefect server, worker, and deployments
 # Usage:
-#   ./start.sh          # start everything
-#   ./start.sh redeploy # redeploy flows then restart worker (use after code/env changes)
+#   ./prefect.sh           # fresh start: kill old, start server + deploy + worker
+#   ./prefect.sh stop      # gracefully stop server and worker
+#   ./prefect.sh start     # restart stopped server and worker (no redeploy)
+#   ./prefect.sh redeploy  # redeploy flows on running server, restart worker
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -52,34 +54,23 @@ _deploy() {
     echo "Flows deployed."
 }
 
+_start_server() {
+    echo "Starting server..."
+    nohup uv run prefect server start >> logs/prefect_server.log 2>&1 &
+    echo $! > "$SERVER_PID_FILE"
+    echo "Server started (PID $(cat "$SERVER_PID_FILE"))."
+}
+
 _start_worker() {
     echo "Starting worker..."
-    nohup uv run prefect worker start --pool "$POOL" >  logs/prefect_worker.log 2>&1 &
+    nohup uv run prefect worker start --pool "$POOL" >> logs/prefect_worker.log 2>&1 &
     echo $! > "$WORKER_PID_FILE"
     echo "Worker started (PID $(cat "$WORKER_PID_FILE"))."
 }
 
-# ── redeploy mode: restart worker and re-deploy flows ──────────────────────────
-if [[ "${1:-}" == "redeploy" ]]; then
-    echo "=== Redeploying ==="
-    # kill all orphaned workers (PID file only tracks the latest one)
-    pkill -f "prefect worker start" 2>/dev/null || true
-    _stop_pid_file "$WORKER_PID_FILE"
-    sleep 2
-
-    uv sync
-
-    _deploy
-    sleep 2
-
-    _start_worker
-    echo "=== Done. Worker restarted and flows redeployed. ==="
-    exit 0
-fi
-
-
-# __ stop all prefect processes __
+# ── stop: gracefully stop server and worker ────────────────────────────────────
 if [[ "${1:-}" == "stop" ]]; then
+    echo "=== Stopping Prefect ==="
     _stop_pid_file "$WORKER_PID_FILE"
     _stop_pid_file "$SERVER_PID_FILE"
     pkill -f "prefect worker start" 2>/dev/null || true
@@ -88,43 +79,60 @@ if [[ "${1:-}" == "stop" ]]; then
     exit 0
 fi
 
-
-
-
-# ── fresh start ────────────────────────────────────────────────────────────────
+# ── start: restart stopped server and worker (no redeploy) ────────────────────
 if [[ "${1:-}" == "start" ]]; then
     echo "=== Starting Prefect ==="
-
-    # stop any leftover processes
-    _stop_pid_file "$WORKER_PID_FILE"
-    _stop_pid_file "$SERVER_PID_FILE"
-
-    uv sync
-
-    # kill all prefect processes (server + workers)
-    pkill -f "prefect worker start" 2>/dev/null || true
-    pkill -f "prefect server start" 2>/dev/null || true
-    sleep 2
-
-    # start server
-    nohup uv run prefect server start > logs/prefect_server.log 2>&1 &
-    echo $! > "$SERVER_PID_FILE"
-
+    _start_server
     _wait_for_server
-    sleep 2
-
-    _deploy
-    sleep 2
-
     _start_worker
-
     echo ""
     echo "=== All services running ==="
     echo "  UI:     http://localhost:4200"
     echo "  Server: PID $(cat "$SERVER_PID_FILE")"
     echo "  Worker: PID $(cat "$WORKER_PID_FILE")"
-    echo ""
-    echo "To redeploy after code/env changes: ./start.sh redeploy"
-    echo "To stop all services: ./start.sh stop"
     exit 0
 fi
+
+# ── redeploy: kill worker, redeploy on running server, restart worker ──────────
+if [[ "${1:-}" == "redeploy" ]]; then
+    echo "=== Redeploying ==="
+    pkill -f "prefect worker start" 2>/dev/null || true
+    sleep 2
+
+    uv sync
+    _deploy
+    sleep 2
+
+    _start_worker
+    echo "=== Done. Worker restarted and flows redeployed. ==="
+    exit 0
+fi
+
+# ── fresh start (no args): kill everything, start from scratch ─────────────────
+echo "=== Fresh Start ==="
+
+# stop gracefully first, then force-kill any orphans
+_stop_pid_file "$WORKER_PID_FILE"
+_stop_pid_file "$SERVER_PID_FILE"
+pkill -f "prefect worker start" 2>/dev/null || true
+pkill -f "prefect server start" 2>/dev/null || true
+sleep 2
+
+uv sync
+
+_start_server
+_wait_for_server
+sleep 2
+
+_deploy
+sleep 2
+
+_start_worker
+
+echo ""
+echo "=== All services running ==="
+echo "  UI:     http://localhost:4200"
+echo "  Server: PID $(cat "$SERVER_PID_FILE")"
+echo "  Worker: PID $(cat "$WORKER_PID_FILE")"
+echo ""
+echo "Commands: ./prefect.sh stop | start | redeploy"
