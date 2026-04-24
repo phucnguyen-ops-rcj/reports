@@ -16,6 +16,7 @@
         "RAVE",
         "CHIP",
         "STAY",
+        "BLEND",
         "CLUSDTM",
         "BZUSDTM",
         "NATGASUSDTM"
@@ -44,6 +45,7 @@
             "RAVE": 2000000,
             "CHIP": 5000000,
             "STAY": 2000000,
+            "BLEND": 2000000,
             "CLUSDTM": 2000000,
             "BZUSDTM": 2000000,
             "NATGASUSDTM": 2000000
