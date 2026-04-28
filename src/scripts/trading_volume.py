@@ -41,7 +41,7 @@ def analyze_trading_volume(df):
     utc_now = pd.Timestamp.now(tz="UTC")
     volume_summary["days_since_listing"] = (
         utc_now.normalize() - volume_summary["timestamp_utc"].dt.normalize()
-    ).dt.days + 1
+    ).dt.days
     volume_summary["remaining_days"] = 14 - volume_summary["days_since_listing"]
     volume_summary["average_up_to_date"] = (
         volume_summary["total_usd_volume"] / volume_summary["days_since_listing"]
@@ -122,7 +122,7 @@ def main():
     try:
         file_path = app_settings.trading_volume_input_path
         logger.info(f"Loading trading volume data from: {file_path}")
-        df = load_trading_volume_data(app_settings.source, file_path)
+        df = load_trading_volume_data(app_settings.source, file_path, ["CHIP"])
     except FileNotFoundError:
         logger.error(
             f"Trading volume input file not found: {app_settings.trading_volume_input_path}"

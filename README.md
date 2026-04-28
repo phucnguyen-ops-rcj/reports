@@ -1,118 +1,87 @@
 # Reports Scheduler
 
-This project uses user-level `systemd` units on Ubuntu to run report scripts on a schedule.
+Daily trading report pipeline that fetches market data, calculates P&L, and analyzes trading volume — then sends results via Signal.
 
-## Files
+## Prerequisites
 
-- Service: `~/.config/systemd/user/reports-daily-morning.service`
-- Timer: `~/.config/systemd/user/reports-daily-morning.timer`
-- Wrapper script: `/home/newuser1/work/new_project/training/reports/run_daily_morning.sh`
-
-The service calls the wrapper script, and the wrapper runs the morning jobs in order.
-
-## Example service
-
-```ini
-[Unit]
-Description=Run daily morning report
-After=network-online.target
-Wants=network-online.target
-
-[Service]
-Type=oneshot
-WorkingDirectory=/home/newuser1/work/new_project/training/reports
-Environment=HOME=/home/newuser1
-Environment=PATH=/home/newuser1/.local/bin:/usr/bin:/bin
-ExecStart=/home/newuser1/work/new_project/training/reports/run_daily_morning.sh
-StandardOutput=append:/home/newuser1/work/new_project/training/reports/logs/daily_morning.log
-StandardError=append:/home/newuser1/work/new_project/training/reports/logs/daily_morning.log
-
-[Install]
-WantedBy=default.target
-```
-
-## Example timer
-
-```ini
-[Unit]
-Description=Run daily morning report every day
-
-[Timer]
-OnCalendar=*-*-* 04:20:00
-Persistent=true
-
-[Install]
-WantedBy=timers.target
-```
-
-## Environment variables
-
-Sensitive keys must be injected into the systemd user manager environment so they are available to the service via `os.environ`:
+### 1. Signal (signal-cli REST API)
 
 ```bash
-systemctl --user set-environment COINGECKO_API_KEY=<key> INFLUXDB_TOKEN=<token>
+docker run -d \
+  --name signal-cli \
+  -p 8080:8080 \
+  bbernhard/signal-cli-rest-api
 ```
 
-This persists for the lifetime of the current login session but **does not survive a reboot**. To re-apply automatically on login, add the command to `~/.bashrc` (or `~/.profile` for non-interactive sessions):
+Register your number following the [signal-cli-rest-api docs](https://github.com/bbernhard/signal-cli-rest-api). Set `SIGNAL_BASE_URL`, `SIGNAL_SENDER`, and `SIGNAL_RECIPIENT` or `SIGNAL_GROUP_ID` in `.env`.
 
-To verify the vars are set:
+### 2. PostgreSQL (Prefect database)
 
 ```bash
-systemctl --user show-environment | grep -E "COINGECKO|INFLUXDB"
+docker run -d \
+  --name prefect-postgres \
+  -e POSTGRES_USER=prefect \
+  -e POSTGRES_PASSWORD=prefect \
+  -e POSTGRES_DB=prefect \
+  -p 5432:5432 \
+  postgres:16
 ```
 
-## Setup
+Set `PREFECT_SERVER_DATABASE_CONNECTION_URL` in `.env` (see `.env.example`).
+
+## Quickstart
 
 ```bash
-mkdir -p ~/.config/systemd/user
-mkdir -p /home/newuser1/work/new_project/training/reports/logs
-chmod +x /home/newuser1/work/new_project/training/reports/run_daily_morning.sh
-systemctl --user daemon-reload
-systemctl --user enable --now reports-daily-morning.timer
+cp .env.example .env   # fill in required values
+uv add asyncpg         # required for PostgreSQL async driver (first time only)
+./prefect.sh           # fresh start: kill old processes, start server + deploy + worker
 ```
 
-## Common commands
+UI available at `http://localhost:4200`.
+
+## Scripts
+
+| Script | What it does |
+|--------|-------------|
+| `uv run market` | Fetches CoinGecko global market data, sends text summary via Signal |
+| `uv run net_pnl` | Loads trade CSV, runs P&L analysis, sends PNG table + text via Signal |
+| `uv run trading_volume` | Loads volume CSV, checks against thresholds, sends PNG table via Signal |
+
+Run all three in sequence:
 
 ```bash
-# start once now
-systemctl --user start reports-daily-morning.service
-
-# start the timer now
-systemctl --user start reports-daily-morning.timer
-
-# enable timer on login/reboot
-systemctl --user enable --now reports-daily-morning.timer
-
-# stop timer
-systemctl --user stop reports-daily-morning.timer
-
-# disable timer
-systemctl --user disable reports-daily-morning.timer
-
-# reload after editing .service or .timer
-systemctl --user daemon-reload
-
-# if the timer schedule changed, restart the timer
-systemctl --user restart reports-daily-morning.timer
-
-# if you want to run the job once right now, start the service
-systemctl --user start reports-daily-morning.service
-
-# status
-systemctl --user status reports-daily-morning.service
-systemctl --user status reports-daily-morning.timer
-systemctl --user list-timers --all
-
-# logs
-tail -n 100 /home/newuser1/work/new_project/training/reports/logs/daily_morning.log
-journalctl --user -u reports-daily-morning.service -n 100 --no-pager
+uv run -m src.scripts.market
+uv run -m src.scripts.net_pnl
+uv run -m src.scripts.trading_volume
 ```
 
-## Notes
+## Prefect orchestration
 
-- Use one `.service` and one `.timer` per scheduled script.
-- If one schedule should run multiple scripts, put them in a wrapper script and call that script from one `ExecStart`.
-- `start` runs now; `enable` makes the timer start automatically in future sessions.
-- After editing `.service` or `.timer`, run `systemctl --user daemon-reload`.
-- Restart the `.timer` only if you changed the schedule and want the new timing applied immediately.
-- Start the `.service` only if you want to run the job now as a manual test.
+`prefect.sh` manages the local Prefect server, deployments, and worker:
+
+```bash
+./prefect.sh           # fresh start: kill old, start server + deploy + worker
+./prefect.sh stop      # gracefully stop server and worker
+./prefect.sh start     # restart stopped server and worker (no redeploy)
+./prefect.sh redeploy  # redeploy flows on running server + restart worker
+```
+
+Flows are defined in `prefect.yaml`. The `daily-morning` deployment runs all three flows in parallel on a cron schedule (`30 1 * * *` UTC). The other three deployments (`market`, `net-pnl`, `trading-volume`) are manual-trigger only.
+
+Logs: `logs/prefect_server.log`, `logs/prefect_worker.log`.
+
+## Environment
+
+Copy `.env.example` to `.env` and fill in:
+
+- `COINGECKO_API_KEY`
+- `SIGNAL_SENDER`, `SIGNAL_RECIPIENT` or `SIGNAL_GROUP_ID`, `SIGNAL_BASE_URL`
+- `NET_PNL_INPUT_PATH`, `TRADING_VOLUME_INPUT_PATH` (default: `data/trades.csv`, `data/trading_volume.csv`)
+
+## Tests
+
+```bash
+uv run pytest
+```
+
+Signal integration tests skip automatically if `SIGNAL_SENDER` is not set in `.env`.

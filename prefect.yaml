@@ -1,0 +1,53 @@
+---
+# Welcome to your prefect.yaml file! You can use this file for
+# storing and managing configuration for deploying your flows.
+# We recommend committing this file to source control along
+# with your flow code.
+
+# Generic metadata about this project
+name: reports
+prefect-version: 3.6.27
+
+# build section allows you to manage and build docker images
+build: null
+
+# push section allows you to manage if and how this project
+# is uploaded to remote locations
+push: null
+
+# pull section allows you to provide instructions for cloning
+# this project in remote locations
+pull:
+- prefect.deployments.steps.set_working_directory:
+    directory: /Users/nguyentienphuc/rcj/reports
+
+# the deployments section allows you to provide configuration
+# for deploying flows
+deployments:
+- name: daily-morning
+  version: null
+  tags: []
+  concurrency_limit: null
+  description: null
+  entrypoint: src/flows/daily.py:daily_flow
+  parameters: {}
+  work_pool:
+    name: default-agent-pool
+    work_queue_name: null
+    job_variables: {}
+  schedules:
+  - cron: 30 9 * * *
+    timezone: "Asia/Singapore"
+    day_or: true
+- name: market
+  entrypoint: src/flows/market.py:market_flow
+  work_pool:
+    name: default-agent-pool
+- name: net-pnl
+  entrypoint: src/flows/net_pnl.py:net_pnl_flow
+  work_pool:
+    name: default-agent-pool
+- name: trading-volume
+  entrypoint: src/flows/trading_volume.py:trading_volume_flow
+  work_pool:
+    name: default-agent-pool
