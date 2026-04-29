@@ -18,6 +18,8 @@
         "STAY",
         "BLEND",
         "PROS",
+        "SPC",
+        "AI",
         "CLUSDTM",
         "BZUSDTM",
         "NATGASUSDTM"
@@ -48,6 +50,8 @@
             "STAY": 2000000,
             "BLEND": 2000000,
             "PROS": 5000000,
+            "SPC": 2000000,
+            "AI": 5000000,
             "CLUSDTM": 2000000,
             "BZUSDTM": 2000000,
             "NATGASUSDTM": 2000000

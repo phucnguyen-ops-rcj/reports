@@ -9,7 +9,7 @@ Daily trading report pipeline that fetches market data, calculates P&L, and anal
 ```bash
 docker run -d \
   --name signal-cli \
-  -p 8080:8080 \
+  -p 8081:8080 \
   bbernhard/signal-cli-rest-api
 ```
 
