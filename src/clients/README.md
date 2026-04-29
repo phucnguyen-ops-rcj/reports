@@ -68,7 +68,7 @@ Replace `123-456` with the code received via SMS or voice call.
 
 ```bash
 curl -X POST -H "Content-Type: application/json" \
-  http://127.0.0.1:8080/v2/send \
+  http://127.0.0.1:8081/v2/send \
   -d '{
     "message": "hello from signal-cli-rest-api",
     "number": "+84559854979",
@@ -76,7 +76,7 @@ curl -X POST -H "Content-Type: application/json" \
   }'
 ```
 
-If the API is on a different host or port, replace `http://127.0.0.1:8080` with the correct URL.
+If the API is on a different host or port, replace `http://127.0.0.1:8081` with the correct URL.
 
 ## Setup Signal Profile
 
@@ -100,7 +100,7 @@ curl -X PUT \
   -d '{
     "name": "rcj_bot"
   }' \
-  "http://127.0.0.1:8080/v1/profiles/+84559854979"
+  "http://127.0.0.1:8081/v1/profiles/+84559854979"
 ```
 
 ### Name and About
@@ -112,7 +112,7 @@ curl -X PUT \
     "name": "rcj_bot",
     "about": "I am a bot"
   }' \
-  "http://127.0.0.1:8080/v1/profiles/+84559854979"
+  "http://127.0.0.1:8081/v1/profiles/+84559854979"
 ```
 
 ### Name, About, and Avatar
@@ -133,7 +133,7 @@ EOF
 curl -X PUT \
   -H "Content-Type: application/json" \
   --data @/tmp/signal_profile.json \
-  "http://127.0.0.1:8080/v1/profiles/+84559854979"
+  "http://127.0.0.1:8081/v1/profiles/+84559854979"
 ```
 
 ### If zsh says `argument list too long`
@@ -150,7 +150,7 @@ Then base64-encode `/tmp/profile_small.jpg` instead.
 
 ## Get group id
 ```
-curl -X GET "http://127.0.0.1:8080/v1/receive/+84559854979"
+curl -X GET "http://127.0.0.1:8081/v1/receive/+84559854979"
 ```
 ```
-curl -X GET "http://127.0.0.1:8080/v1/groups/+84559854979"
+curl -X GET "http://127.0.0.1:8081/v1/groups/+84559854979"
