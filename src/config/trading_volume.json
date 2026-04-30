@@ -20,6 +20,9 @@
         "PROS",
         "SPC",
         "AI",
+        "GENIUS",
+        "ASSET",
+        "MEGA",
         "CLUSDTM",
         "BZUSDTM",
         "NATGASUSDTM"
@@ -52,6 +55,9 @@
             "PROS": 5000000,
             "SPC": 2000000,
             "AI": 5000000,
+            "GENIUS": 2000000,
+            "ASSET": 2000000,
+            "MEGA": 10000000,
             "CLUSDTM": 2000000,
             "BZUSDTM": 2000000,
             "NATGASUSDTM": 2000000
