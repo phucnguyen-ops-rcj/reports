@@ -1,11 +1,9 @@
 {
     "symbol_mapping": {
-        "BONK": "BONK",
         "1000BONK": "BONK",
-        "BEAT": "BEAT",
         "KBEAT": "BEAT",
-        "SHIB": "SHIB",
-        "1000SHIB": "SHIB"
+        "1000SHIB": "SHIB",
+        "AIGENSYN": "AI"
     },
     "strategy_name_mapping": {
         "strategy1": "quoting",
@@ -43,8 +41,29 @@
         "kucc4": "Volume",
         "kucc4-2": "Volume"
     },
-    "analysis_data_columns": ["market", "strategy", "symbol", "volume_$", "net_position", "net_position_$", "rpnl", "unpnl", "rpnlwfees", "npnl_r+un", "npnl/volume_%", "trade_count"],
-    "final_columns": ["strategy", "volume_$", "npnl_r+un", "npnl/volume_%", "net_position_$", "unpnl", "rpnlwfees"],
+    "analysis_data_columns": [
+        "market",
+        "strategy",
+        "symbol",
+        "volume_$",
+        "net_position",
+        "net_position_$",
+        "rpnl",
+        "unpnl",
+        "rpnlwfees",
+        "npnl_r+un",
+        "npnl/volume_%",
+        "trade_count"
+    ],
+    "final_columns": [
+        "strategy",
+        "volume_$",
+        "npnl_r+un",
+        "npnl/volume_%",
+        "net_position_$",
+        "unpnl",
+        "rpnlwfees"
+    ],
     "thresholds": {
         "loss_pnl": -1000
     }
