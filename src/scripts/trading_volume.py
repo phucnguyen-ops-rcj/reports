@@ -91,24 +91,30 @@ def _generate_and_send_report(
     """Save CSV and PNG report files, and send only the PNG via Signal."""
     csv_path = save_csv(volume_summary, out_dir, prefix="")
     logger.info(f"CSV saved to: {csv_path}")
-
-    png_path = trading_volume_to_png_styled(
-        volume_summary,
-        out_dir / "daily_trading_volume.png",
-    )
-    logger.info(f"PNG saved to: {png_path}")
-    if not app_settings.enable_signal_notifications:
-        return png_path, csv_path
-    if recipient or group_id:
-        try:
-            client = SignalClient()
-            send_kwargs = {"recipient": recipient, "group_id": group_id}
-            client.send(
-                report_text, attachments=png_path, **send_kwargs
-            )  # send text + PNG attachment only
-            logger.info("Trading volume report sent via Signal successfully.")
-        except Exception as exc:
-            logger.error(f"Failed to send Signal message: {exc}", exc_info=True)
+    mask = volume_summary["remaining_days"] < 0
+    in_trading = volume_summary[~mask]
+    not_in_trading = volume_summary[mask]
+    for df_data, prefix in [
+        (in_trading, "Recently Listing"),
+        (not_in_trading, "Previous Listing"),
+    ]:
+        png_path = trading_volume_to_png_styled(
+            df_data,
+            out_dir / f"{prefix}_daily_trading_volume.png",
+        )
+        logger.info(f"PNG saved to: {png_path}")
+        if not app_settings.enable_signal_notifications:
+            return png_path, csv_path
+        if recipient or group_id:
+            try:
+                client = SignalClient()
+                send_kwargs = {"recipient": recipient, "group_id": group_id}
+                client.send(
+                    report_text + f"\n{prefix}", attachments=png_path, **send_kwargs
+                )  # send text + PNG attachment only
+                logger.info("Trading volume report sent via Signal successfully.")
+            except Exception as exc:
+                logger.error(f"Failed to send Signal message: {exc}", exc_info=True)
 
     return png_path, csv_path
 
@@ -122,7 +128,7 @@ def main():
     try:
         file_path = app_settings.trading_volume_input_path
         logger.info(f"Loading trading volume data from: {file_path}")
-        df = load_trading_volume_data(app_settings.source, file_path, ["CHIP"])
+        df = load_trading_volume_data(app_settings.source, file_path)
     except FileNotFoundError:
         logger.error(
             f"Trading volume input file not found: {app_settings.trading_volume_input_path}"

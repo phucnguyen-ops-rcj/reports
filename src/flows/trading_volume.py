@@ -28,9 +28,9 @@ def task_analyze(df: pd.DataFrame) -> pd.DataFrame:
 
 
 @task(name="Save volume report")
-def task_save(volume_summary: pd.DataFrame) -> tuple:
+def task_save(volume_summary: pd.DataFrame, prefix: str = "") -> tuple:
     out_dir = Path(app_settings.output_dir) / "trading_volume"
-    csv_path = save_csv(volume_summary, out_dir, prefix="")
+    csv_path = save_csv(volume_summary, out_dir, prefix)
     logger.info(f"CSV saved to: {csv_path}")
     png_path = trading_volume_to_png_styled(
         volume_summary, out_dir / "daily_trading_volume.png"
@@ -40,7 +40,7 @@ def task_save(volume_summary: pd.DataFrame) -> tuple:
 
 
 @task(name="Send volume via Signal", retries=1)
-def task_send_signal(png_path: Path) -> None:
+def task_send_signal(png_path: Path, prefix: str = "") -> None:
     if not app_settings.enable_signal_notifications:
         return
     recipient = app_settings.signal_recipient
@@ -50,7 +50,7 @@ def task_send_signal(png_path: Path) -> None:
     # let exceptions propagate so Prefect marks this task FAILED in the UI
     client = SignalClient()
     client.send(
-        "Trading Volume Report",
+        f"Trading Volume Report - {prefix}",
         attachments=png_path,
         recipient=recipient,
         group_id=group_id,
@@ -64,11 +64,19 @@ def trading_volume_flow(
     input_path: str = app_settings.trading_volume_input_path,
     symbols: List[str] = MONITORING_SYMBOLS,
 ) -> tuple:
-    df = task_load_data(source, input_path, symbols)
-    volume_summary = task_analyze(df)
-    png_path, csv_path = task_save(volume_summary)
-    try:
-        task_send_signal(png_path)
-    except Exception:
-        pass  # non-fatal; Prefect has recorded the task as FAILED in the UI
+    df: pd.DataFrame = task_load_data(source, input_path, symbols)
+    volume_summary: pd.DataFrame = task_analyze(df)
+    mask: pd.Series = volume_summary["remaining_days"].lt(0)
+
+    in_tradings = volume_summary.loc[~mask].copy()
+    not_in_tradings = volume_summary.loc[mask].copy()
+    for df_data, prefix in [
+        (in_tradings, "Recently Listing"),
+        (not_in_tradings, "Previous Listing"),
+    ]:
+        png_path, csv_path = task_save(df_data, prefix)  # pyrefly: ignore
+        try:
+            task_send_signal(png_path, prefix)
+        except Exception:
+            pass  # non-fatal; Prefect has recorded the task as FAILED in the UI
     return png_path, csv_path
