@@ -14,6 +14,28 @@ PREFECT_API_URL="http://127.0.0.1:4200/api"
 POOL="default-agent-pool"
 SERVER_PID_FILE="$REPO_DIR/.prefect_server.pid"
 WORKER_PID_FILE="$REPO_DIR/.prefect_worker.pid"
+ENV_FILE="$REPO_DIR/.env"
+
+_load_prefect_database_env() {
+    if [[ -z "${PREFECT_SERVER_DATABASE_CONNECTION_URL:-}" && -f "$ENV_FILE" ]]; then
+        local line value
+        line=$(grep -E '^PREFECT_SERVER_DATABASE_CONNECTION_URL=' "$ENV_FILE" | tail -n 1 || true)
+        if [[ -n "$line" ]]; then
+            value="${line#*=}"
+            value="${value%\"}"
+            value="${value#\"}"
+            value="${value%\'}"
+            value="${value#\'}"
+            export PREFECT_SERVER_DATABASE_CONNECTION_URL="$value"
+        fi
+    fi
+
+    if [[ "${PREFECT_SERVER_DATABASE_CONNECTION_URL:-}" == postgresql* ]]; then
+        echo "Prefect database: PostgreSQL connection configured."
+    else
+        echo "WARNING: PREFECT_SERVER_DATABASE_CONNECTION_URL is not set to PostgreSQL; Prefect may use SQLite." >&2
+    fi
+}
 
 _stop_pid_file() {
     local pidfile="$1"
@@ -56,6 +78,7 @@ _deploy() {
 
 _start_server() {
     echo "Starting server..."
+    _load_prefect_database_env
     nohup uv run prefect server start >> logs/prefect_server.log 2>&1 &
     echo $! > "$SERVER_PID_FILE"
     echo "Server started (PID $(cat "$SERVER_PID_FILE"))."
