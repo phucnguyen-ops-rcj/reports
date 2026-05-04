@@ -23,6 +23,7 @@
         "GENIUS",
         "ASSET",
         "MEGA",
+        "BILL",
         "CLUSDTM",
         "BZUSDTM",
         "NATGASUSDTM"
@@ -58,6 +59,7 @@
             "GENIUS": 2000000,
             "ASSET": 2000000,
             "MEGA": 10000000,
+            "BILL": 5000000,
             "CLUSDTM": 2000000,
             "BZUSDTM": 2000000,
             "NATGASUSDTM": 2000000
