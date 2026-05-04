@@ -10,6 +10,8 @@ Auth header:
 
 Use these templates by replacing placeholders. Output only the current step's command.
 
+For API response conventions, status codes, and troubleshooting, see `docs/api_reference.md`.
+
 ## Step 1 — Arbitrage Strategy Config
 
 Required: `exchanges`, `base_ccy` repeated per exchange, `market`.
@@ -51,33 +53,19 @@ curl -X POST http://18.176.93.228/setup_volume_config \
 
 ## Optional Step 2b — Stacker Config
 
-Required: `exchanges`, `base_ccy`, `market`, `feed_host`, `gateway_host`, tick/size/price/quantity fields, `buy_stackers`, `sell_stackers`.
-
-```bash
-curl -X POST http://18.176.93.228/setup_stacker_config \
- -H "Authorization: Bearer ${RCJ_OPS_BEARER_TOKEN}" \
- -H "Content-Type: application/json" \
- -d '{
- "exchanges": "kucoin",
- "base_ccy": "BASE",
- "quote_ccy": "USDT",
- "market": "spot",
- "feed_host": "0.0.0.0:FEED_PORT",
- "gateway_host": "0.0.0.0:GATEWAY_PORT",
- "tick_size": 0.00001,
- "quantity_step_size": 0.01,
- "min_price": 0.00001,
- "max_price": 5.0,
- "min_quantity": 10.0,
- "max_quantity": 100000000000,
- "buy_stackers": "[{price: 0.0500 original_quantity: 1000},{price: 0.0499 original_quantity: 1000}]",
- "sell_stackers": "[{price: 0.0600 original_quantity: 1000},{price: 0.0601 original_quantity: 1000}]"
- }'
-```
+Use `docs/stacker.md` for setup, update, and manual stacker run notes.
 
 ## Step 3 — New Listing Config (Redis)
 
 Required: `exchange`, `market`, `symbol` as `BASE-USDT`.
+
+Valid values:
+
+- `market`: `spot`, `perp`
+- `strategy`: `slow_mm`, `mid_mm`, `fast_mm`
+- `tier`: `s`, `1`, `2`, `3` for spot
+- `model`: `crossover_vol`, `kline_vol` for spot
+- `mode`: `normal`, `stacker`
 
 ```bash
 curl -X POST http://18.176.93.228/setup_new_listing_config \
@@ -105,6 +93,20 @@ curl -X POST http://18.176.93.228/setup_new_listing_config \
 
 If the response says `symbol not found in market data`, ask: “Run Step 3b or go to Step 4?”
 
+Perp variant only needs `exchange`, `market`, `symbol`, and `strategy`:
+
+```bash
+curl -X POST http://18.176.93.228/setup_new_listing_config \
+ -H "Authorization: Bearer ${RCJ_OPS_BEARER_TOKEN}" \
+ -H "Content-Type: application/json" \
+ -d '{
+ "exchange": "kucoin",
+ "market": "perp",
+ "symbol": "BASE-USDT",
+ "strategy": "slow_mm"
+ }'
+```
+
 ## Optional Step 3b — Set Symbol Config
 
 Required: `base_currency`, `market`, `price_tick`, `size_tick`, `min_size`.
@@ -128,6 +130,8 @@ curl -X POST http://18.176.93.228/set_symbol_config \
 
 ## Step 4 — Create Gateway Config File
 
+Before running, check `docs/gateway_inventory.md`.
+
 Run only when current gateway has more than 10 symbols or state says `needs_new_gateway: true`. Required: `gateway_name`, `market`, `host` as `0.0.0.0:PORT`, `feed_host` as `0.0.0.0:PORT`, `account_id`.
 
 ```bash
@@ -144,7 +148,7 @@ curl -X POST http://18.176.93.228/setup_new_listing_gateway \
 ```
 
 Save `config_path` for Step 5.
-Host 45718: BILL
+After success, update `docs/gateway_inventory.md` with the new host, feed host, account ID, symbol, and returned `config_path`.
 
 ## Step 5 — Register Gateway in Supervisorctl
 

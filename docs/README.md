@@ -1,0 +1,29 @@
+# Docs Index
+
+This folder is the operational reference for repeated RCJ/report tasks. Keep
+files small and task-specific so a future request can be answered by opening one
+or two files.
+
+## Files
+
+| File | Use for |
+| --- | --- |
+| `api_reference.md` | Mini Service API conventions, responses, status codes, supported exchanges, and endpoint map. |
+| `accounts.md` | Supported transfer/balance account aliases by exchange. |
+| `ops_playbook.md` | Curl-only API command templates for balance, transfer, monitor, and health checks. |
+| `new_listing.md` | Step-by-step new listing setup curl templates. |
+| `gateway_inventory.md` | Memory for gateway host/feed host usage and when to allocate a new gateway. |
+| `stacker.md` | Stacker setup, update, and manual run notes. |
+| `strategy_configs.md` | Volume, 1s quoting, arbitrage, simple arbitrage, and simple trader config endpoints. |
+| `diagnostics.md` | Log/search, channel availability, funding, positions, market profile, and fills endpoints. |
+| `signal_setup.md` | Signal setup reference. |
+
+## Maintenance Rules
+
+- When a gateway host is assigned to a symbol, update `gateway_inventory.md`.
+- When a new listing command changes, update `new_listing.md`.
+- When an ops API template changes, update `ops_playbook.md`.
+- When a Mini Service endpoint changes, update `api_reference.md` and the task-specific file.
+- Keep secrets as environment variables such as `${RCJ_OPS_BEARER_TOKEN}`.
+- Prefer concrete examples over generic placeholders when the safe default is
+  known.
