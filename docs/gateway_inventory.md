@@ -25,9 +25,9 @@ When creating a new gateway, save:
 | Market | Host | Feed Host | Account ID | Symbol Count | Symbols | State |
 | --- | --- | --- | --- | ---: | --- | --- |
 | spot | `0.0.0.0:45718` | `0.0.0.0:41700` | `ktfsmc15` | 1 | `BILL` | active |
-
+| spot | `0.0.0.0:45718` | `0.0.0.0:41700` | `ktfsmc15` | 2 | `TAC` | active |
 ## Notes
 
-- `Host 45718: BILL`
+- `Host 45718: BILL, TAC`
 - Update `Symbol Count` whenever a symbol is added or removed.
 - If `Symbol Count` becomes `11`, set state to `needs_new_gateway`.

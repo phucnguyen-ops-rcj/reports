@@ -24,6 +24,7 @@
         "ASSET",
         "MEGA",
         "BILL",
+        "TAC",
         "CLUSDTM",
         "BZUSDTM",
         "NATGASUSDTM"
@@ -60,6 +61,7 @@
             "ASSET": 2000000,
             "MEGA": 10000000,
             "BILL": 5000000,
+            "TAC": 2000000,
             "CLUSDTM": 2000000,
             "BZUSDTM": 2000000,
             "NATGASUSDTM": 2000000

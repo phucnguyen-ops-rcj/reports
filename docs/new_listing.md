@@ -22,7 +22,7 @@ curl -X POST http://18.176.93.228/setup_arbitrage_strategy \
  -H "Content-Type: application/json" \
  -d '{
  "exchanges": "kucoin,gate",
- "base_ccy": "BILL,BILL",
+ "base_ccy": "TAC,TAC",
  "quote": "USDT,USDT",
  "market": "spot",
  "taker_arb_min_bps": 20,
@@ -42,8 +42,8 @@ curl -X POST http://18.176.93.228/setup_volume_config \
  -H "Content-Type: application/json" \
  -d '{
  "market": "spot",
- "tier": "a",
- "base_ccy": "BILL",
+ "tier": "b",
+ "base_ccy": "TAC",
  "quote_ccy": "USDT",
  "price_tick": 0.00001,
  "price_tick_size": 5,
@@ -74,9 +74,9 @@ curl -X POST http://18.176.93.228/setup_new_listing_config \
  -d '{
  "exchange": "kucoin",
  "market": "spot",
- "symbol": "BILL-USDT",
+ "symbol": "TAC-USDT",
  "strategy": "slow_mm",
- "tier": "A",
+ "tier": "B",
  "mode": "stacker",
  "hedge": "false",
  "auto_start": "true",
@@ -93,20 +93,6 @@ curl -X POST http://18.176.93.228/setup_new_listing_config \
 
 If the response says `symbol not found in market data`, ask: “Run Step 3b or go to Step 4?”
 
-Perp variant only needs `exchange`, `market`, `symbol`, and `strategy`:
-
-```bash
-curl -X POST http://18.176.93.228/setup_new_listing_config \
- -H "Authorization: Bearer ${RCJ_OPS_BEARER_TOKEN}" \
- -H "Content-Type: application/json" \
- -d '{
- "exchange": "kucoin",
- "market": "perp",
- "symbol": "BASE-USDT",
- "strategy": "slow_mm"
- }'
-```
-
 ## Optional Step 3b — Set Symbol Config
 
 Required: `base_currency`, `market`, `price_tick`, `size_tick`, `min_size`.
@@ -116,7 +102,7 @@ curl -X POST http://18.176.93.228/set_symbol_config \
  -H "Authorization: Bearer ${RCJ_OPS_BEARER_TOKEN}" \
  -H "Content-Type: application/json" \
  -d '{
- "base_currency": "BILL",
+ "base_currency": "TAC",
  "quote_currency": "USDT",
  "market": "spot",
  "price_tick": 0.00001,
@@ -173,11 +159,11 @@ curl -X POST http://18.176.93.228/setup_listing_strategy_gateway_feed \
  -H "Authorization: Bearer ${RCJ_OPS_BEARER_TOKEN}" \
  -H "Content-Type: application/json" \
  -d '{
- "base_ccy": "BILL",
+ "base_ccy": "TAC",
  "quote_ccy": "USDT",
  "market": "spot",
  "gateway_host": "localhost:45718",
- "feed_host": "localhost:41743"
+ "feed_host": "localhost:41744"
  }'
 ```
 
@@ -206,8 +192,8 @@ curl -X POST http://18.176.93.228/setup_new_listing_strategy_supervisorctl \
  -H "Authorization: Bearer ${RCJ_OPS_BEARER_TOKEN}" \
  -H "Content-Type: application/json" \
  -d '{
- "program_name": "mirror_spot_listings_strat2_BILLUSDT",
- "config_path": "configcpp/exchangemm_PROD/mirror/spot/strat2/emm_mirror_spot_strat2_BILLUSDT.txtpb"
+ "program_name": "mirror_spot_listings_strat2_TACUSDT",
+ "config_path": "configcpp/exchangemm_PROD/mirror/spot/strat2/emm_mirror_spot_strat2_TACUSDT.txtpb"
  }'
 ```
 
@@ -221,7 +207,7 @@ curl -X POST http://18.176.93.228/start_volatility_model \
  -H "Authorization: Bearer ${RCJ_OPS_BEARER_TOKEN}" \
  -H "Content-Type: application/json" \
  -d '{
- "symbol": "BASE-USDT",
+ "symbol": "TAC-USDT",
  "market": "spot",
  "exchange": "kucoin",
  "exchange_data": "kucoin",
