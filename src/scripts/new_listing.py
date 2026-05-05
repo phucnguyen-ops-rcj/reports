@@ -243,74 +243,81 @@ def symbol_from_config(config: dict[str, Any]) -> str | None:
     return None
 
 
-def gateway_port_from_config(config: dict[str, Any]) -> str | None:
-    step6 = get_step_body(config, "6")
-    step4 = get_step_body(config, "4")
-    host = step6.get("gateway_host") or step4.get("host")
-    if not isinstance(host, str):
+def gateway_host_from_config(config: dict[str, Any]) -> str | None:
+    host = get_step_body(config, "6").get("gateway_host")
+    return host if isinstance(host, str) and host else None
+
+
+def extract_feed_config(body: str) -> str | None:
+    match = re.search(
+        r"\[feed config]\s*(.*?)(?:\n=+\n|\n\[strategy config]|\Z)",
+        body,
+        flags=re.DOTALL | re.IGNORECASE,
+    )
+    if not match:
         return None
-    return host.rsplit(":", 1)[-1] if ":" in host else host
+    feed_config = match.group(1).strip()
+    return feed_config or None
 
 
-def load_gateway_symbols(path: Path) -> dict[str, list[str]]:
+def load_gateway_feed_configs(path: Path) -> dict[str, str]:
     if not path.exists():
         return {}
 
-    mapping: dict[str, list[str]] = {}
-    for raw_line in path.read_text(encoding="utf-8").splitlines():
-        line = raw_line.strip()
-        if not line or line.startswith("#"):
+    configs: dict[str, str] = {}
+    current_key: str | None = None
+    current_lines: list[str] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
             continue
-        match = re.fullmatch(r"([^:]+):\s*\[(.*)]", line)
-        if not match:
-            logger.warning("Skipping unsupported gateway symbols line: %s", raw_line)
+        key_match = re.fullmatch(r'"([^"]+)":\s*\|', stripped)
+        if key_match:
+            if current_key:
+                configs[current_key] = "\n".join(current_lines).rstrip()
+            current_key = key_match.group(1)
+            current_lines = []
             continue
-        host = match.group(1).strip().strip('"')
-        symbols = [
-            item.strip().strip('"').strip("'").upper()
-            for item in match.group(2).split(",")
-            if item.strip()
-        ]
-        mapping[host] = symbols
-    return mapping
+
+        if current_key and line.startswith("  "):
+            current_lines.append(line[2:])
+
+    if current_key:
+        configs[current_key] = "\n".join(current_lines).rstrip()
+    return configs
 
 
-def save_gateway_symbols(path: Path, mapping: dict[str, list[str]]) -> None:
+def save_gateway_feed_configs(path: Path, configs: dict[str, str]) -> None:
     lines = [
-        "# Gateway host port to assigned listing symbols.",
+        "# Gateway host to latest feed config returned by Step 6.",
         "# Keep this in sync after each successful new-listing run.",
     ]
-    for host in sorted(mapping, key=intable_sort_key):
-        symbols = sorted(set(mapping[host]))
-        lines.append(f"{host}: [{', '.join(symbols)}]")
+    for host in sorted(configs):
+        lines.append(f'"{host}": |')
+        for config_line in configs[host].splitlines():
+            lines.append(f"  {config_line}")
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def intable_sort_key(value: str) -> tuple[int, str]:
-    return (0, f"{int(value):010d}") if value.isdigit() else (1, value)
-
-
-def update_gateway_symbols(config: dict[str, Any]) -> None:
+def update_gateway_symbols(config: dict[str, Any], step6_body: str) -> None:
     if config.get("update_gateway_symbols", True) is False:
         return
 
     path = Path(
         config.get("gateway_symbols_path", "src/config/new_listing/gateway_symbols.yml")
     )
-    symbol = symbol_from_config(config)
-    port = gateway_port_from_config(config)
-    if not symbol or not port:
+    gateway_host = gateway_host_from_config(config)
+    feed_config = extract_feed_config(step6_body)
+    if not gateway_host or not feed_config:
         logger.warning(
-            "Skipping gateway symbol update because symbol or gateway port is missing."
+            "Skipping gateway symbol update because gateway_host or feed config is missing."
         )
         return
 
-    mapping = load_gateway_symbols(path)
-    symbols = mapping.setdefault(port, [])
-    if symbol not in symbols:
-        symbols.append(symbol)
-    save_gateway_symbols(path, mapping)
-    logger.info("Updated %s with %s on host %s", path, symbol, port)
+    configs = load_gateway_feed_configs(path)
+    configs[gateway_host] = feed_config
+    save_gateway_feed_configs(path, configs)
+    logger.info("Updated %s with latest Step 6 feed config for %s", path, gateway_host)
 
 
 def run_new_listing(config: dict[str, Any], dry_run: bool = False) -> None:
@@ -352,7 +359,7 @@ def run_new_listing(config: dict[str, Any], dry_run: bool = False) -> None:
 
     run_step("8", config, token, dry_run, log_path)
     if not dry_run:
-        update_gateway_symbols(config)
+        update_gateway_symbols(config, step6.body)
 
 
 def main() -> None:

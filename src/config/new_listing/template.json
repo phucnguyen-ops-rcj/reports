@@ -11,7 +11,7 @@
             "endpoint": "/setup_arbitrage_strategy",
             "body": {
                 "exchanges": "kucoin,gate",
-                "base_ccy": "TAC,TAC",
+                "base_ccy": "BASE,BASE",
                 "quote": "USDT,USDT",
                 "market": "spot",
                 "taker_arb_min_bps": 20,
@@ -26,7 +26,7 @@
             "body": {
                 "market": "spot",
                 "tier": "b",
-                "base_ccy": "TAC",
+                "base_ccy": "BASE",
                 "quote_ccy": "USDT",
                 "price_tick": 0.00001,
                 "price_tick_size": 5,
@@ -39,7 +39,7 @@
             "body": {
                 "exchange": "kucoin",
                 "market": "spot",
-                "symbol": "TAC-USDT",
+                "symbol": "BASE-USDT",
                 "strategy": "slow_mm",
                 "tier": "B",
                 "mode": "stacker",
@@ -59,7 +59,7 @@
             "label": "Set Symbol Config",
             "endpoint": "/set_symbol_config",
             "body": {
-                "base_currency": "TAC",
+                "base_currency": "BASE",
                 "quote_currency": "USDT",
                 "market": "spot",
                 "price_tick": 0.00001,
@@ -76,8 +76,8 @@
             "body": {
                 "gateway_name": "emm_mirror_spot_gateway_custom_BASEUSDT",
                 "market": "spot",
-                "host": "0.0.0.0:45718",
-                "feed_host": "0.0.0.0:41700",
+                "host": "0.0.0.0:45703",
+                "feed_host": "0.0.0.0:41739",
                 "account_id": "ktfsmc15"
             }
         },
@@ -93,11 +93,11 @@
             "label": "Create Feed + Strategy Config Files",
             "endpoint": "/setup_listing_strategy_gateway_feed",
             "body": {
-                "base_ccy": "TAC",
+                "base_ccy": "BASE",
                 "quote_ccy": "USDT",
                 "market": "spot",
-                "gateway_host": "localhost:45718",
-                "feed_host": "localhost:41744"
+                "gateway_host": "localhost:45703",
+                "feed_host": "localhost:41740"
             }
         },
         "7": {
@@ -112,8 +112,8 @@
             "label": "Register Strategy in Supervisorctl",
             "endpoint": "/setup_new_listing_strategy_supervisorctl",
             "body": {
-                "program_name": "mirror_spot_listings_strat2_TACUSDT",
-                "config_path": "configcpp/exchangemm_PROD/mirror/spot/strat2/emm_mirror_spot_strat2_TACUSDT.txtpb"
+                "program_name": "mirror_spot_listings_strat2_BASEUSDT",
+                "config_path": "configcpp/exchangemm_PROD/mirror/spot/strat2/emm_mirror_spot_strat2_BASEUSDT.txtpb"
             }
         }
     }
