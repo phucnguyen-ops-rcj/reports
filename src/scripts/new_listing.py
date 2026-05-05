@@ -126,7 +126,7 @@ def create_run_log_path(config: dict[str, Any]) -> Path:
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%SZ")
     logs_dir = Path(config.get("logs_dir", "logs"))
     logs_dir.mkdir(parents=True, exist_ok=True)
-    return logs_dir / f"{symbol}_{timestamp}.jsonl"
+    return logs_dir / f"{symbol}_{timestamp}.log"
 
 
 def write_step_log(
@@ -136,18 +136,21 @@ def write_step_log(
     response: ApiResponse,
     dry_run: bool,
 ) -> None:
-    record = {
-        "timestamp_utc": datetime.now(timezone.utc).isoformat(),
-        "step": step,
-        "label": step_config["label"],
-        "endpoint": step_config["endpoint"],
-        "dry_run": dry_run,
-        "input": step_config["body"],
-        "status": response.status,
-        "output": response.body,
-    }
     with log_path.open("a", encoding="utf-8") as file:
-        file.write(json.dumps(record, ensure_ascii=True) + "\n")
+        file.write(
+            f"[{datetime.now(timezone.utc).isoformat()}] Step {step}: {step_config['label']}\n"
+        )
+        file.write(f"Endpoint: {step_config['endpoint']}\n")
+        file.write(f"Dry run: {dry_run}\n")
+        file.write("Input:\n")
+        file.write(json.dumps(step_config["body"], indent=2, sort_keys=True))
+        file.write("\n")
+        file.write(f"Status: {response.status}\n")
+        file.write("Output:\n")
+        file.write(response.body.rstrip())
+        file.write("\n")
+        file.write("=" * 80)
+        file.write("\n")
 
 
 def write_skip_log(
