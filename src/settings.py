@@ -10,6 +10,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ENV_FILE = Path(__file__).resolve().parents[1] / ".env"
 
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=ENV_FILE,
@@ -17,7 +18,9 @@ class Settings(BaseSettings):
         extra="ignore",
     )
     # data source
-    source: Literal["local", "api"] = Field(default="local", description="Data source: 'local' or 'api'")
+    source: Literal["local", "api"] = Field(
+        default="local", description="Data source: 'local' or 'api'"
+    )
 
     # Signal messaging
     signal_base_url: str
@@ -27,7 +30,9 @@ class Settings(BaseSettings):
 
     # CoinGecko API
     coingecko_base_url: str
-    coingecko_api_key: str = Field(default_factory=lambda: os.environ["COINGECKO_API_KEY"])
+    coingecko_api_key: str = Field(
+        default_factory=lambda: os.environ["COINGECKO_API_KEY"]
+    )
 
     # influxDB
     influxdb_base_url: str
@@ -37,7 +42,12 @@ class Settings(BaseSettings):
     # KuCoin API
     kucoin_spot_base_url: str
     kucoin_future_base_url: str
-    
+
+    # RCJ ops API
+    rcj_ops_bearer_token: str = Field(
+        default_factory=lambda: os.environ.get("RCJ_OPS_BEARER_TOKEN", "")
+    )
+
     # File paths
     net_pnl_input_path: str = Field(default="data/trades.csv")
     trading_volume_input_path: str = Field(default="data/trading_volume.csv")

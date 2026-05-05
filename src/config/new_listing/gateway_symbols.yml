@@ -1,0 +1,5 @@
+# Gateway host port to assigned listing symbols.
+# Keep this in sync after each successful new-listing run.
+45718:
+  BILL
+  TAC
