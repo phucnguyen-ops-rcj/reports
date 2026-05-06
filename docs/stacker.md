@@ -111,30 +111,11 @@ curl -X POST http://18.176.93.228/update_stacker_config \
  }'
 ```
 
-## Manual Stacker Run Notes
-
-BILL stackers in T10:
-
-At 3pm SG time:
+## Manually Start Stacker
 
 ```bash
-LAUNCHER_ST ~/configcpp/strategy/kucoincpp_BILL_USDT_twkpi_st_1.txtpb ~/configcpp/gateway/kucoincpp_BILL_USDT_twkpi_st_1.txtpb ~/configcpp/feed/kucoincpp_BILL_USDT_stacker_feed.txtpb
-```
-
-At 3.10pm SG time:
-
-```bash
-LAUNCHER_ST ~/configcpp/strategy/kucoincpp_BILL_USDT_twkpi_st_2.txtpb ~/configcpp/gateway/kucoincpp_BILL_USDT_twkpi_st_2.txtpb
-```
-
-At 3.20pm SG time:
-
-```bash
-LAUNCHER_ST ~/configcpp/strategy/kucoincpp_BILL_USDT_twkpi_st_3.txtpb ~/configcpp/gateway/kucoincpp_BILL_USDT_twkpi_st_3.txtpb
-```
-
-At 3.30pm SG time:
-
-```bash
-LAUNCHER_ST ~/configcpp/strategy/kucoincpp_BILL_USDT_twkpi_st_4.txtpb ~/configcpp/gateway/kucoincpp_BILL_USDT_twkpi_st_4.txtpb
+curl -X POST http://18.176.93.228/launch_stacker \
+  -H "Authorization: Bearer 3a71078c84c18f3310df39284341b4584e18d5284db906c8f5dbb721d5d9eed2" \
+  -H "Content-Type: application/json" \
+  -d '{"base_ccy": "METADAO", "quote_ccy": "USDT", "stacker_level": 1}'
 ```

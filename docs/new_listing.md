@@ -216,6 +216,17 @@ curl -X POST http://18.176.93.228/start_volatility_model \
  }'
 ```
 
+## Step 10 - Start Mirror Model
+
+```bash
+curl -X POST http://18.176.93.228/strategy_control \
+  -H "Authorization: Bearer 3a71078c84c18f3310df39284341b4584e18d5284db906c8f5dbb721d5d9eed2" \
+  -H "Content-Type: application/json" \
+  -d '{"method": "start", "name": "mirror_spot_listings_strat2_KAIOUSDT"}'
+```
+
+`method` can be `start`, `stop`, or `restart`
+
 ## Process Control (only on explicit request)
 
 Show only curl; never execute.
