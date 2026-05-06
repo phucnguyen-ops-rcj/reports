@@ -25,6 +25,8 @@
         "MEGA",
         "BILL",
         "TAC",
+        "METADAO",
+        "KAIO",
         "CLUSDTM",
         "BZUSDTM",
         "NATGASUSDTM"
@@ -62,6 +64,8 @@
             "MEGA": 10000000,
             "BILL": 5000000,
             "TAC": 2000000,
+            "METADAO": 1000000,
+            "KAIO": 5000000,
             "CLUSDTM": 2000000,
             "BZUSDTM": 2000000,
             "NATGASUSDTM": 2000000
