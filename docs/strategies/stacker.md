@@ -119,3 +119,11 @@ curl -X POST http://18.176.93.228/launch_stacker \
   -H "Content-Type: application/json" \
   -d '{"base_ccy": "METADAO", "quote_ccy": "USDT", "stacker_level": 1}'
 ```
+
+## Check status
+```bash
+curl -X POST http://18.176.93.228/get_stacker_accepted_orders \
+ -H "Authorization: Bearer ${RCJ_OPS_BEARER_TOKEN}" \
+ -H "Content-Type: application/json" \
+ -d '{"symbol": "BILL-USDT", "date": "20260504"}'
+```
