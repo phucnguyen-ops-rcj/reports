@@ -43,6 +43,21 @@ class Settings(BaseSettings):
     kucoin_spot_base_url: str
     kucoin_future_base_url: str
 
+    # ALT report third-party sources
+    binance_base_url: str = Field(default="https://api.binance.com")
+    binance_futures_base_url: str = Field(default="https://fapi.binance.com")
+    bybit_base_url: str = Field(default="https://api.bybit.com")
+    coinank_base_url: str = Field(default="https://coinank.com")
+    coinank_api_base_url: str = Field(default="https://api.coinank.com")
+    coinmarketcap_base_url: str = Field(default="https://pro-api.coinmarketcap.com")
+    coinmarketcap_api_key: str = Field(
+        default_factory=lambda: os.environ.get("COINMARKETCAP_API_KEY", "")
+    )
+    coinshares_base_url: str = Field(default="https://researchblog.coinshares.com")
+    farside_base_url: str = Field(default="https://farside.co.uk")
+    tradingdigits_base_url: str = Field(default="https://www.tradingdigits.io")
+    tradingview_base_url: str = Field(default="https://www.tradingview.com")
+
     # RCJ ops API
     rcj_ops_bearer_token: str = Field(
         default_factory=lambda: os.environ.get("RCJ_OPS_BEARER_TOKEN", "")

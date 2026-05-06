@@ -7,6 +7,7 @@ import pandas as pd
 from datetime import datetime
 import pytz
 
+
 def format_signed_number(value: float, digits: int = 0) -> str:
     return f"{value:+,.{digits}f}"
 
@@ -39,6 +40,7 @@ def build_category_lines(loss_df: pd.DataFrame) -> str:
     lines.append(f"Undefined: {format_symbol_list(other_symbols)}")
     return "\n".join(lines)
 
+
 def format_report_table(df: pd.DataFrame, preferred_cols: list[str]) -> str:
     if df.empty:
         return "None"
@@ -49,7 +51,10 @@ def format_report_table(df: pd.DataFrame, preferred_cols: list[str]) -> str:
     if "npnl_r+un" in table_df.columns:
         table_df = table_df.sort_values("npnl_r+un")
 
-    return table_df.to_string(index=False, justify="left", float_format=_format_metric_value)
+    return table_df.to_string(
+        index=False, justify="left", float_format=_format_metric_value
+    )
+
 
 def _format_metric_value(value: float) -> str:
     if pd.isna(value):
@@ -61,6 +66,29 @@ def _format_metric_value(value: float) -> str:
     return f"{value:,.2f}"
 
 
+def format_usd_millions(value: float | None) -> str:
+    if value is None or pd.isna(value):
+        return "***"
+    return f"{value / 1_000_000:.1f}"
+
+
+def build_alt_market_summary_sentence(
+    symbol: str,
+    *,
+    spot_volume_24h: float | None,
+    binance_perp_volume_24h: float | None,
+    bybit_perp_volume_24h: float | None,
+) -> str:
+    symbol = symbol.upper()
+    return (
+        f"In the past 24H, {symbol} traded average spot volume of "
+        f"~${format_usd_millions(spot_volume_24h)}mm. Binance perp recorded "
+        f"trading volume of ~${format_usd_millions(binance_perp_volume_24h)}mm "
+        f"and Bybit perp ~${format_usd_millions(bybit_perp_volume_24h)}mm "
+        "over the past 24H."
+    )
+
+
 def build_daily_report(
     total_npnl: float,
     loss_base_strats: list[str],
@@ -69,17 +97,18 @@ def build_daily_report(
     loss_sym_strats: pd.DataFrame,
 ) -> str:
     if severe_symbols:
-        severe_line = f"Symbols with 24H NPNL < -3k: {format_symbol_list(severe_symbols)}"
+        severe_line = (
+            f"Symbols with 24H NPNL < -3k: {format_symbol_list(severe_symbols)}"
+        )
     else:
         severe_line = "No symbol with 24H NPNL < -3k"
-    
+
     if loss_base_strats:
         loss_strat_line = (
             f"[ {format_symbol_list(loss_base_strats)} ] with loss of more than -1k "
         )
     else:
         loss_strat_line = "No strategy with loss of more than -1k"
-
 
     if loss_symbols:
         loss_line = (
@@ -88,8 +117,10 @@ def build_daily_report(
         )
     else:
         loss_line = "No symbol with loss of more than -1k"
-    
-    category_lines = build_category_lines(loss_sym_strats) if not loss_sym_strats.empty else ""
+
+    category_lines = (
+        build_category_lines(loss_sym_strats) if not loss_sym_strats.empty else ""
+    )
 
     lines = [
         "",
