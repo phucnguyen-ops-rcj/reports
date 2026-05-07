@@ -46,6 +46,14 @@ UI available at `http://localhost:4200`.
 | `uv run market` | Fetches CoinGecko global market data, sends text summary via Signal |
 | `uv run net_pnl` | Loads trade CSV, runs P&L analysis, sends PNG table + text via Signal |
 | `uv run trading_volume` | Loads volume CSV, checks against thresholds, sends PNG table via Signal |
+| `uv run new_listing <symbol>` | Runs `src/config/new_listing/<symbol>.json` through the new-listing setup flow |
+| `uv run strategy_fills <symbol>` | Fetches volume strategy fills/status with `base_currency`/`quote_currency` |
+
+Manual RCJ ops workflows are also available in Prefect UI on strategy-specific
+work pools. See `docs/prefect_ops.md` for new listing, volatility, volume,
+stacker, mirror control, and diagnostics deployments. These ops flows default to
+SSH execution through `T1_newuser1` because the Mini Service API is not reachable
+directly from local.
 
 Run all three in sequence:
 
@@ -53,6 +61,15 @@ Run all three in sequence:
 uv run -m src.scripts.market
 uv run -m src.scripts.net_pnl
 uv run -m src.scripts.trading_volume
+```
+
+New-listing configs live under `src/config/new_listing/`. Most runs only need
+the symbol config name:
+
+```bash
+uv run new_listing testing --dry-run
+uv run new_listing KAIO
+uv run new_listing --config src/config/new_listing/custom.json
 ```
 
 ## Prefect orchestration

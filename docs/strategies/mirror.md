@@ -1,5 +1,17 @@
 `method` can be `start`, `stop`, or `restart`
 
+Prefer Prefect UI deployment `mirror-control`, which runs on
+`mirror-agent-pool`.
+
+Most runs change:
+
+- `symbol`
+- `component`: `gateway`, `feed`, or `strategy`
+- `method`: `start`, `stop`, or `restart`
+
+The flow builds the standard process name automatically. Use `name_override`
+when the supervisor process name is nonstandard. Output appears in the Prefect
+flow run logs. Leave `execution_mode=ssh` and `ssh_host=T1_newuser1`.
 
 ```bash
 curl -X POST http://18.176.93.228/gateway_control \

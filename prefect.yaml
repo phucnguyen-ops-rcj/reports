@@ -51,3 +51,193 @@ deployments:
   entrypoint: src/flows/trading_volume.py:trading_volume_flow
   work_pool:
     name: default-agent-pool
+- name: ops-api-request
+  tags:
+  - ops
+  - manual
+  description: Generic RCJ ops API request. Use only when a dedicated deployment does not fit.
+  entrypoint: src/flows/ops.py:ops_api_request_flow
+  parameters:
+    endpoint: /get_token_chan_availability
+    payload_json: '{"token": "KAT"}'
+    execution_mode: ssh
+    ssh_host: T1_newuser1
+    fail_on_error: true
+  work_pool:
+    name: ops-agent-pool
+  schedules: []
+- name: new-listing
+  tags:
+  - ops
+  - new-listing
+  - manual
+  description: Run src/config/new_listing/<symbol>.json through the setup flow.
+  entrypoint: src/flows/ops.py:new_listing_flow
+  parameters:
+    symbol: testing
+    config_path: ""
+    dry_run: true
+    execution_mode: ssh
+    ssh_host: T1_newuser1
+  work_pool:
+    name: ops-agent-pool
+  schedules: []
+- name: start-volatility-model
+  tags:
+  - ops
+  - volatility
+  - manual
+  description: Start the volatility model for a symbol after the token is live.
+  entrypoint: src/flows/ops.py:volatility_model_flow
+  parameters:
+    symbol: KAIO
+    market: spot
+    exchange: kucoin
+    exchange_data: kucoin
+    risk_tol: low
+    strategy: slow_mm
+    execution_mode: ssh
+    ssh_host: T1_newuser1
+  work_pool:
+    name: volatility-agent-pool
+  schedules: []
+- name: volume-strategy-fills
+  tags:
+  - ops
+  - volume
+  - manual
+  description: Show volume strategy fill/status output in the Prefect UI.
+  entrypoint: src/flows/ops.py:volume_strategy_fills_flow
+  parameters:
+    symbol: KAIO
+    date: ""
+    quote_ccy: USDT
+    execution_mode: ssh
+    ssh_host: T1_newuser1
+  work_pool:
+    name: volume-agent-pool
+  schedules: []
+- name: start-volume-strategy
+  tags:
+  - ops
+  - volume
+  - manual
+  description: Start the volume strategy for a symbol.
+  entrypoint: src/flows/ops.py:start_volume_strategy_flow
+  parameters:
+    symbol: KAIO
+    quote_ccy: USDT
+    execution_mode: ssh
+    ssh_host: T1_newuser1
+  work_pool:
+    name: volume-agent-pool
+  schedules: []
+- name: stacker-status
+  tags:
+  - ops
+  - stacker
+  - manual
+  description: Show accepted/rejected stacker order output in the Prefect UI.
+  entrypoint: src/flows/ops.py:stacker_status_flow
+  parameters:
+    symbol: BILL
+    date: ""
+    quote_ccy: USDT
+    execution_mode: ssh
+    ssh_host: T1_newuser1
+  work_pool:
+    name: stacker-agent-pool
+  schedules: []
+- name: launch-stacker
+  tags:
+  - ops
+  - stacker
+  - manual
+  description: Manually launch stacker for a symbol.
+  entrypoint: src/flows/ops.py:stacker_launch_flow
+  parameters:
+    symbol: BILL
+    stacker_level: 1
+    quote_ccy: USDT
+    execution_mode: ssh
+    ssh_host: T1_newuser1
+  work_pool:
+    name: stacker-agent-pool
+  schedules: []
+- name: setup-stacker-config
+  tags:
+  - ops
+  - stacker
+  - manual
+  description: Create stacker config. Fill hosts and stacker lists before running.
+  entrypoint: src/flows/ops.py:stacker_setup_flow
+  parameters:
+    symbol: KAIO
+    feed_host: 0.0.0.0:41741
+    gateway_host: 0.0.0.0:41799
+    buy_stackers: |
+      [
+      {
+        price: 0.00194
+        original_quantity: 5077.9708
+      },
+      ]
+    sell_stackers: |
+      [
+      {
+        price: 0.95841
+        original_quantity: 4780.6481
+      },
+      ]
+    exchanges: kucoin
+    quote_ccy: USDT
+    market: spot
+    tick_size: 0.00001
+    quantity_step_size: 0.1
+    min_price: 0.00001
+    max_price: 1.0
+    min_quantity: 10.0
+    max_quantity: 100000000000
+    extra_payload_json: "{}"
+    execution_mode: ssh
+    ssh_host: T1_newuser1
+  work_pool:
+    name: stacker-agent-pool
+  schedules: []
+- name: update-stacker-config
+  tags:
+  - ops
+  - stacker
+  - manual
+  description: Update stacker config using a JSON object for changed fields.
+  entrypoint: src/flows/ops.py:stacker_update_flow
+  parameters:
+    symbol: BILL
+    updates_json: '{"max_price": 10.0}'
+    exchanges: kucoin
+    quote_ccy: USDT
+    execution_mode: ssh
+    ssh_host: T1_newuser1
+  work_pool:
+    name: stacker-agent-pool
+  schedules: []
+- name: mirror-control
+  tags:
+  - ops
+  - mirror
+  - manual
+  description: Start, stop, or restart gateway/feed/strategy mirror processes.
+  entrypoint: src/flows/ops.py:mirror_control_flow
+  parameters:
+    symbol: BILL
+    component: strategy
+    method: start
+    name_override: ""
+    exchange: kucoin
+    market: spot
+    quote_ccy: USDT
+    execution_mode: ssh
+    ssh_host: T1_newuser1
+  work_pool:
+    name: mirror-agent-pool
+  schedules: []

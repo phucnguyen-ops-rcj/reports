@@ -3,6 +3,24 @@
 Use this file for stacker setup, stacker config updates, and manual stacker run
 notes. Do not execute commands unless explicitly asked.
 
+Prefer Prefect UI deployments for repeated operations:
+
+| Deployment | Use |
+| --- | --- |
+| `stacker-status` | Check accepted/rejected order output. |
+| `launch-stacker` | Manually launch stacker for a symbol and level. |
+| `setup-stacker-config` | Create stacker configs after hosts and stacker lists are known. |
+| `update-stacker-config` | Update an existing stacker config using `updates_json`. |
+
+These deployments run on `stacker-agent-pool`. All deployment output appears in
+the Prefect flow run logs.
+Leave `execution_mode=ssh` and `ssh_host=T1_newuser1` for these deployments.
+
+`setup-stacker-config` defaults to the KAIO example: feed host
+`0.0.0.0:41741`, gateway host `0.0.0.0:41799`, quantity step `0.1`, max price
+`1.0`, buy stacker price `0.00194` quantity `5077.9708`, and sell stacker price
+`0.95841` quantity `4780.6481`.
+
 Base endpoint: `http://18.176.93.228`
 
 Auth header:
@@ -113,17 +131,23 @@ curl -X POST http://18.176.93.228/update_stacker_config \
 
 ## Manually Start Stacker
 
+Prefect UI: use `launch-stacker`; most runs only change `symbol` and
+`stacker_level`.
+
 ```bash
 curl -X POST http://18.176.93.228/launch_stacker \
-  -H "Authorization: Bearer 3a71078c84c18f3310df39284341b4584e18d5284db906c8f5dbb721d5d9eed2" \
+  -H "Authorization: Bearer ${RCJ_OPS_BEARER_TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{"base_ccy": "METADAO", "quote_ccy": "USDT", "stacker_level": 1}'
 ```
 
 ## Check status
+
+Prefect UI: use `stacker-status`; most runs only change `symbol`.
+
 ```bash
 curl -X POST http://18.176.93.228/get_stacker_accepted_orders \
  -H "Authorization: Bearer ${RCJ_OPS_BEARER_TOKEN}" \
  -H "Content-Type: application/json" \
- -d '{"symbol": "BILL-USDT", "date": "20260504"}'
+ -d '{"symbol": "KAIO-USDT", "date": "20260504"}'
 ```

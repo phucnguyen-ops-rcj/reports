@@ -5,18 +5,22 @@ import json
 import logging
 import re
 import sys
-import urllib.error
-import urllib.request
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from src.clients.ops_api import (
+    DEFAULT_OPS_EXECUTION_MODE,
+    DEFAULT_OPS_SSH_HOST,
+    OpsApiClient,
+)
 from src.settings import app_settings
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_CONFIG_PATH = Path("src/config/new_listing/template.json")
+DEFAULT_SYMBOL_CONFIG_DIR = Path("src/config/new_listing")
 DEFAULT_TIMEOUT_SECONDS = 60
 
 
@@ -33,20 +37,69 @@ class ApiResponse:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Run the new-listing setup sequence from a copied JSON payload file."
+        description="Run the new-listing setup sequence for a symbol config."
+    )
+    parser.add_argument(
+        "symbol",
+        nargs="?",
+        help=(
+            "Symbol config name from src/config/new_listing/<symbol>.json. "
+            "For example, 'testing' loads src/config/new_listing/testing.json."
+        ),
     )
     parser.add_argument(
         "-c",
         "--config",
-        required=True,
-        help="Path to a JSON file copied from src/config/new_listing/template.json.",
+        help=(
+            "Explicit JSON config path. Overrides symbol-based lookup and keeps "
+            "ad hoc configs flexible."
+        ),
     )
     parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Print the step order and JSON bodies without sending requests.",
     )
+    parser.add_argument(
+        "--execution-mode",
+        choices=["ssh", "local"],
+        default=DEFAULT_OPS_EXECUTION_MODE,
+        help="Run API requests through SSH by default, or directly from local.",
+    )
+    parser.add_argument(
+        "--ssh-host",
+        default=DEFAULT_OPS_SSH_HOST,
+        help=f"SSH host used when --execution-mode=ssh. Defaults to {DEFAULT_OPS_SSH_HOST}.",
+    )
     return parser.parse_args()
+
+
+def resolve_config_path(args: argparse.Namespace) -> Path:
+    if args.config:
+        return Path(args.config)
+
+    if not args.symbol:
+        raise ValueError(
+            "Provide a symbol or --config. Example: uv run new_listing testing"
+        )
+
+    symbol = args.symbol.strip()
+    if not symbol:
+        raise ValueError("Symbol cannot be empty.")
+
+    candidates = [
+        DEFAULT_SYMBOL_CONFIG_DIR / f"{symbol}.json",
+        DEFAULT_SYMBOL_CONFIG_DIR / f"{symbol.lower()}.json",
+        DEFAULT_SYMBOL_CONFIG_DIR / f"{symbol.upper()}.json",
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+
+    raise FileNotFoundError(
+        "Could not find a config for "
+        f"{symbol!r}. Expected one of: {', '.join(str(path) for path in candidates)}"
+    )
 
 
 def load_config(path: Path) -> dict[str, Any]:
@@ -95,24 +148,17 @@ def post_json(
     token: str,
     payload: dict[str, Any],
     timeout: int,
+    execution_mode: str = DEFAULT_OPS_EXECUTION_MODE,
+    ssh_host: str = DEFAULT_OPS_SSH_HOST,
 ) -> tuple[int, str]:
-    data = json.dumps(payload).encode("utf-8")
-    request = urllib.request.Request(
-        f"{base_url.rstrip('/')}{endpoint}",
-        data=data,
-        method="POST",
-        headers={
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json",
-        },
+    client = OpsApiClient(
+        base_endpoint=base_url,
+        timeout_seconds=timeout,
+        execution_mode=execution_mode,  # pyrefly: ignore
+        ssh_host=ssh_host,
     )
-
-    try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            return response.status, response.read().decode("utf-8", errors="replace")
-    except urllib.error.HTTPError as exc:
-        body = exc.read().decode("utf-8", errors="replace")
-        return exc.code, body
+    response = client.post(endpoint, payload)
+    return response.status, response.body
 
 
 def utc_midnight_timestamp_ms() -> int:
@@ -167,6 +213,8 @@ def run_step(
     token: str,
     dry_run: bool,
     log_path: Path,
+    execution_mode: str = DEFAULT_OPS_EXECUTION_MODE,
+    ssh_host: str = DEFAULT_OPS_SSH_HOST,
 ) -> ApiResponse:
     step_config = get_step_config(config, step)
     label = step_config["label"]
@@ -187,6 +235,8 @@ def run_step(
         token=token,
         payload=payload,
         timeout=int(config.get("timeout_seconds", DEFAULT_TIMEOUT_SECONDS)),
+        execution_mode=execution_mode,
+        ssh_host=ssh_host,
     )
     response = ApiResponse(step=step, status=status, body=body)
     logger.info("Step %s finished with HTTP %s", step, status)
@@ -320,7 +370,12 @@ def update_gateway_symbols(config: dict[str, Any], step6_body: str) -> None:
     logger.info("Updated %s with latest Step 6 feed config for %s", path, gateway_host)
 
 
-def run_new_listing(config: dict[str, Any], dry_run: bool = False) -> None:
+def run_new_listing(
+    config: dict[str, Any],
+    dry_run: bool = False,
+    execution_mode: str = DEFAULT_OPS_EXECUTION_MODE,
+    ssh_host: str = DEFAULT_OPS_SSH_HOST,
+) -> None:
     log_path = create_run_log_path(config)
     logger.info("Writing new-listing run log to %s", log_path)
     token = "" if dry_run else require_token()
@@ -328,36 +383,36 @@ def run_new_listing(config: dict[str, Any], dry_run: bool = False) -> None:
         config.get("create_new_gate_way", config.get("create_new_gateway", False))
     )
 
-    run_step("1", config, token, dry_run, log_path)
-    run_step("2", config, token, dry_run, log_path)
+    run_step("1", config, token, dry_run, log_path, execution_mode, ssh_host)
+    run_step("2", config, token, dry_run, log_path, execution_mode, ssh_host)
 
-    step3 = run_step("3", config, token, dry_run, log_path)
+    step3 = run_step("3", config, token, dry_run, log_path, execution_mode, ssh_host)
     if not dry_run and response_has_symbol_not_found(step3):
         logger.info(
             "Step 3 returned symbol-not-found; running Step 3b and retrying Step 3."
         )
         get_step_body(config, "3b")["first_date"] = utc_midnight_timestamp_ms()
-        run_step("3b", config, token, dry_run, log_path)
+        run_step("3b", config, token, dry_run, log_path, execution_mode, ssh_host)
         # run_step("3", config, token, dry_run, log_path)
 
     if create_gateway:
-        run_step("4", config, token, dry_run, log_path)
-        run_step("5", config, token, dry_run, log_path)
+        run_step("4", config, token, dry_run, log_path, execution_mode, ssh_host)
+        run_step("5", config, token, dry_run, log_path, execution_mode, ssh_host)
     else:
         logger.info("Skipping steps 4 and 5 because create_new_gate_way is false.")
         write_skip_log(log_path, "4", config, "create_new_gate_way is false")
         write_skip_log(log_path, "5", config, "create_new_gate_way is false")
 
-    step6 = run_step("6", config, token, dry_run, log_path)
+    step6 = run_step("6", config, token, dry_run, log_path, execution_mode, ssh_host)
 
     if dry_run or feed_was_created(step6):
-        run_step("7", config, token, dry_run, log_path)
+        run_step("7", config, token, dry_run, log_path, execution_mode, ssh_host)
     else:
         logger.info("Skipping step 7 because Step 6 did not create a new feed file.")
         action = extract_feed_action(step6.body) or "missing feed_action"
         write_skip_log(log_path, "7", config, f"Step 6 feed_action is {action}")
 
-    run_step("8", config, token, dry_run, log_path)
+    run_step("8", config, token, dry_run, log_path, execution_mode, ssh_host)
     if not dry_run:
         update_gateway_symbols(config, step6.body)
 
@@ -368,8 +423,15 @@ def main() -> None:
         format="%(asctime)s - %(levelname)s - %(message)s",
     )
     args = parse_args()
-    config = load_config(Path(args.config))
-    run_new_listing(config, dry_run=args.dry_run)
+    config_path = resolve_config_path(args)
+    logger.info("Loading new-listing config from %s", config_path)
+    config = load_config(config_path)
+    run_new_listing(
+        config,
+        dry_run=args.dry_run,
+        execution_mode=args.execution_mode,
+        ssh_host=args.ssh_host,
+    )
 
 
 if __name__ == "__main__":

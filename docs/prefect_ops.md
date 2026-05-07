@@ -1,0 +1,84 @@
+# Prefect Ops UI
+
+Use these manual deployments from the Prefect UI for RCJ ops API work. They run
+on strategy-specific work pools and are separate from daily report jobs.
+
+The Mini Service API is not reachable directly from the local machine, so ops
+deployments default to:
+
+- `execution_mode`: `ssh`
+- `ssh_host`: `T1_newuser1`
+
+The local Prefect worker SSHes to `T1_newuser1`, performs the API request from
+there, and captures the HTTP status/body back into the Prefect run logs. Use
+`execution_mode: local` only from a machine that can reach the API directly.
+
+Start or redeploy Prefect with:
+
+```bash
+./prefect.sh
+./prefect.sh redeploy
+```
+
+The script creates these work pools and starts workers for:
+
+- `default-agent-pool` for scheduled report flows
+- `ops-agent-pool` for generic/new-listing ops flows
+- `volatility-agent-pool` for volatility model flows
+- `volume-agent-pool` for volume strategy flows
+- `stacker-agent-pool` for stacker flows
+- `mirror-agent-pool` for mirror process control flows
+
+All ops flows log the request payload, HTTP status, and raw response body. Open
+the flow run in the Prefect UI and check **Logs** for the same output you would
+normally read in the terminal.
+
+## Deployments
+
+| Deployment | Work pool | Common use | Most-used parameters |
+| --- | --- | --- | --- |
+| `new-listing` | `ops-agent-pool` | Run `src/config/new_listing/<symbol>.json` setup. | `symbol`, `dry_run`; use `config_path` only for custom files. |
+| `start-volatility-model` | `volatility-agent-pool` | Start volatility after a token is live. | `symbol`; usually keep `market`, `exchange`, `exchange_data`, `risk_tol`, and `strategy` defaults. |
+| `start-volume-strategy` | `volume-agent-pool` | Start the volume strategy for a symbol. | `symbol`. |
+| `volume-strategy-fills` | `volume-agent-pool` | Check volume strategy fill output. | `symbol`, optional `date`. |
+| `stacker-status` | `stacker-agent-pool` | Check stacker accepted/rejected orders. | `symbol`, optional `date`. |
+| `launch-stacker` | `stacker-agent-pool` | Manually launch stacker. | `symbol`, `stacker_level`. |
+| `setup-stacker-config` | `stacker-agent-pool` | Create stacker configs. | `symbol`, `feed_host`, `gateway_host`, `buy_stackers`, `sell_stackers`. |
+| `update-stacker-config` | `stacker-agent-pool` | Update existing stacker configs. | `symbol`, `updates_json`. |
+| `mirror-control` | `mirror-agent-pool` | Start/stop/restart mirror gateway/feed/strategy processes. | `symbol`, `component`, `method`; use `name_override` for nonstandard process names. |
+| `ops-api-request` | `ops-agent-pool` | Escape hatch for another POST endpoint. | `endpoint`, `payload_json`. |
+
+## Stacker Defaults
+
+`setup-stacker-config` defaults to the KAIO example payload:
+
+- `symbol`: `KAIO`
+- `feed_host`: `0.0.0.0:41741`
+- `gateway_host`: `0.0.0.0:41799`
+- `quantity_step_size`: `0.1`
+- `max_price`: `1.0`
+- `buy_stackers`: price `0.00194`, quantity `5077.9708`
+- `sell_stackers`: price `0.95841`, quantity `4780.6481`
+
+## Parameter Patterns
+
+Most symbol fields accept either `BASE` or `BASE-USDT`; flows normalize to
+`BASE-USDT` or extract `BASE` depending on the endpoint.
+
+Keep `ssh_host` as `T1_newuser1` unless the ops API route moves to another
+reachable machine.
+
+Use JSON object strings for flexible fields:
+
+```json
+{"max_price": 10.0, "sell_stackers": "[{price: 0.0610 original_quantity: 1000}]"}
+```
+
+For mirror process control, the default process names are generated from
+`symbol`, `component`, `exchange`, and `market`:
+
+- gateway: `mirror_spot_gateway_custom_BASEUSDT`
+- feed: `feed_spot_custom_kucoin_BASEUSDT`
+- strategy: `mirror_spot_listings_strat2_BASEUSDT`
+
+Set `name_override` when the deployed process name does not match the default.

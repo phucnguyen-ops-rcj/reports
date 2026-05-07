@@ -11,10 +11,21 @@ REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$REPO_DIR"
 
 PREFECT_API_URL="http://127.0.0.1:4200/api"
-POOL="default-agent-pool"
+POOLS=(
+    "default-agent-pool"
+    "ops-agent-pool"
+    "volatility-agent-pool"
+    "volume-agent-pool"
+    "stacker-agent-pool"
+    "mirror-agent-pool"
+)
 SERVER_PID_FILE="$REPO_DIR/.prefect_server.pid"
-WORKER_PID_FILE="$REPO_DIR/.prefect_worker.pid"
+LEGACY_WORKER_PID_FILE="$REPO_DIR/.prefect_worker.pid"
 ENV_FILE="$REPO_DIR/.env"
+
+_worker_pid_file() {
+    echo "$REPO_DIR/.prefect_worker_$1.pid"
+}
 
 _load_prefect_database_env() {
     if [[ -z "${PREFECT_SERVER_DATABASE_CONNECTION_URL:-}" && -f "$ENV_FILE" ]]; then
@@ -67,8 +78,10 @@ _deploy() {
     echo "Deploying flows..."
     uv run prefect config set PREFECT_API_URL="$PREFECT_API_URL" > /dev/null
 
-    # create pool if it doesn't exist, overwrite to suppress "already exists" warning
-    uv run prefect work-pool create "$POOL" --type process --overwrite 2>/dev/null || true
+    # create pools if they don't exist, overwrite to suppress "already exists" warnings
+    for pool in "${POOLS[@]}"; do
+        uv run prefect work-pool create "$pool" --type process --overwrite 2>/dev/null || true
+    done
 
     # deploy all flows from prefect.yaml, skip interactive prompts
     uv run prefect --no-prompt deploy --all
@@ -85,16 +98,23 @@ _start_server() {
 }
 
 _start_worker() {
-    echo "Starting worker..."
-    nohup uv run prefect worker start --pool "$POOL" >> logs/prefect_worker.log 2>&1 &
-    echo $! > "$WORKER_PID_FILE"
-    echo "Worker started (PID $(cat "$WORKER_PID_FILE"))."
+    for pool in "${POOLS[@]}"; do
+        local pidfile
+        pidfile="$(_worker_pid_file "$pool")"
+        echo "Starting worker for $pool..."
+        nohup uv run prefect worker start --pool "$pool" >> "logs/prefect_worker_${pool}.log" 2>&1 &
+        echo $! > "$pidfile"
+        echo "Worker for $pool started (PID $(cat "$pidfile"))."
+    done
 }
 
 # ── stop: gracefully stop server and worker ────────────────────────────────────
 if [[ "${1:-}" == "stop" ]]; then
     echo "=== Stopping Prefect ==="
-    _stop_pid_file "$WORKER_PID_FILE"
+    _stop_pid_file "$LEGACY_WORKER_PID_FILE"
+    for pool in "${POOLS[@]}"; do
+        _stop_pid_file "$(_worker_pid_file "$pool")"
+    done
     _stop_pid_file "$SERVER_PID_FILE"
     pkill -f "prefect worker start" 2>/dev/null || true
     pkill -f "prefect server start" 2>/dev/null || true
@@ -112,7 +132,9 @@ if [[ "${1:-}" == "start" ]]; then
     echo "=== All services running ==="
     echo "  UI:     http://localhost:4200"
     echo "  Server: PID $(cat "$SERVER_PID_FILE")"
-    echo "  Worker: PID $(cat "$WORKER_PID_FILE")"
+    for pool in "${POOLS[@]}"; do
+        echo "  Worker $pool: PID $(cat "$(_worker_pid_file "$pool")")"
+    done
     exit 0
 fi
 
@@ -135,7 +157,10 @@ fi
 echo "=== Fresh Start ==="
 
 # stop gracefully first, then force-kill any orphans
-_stop_pid_file "$WORKER_PID_FILE"
+_stop_pid_file "$LEGACY_WORKER_PID_FILE"
+for pool in "${POOLS[@]}"; do
+    _stop_pid_file "$(_worker_pid_file "$pool")"
+done
 _stop_pid_file "$SERVER_PID_FILE"
 pkill -f "prefect worker start" 2>/dev/null || true
 pkill -f "prefect server start" 2>/dev/null || true
@@ -156,6 +181,8 @@ echo ""
 echo "=== All services running ==="
 echo "  UI:     http://localhost:4200"
 echo "  Server: PID $(cat "$SERVER_PID_FILE")"
-echo "  Worker: PID $(cat "$WORKER_PID_FILE")"
+for pool in "${POOLS[@]}"; do
+    echo "  Worker $pool: PID $(cat "$(_worker_pid_file "$pool")")"
+done
 echo ""
 echo "Commands: ./prefect.sh stop | start | redeploy"

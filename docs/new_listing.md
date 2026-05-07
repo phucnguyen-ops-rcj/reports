@@ -1,5 +1,40 @@
 # New Listing Curl Templates
 
+## Project Command
+
+Create or update `src/config/new_listing/<symbol>.json`, usually by copying
+`src/config/new_listing/template.json`. Then run:
+
+```bash
+uv run new_listing <symbol>
+```
+
+Examples:
+
+```bash
+uv run new_listing testing --dry-run
+uv run new_listing KAIO
+uv run new_listing --config src/config/new_listing/custom.json
+```
+
+The symbol command checks `src/config/new_listing/<symbol>.json`,
+`<symbol-lower>.json`, then `<symbol-UPPER>.json`. Use `--config` for one-off
+paths or config variants.
+
+## Prefect UI
+
+Use the `new-listing` deployment on `ops-agent-pool`.
+
+Most runs only change:
+
+- `symbol`
+- `dry_run`
+
+Set `dry_run` to `true` first to preview the setup in the UI logs. Set
+`config_path` only for a one-off JSON file outside the normal symbol path.
+Leave `execution_mode=ssh` and `ssh_host=T1_newuser1` unless the ops API becomes
+reachable locally.
+
 Base endpoint: `http://18.176.93.228`
 
 Auth header:
