@@ -85,7 +85,7 @@ uv run new_listing --config src/config/new_listing/custom.json
 
 Flows are defined in `prefect.yaml`. The `daily-morning` deployment runs all three flows in parallel on a cron schedule (`30 1 * * *` UTC). The other three deployments (`market`, `net-pnl`, `trading-volume`) are manual-trigger only.
 
-Logs: `logs/prefect_server.log`, `logs/prefect_worker.log`.
+Logs: `logs/prefect/`. Runtime PID files: `logs/pid/`.
 
 ## Environment
 

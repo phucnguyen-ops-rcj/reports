@@ -11,6 +11,8 @@ REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$REPO_DIR"
 
 PREFECT_API_URL="http://127.0.0.1:4200/api"
+PREFECT_LOG_DIR="$REPO_DIR/logs/prefect"
+PID_DIR="$REPO_DIR/logs/pid"
 POOLS=(
     "default-agent-pool"
     "ops-playbook-agent-pool"
@@ -20,12 +22,21 @@ POOLS=(
     "stacker-agent-pool"
     "mirror-agent-pool"
 )
-SERVER_PID_FILE="$REPO_DIR/.prefect_server.pid"
+SERVER_PID_FILE="$PID_DIR/prefect_server.pid"
+LEGACY_SERVER_PID_FILE="$REPO_DIR/.prefect_server.pid"
 LEGACY_WORKER_PID_FILE="$REPO_DIR/.prefect_worker.pid"
 ENV_FILE="$REPO_DIR/.env"
 
 _worker_pid_file() {
+    echo "$PID_DIR/prefect_worker_$1.pid"
+}
+
+_legacy_worker_pid_file() {
     echo "$REPO_DIR/.prefect_worker_$1.pid"
+}
+
+_ensure_runtime_dirs() {
+    mkdir -p "$PREFECT_LOG_DIR" "$PID_DIR"
 }
 
 _load_prefect_database_env() {
@@ -92,18 +103,20 @@ _deploy() {
 
 _start_server() {
     echo "Starting server..."
+    _ensure_runtime_dirs
     _load_prefect_database_env
-    nohup uv run prefect server start >> logs/prefect_server.log 2>&1 &
+    nohup uv run prefect server start >> "$PREFECT_LOG_DIR/server.log" 2>&1 &
     echo $! > "$SERVER_PID_FILE"
     echo "Server started (PID $(cat "$SERVER_PID_FILE"))."
 }
 
 _start_worker() {
+    _ensure_runtime_dirs
     for pool in "${POOLS[@]}"; do
         local pidfile
         pidfile="$(_worker_pid_file "$pool")"
         echo "Starting worker for $pool..."
-        nohup uv run prefect worker start --pool "$pool" >> "logs/prefect_worker_${pool}.log" 2>&1 &
+        nohup uv run prefect worker start --pool "$pool" >> "$PREFECT_LOG_DIR/worker_${pool}.log" 2>&1 &
         echo $! > "$pidfile"
         echo "Worker for $pool started (PID $(cat "$pidfile"))."
     done
@@ -113,7 +126,9 @@ _start_worker() {
 if [[ "${1:-}" == "stop" ]]; then
     echo "=== Stopping Prefect ==="
     _stop_pid_file "$LEGACY_WORKER_PID_FILE"
+    _stop_pid_file "$LEGACY_SERVER_PID_FILE"
     for pool in "${POOLS[@]}"; do
+        _stop_pid_file "$(_legacy_worker_pid_file "$pool")"
         _stop_pid_file "$(_worker_pid_file "$pool")"
     done
     _stop_pid_file "$SERVER_PID_FILE"
@@ -159,7 +174,9 @@ echo "=== Fresh Start ==="
 
 # stop gracefully first, then force-kill any orphans
 _stop_pid_file "$LEGACY_WORKER_PID_FILE"
+_stop_pid_file "$LEGACY_SERVER_PID_FILE"
 for pool in "${POOLS[@]}"; do
+    _stop_pid_file "$(_legacy_worker_pid_file "$pool")"
     _stop_pid_file "$(_worker_pid_file "$pool")"
 done
 _stop_pid_file "$SERVER_PID_FILE"

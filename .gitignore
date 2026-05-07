@@ -29,6 +29,5 @@ wheels/
 .codex/
 
 # Prefect PID files
-.prefect_*.pid
 server.log
 worker.log
