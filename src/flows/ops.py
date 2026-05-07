@@ -98,7 +98,7 @@ def new_listing_flow(
         symbol=symbol if symbol else None,
         config=config_path if config_path else None,
     )
-    resolved_path = resolve_config_path(args)
+    resolved_path = resolve_config_path(args)  # pyrefly: ignore
     logger.info("Loading new-listing config from %s", resolved_path)
     config = load_config(Path(resolved_path))
     run_new_listing(
