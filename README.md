@@ -49,11 +49,11 @@ UI available at `http://localhost:4200`.
 | `uv run new_listing <symbol>` | Runs `src/config/new_listing/<symbol>.json` through the new-listing setup flow |
 | `uv run strategy_fills <symbol>` | Fetches volume strategy fills/status with `base_currency`/`quote_currency` |
 
-Manual RCJ ops workflows are also available in Prefect UI on strategy-specific
-work pools. See `docs/prefect_ops.md` for new listing, volatility, volume,
-stacker, mirror control, and diagnostics deployments. These ops flows default to
-SSH execution through `T1_newuser1` because the Mini Service API is not reachable
-directly from local.
+Manual RCJ ops workflows are also available in Prefect UI on dedicated work
+pools. See `docs/prefect_ops.md` for balance/transfer/monitor playbook tasks,
+new listing, volatility, volume, stacker, mirror control, and diagnostics
+deployments. These ops flows default to SSH execution through `T1_newuser1`
+because the Mini Service API is not reachable directly from local.
 
 Run all three in sequence:
 

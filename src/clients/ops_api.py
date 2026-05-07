@@ -57,21 +57,41 @@ class OpsApiClient:
         return token
 
     def post(self, endpoint: str, payload: dict[str, Any]) -> OpsApiResponse:
-        if self.execution_mode == "ssh":
-            return self._post_via_ssh(endpoint, payload)
-        return self._post_local(endpoint, payload)
+        return self.request("POST", endpoint, payload, authenticated=True)
 
-    def _post_local(self, endpoint: str, payload: dict[str, Any]) -> OpsApiResponse:
-        data = json.dumps(payload).encode("utf-8")
+    def get(self, endpoint: str) -> OpsApiResponse:
+        return self.request("GET", endpoint, {}, authenticated=False)
+
+    def request(
+        self,
+        method: Literal["GET", "POST"],
+        endpoint: str,
+        payload: dict[str, Any] | None = None,
+        authenticated: bool = True,
+    ) -> OpsApiResponse:
+        request_payload = payload or {}
+        if self.execution_mode == "ssh":
+            return self._request_via_ssh(
+                method, endpoint, request_payload, authenticated
+            )
+        return self._request_local(method, endpoint, request_payload, authenticated)
+
+    def _request_local(
+        self,
+        method: Literal["GET", "POST"],
+        endpoint: str,
+        payload: dict[str, Any],
+        authenticated: bool,
+    ) -> OpsApiResponse:
         normalized_endpoint = f"/{endpoint.lstrip('/')}"
+        headers = {"Content-Type": "application/json"}
+        if authenticated:
+            headers["Authorization"] = f"Bearer {self.require_token()}"
         request = urllib.request.Request(
             f"{self.base_endpoint.rstrip('/')}{normalized_endpoint}",
-            data=data,
-            method="POST",
-            headers={
-                "Authorization": f"Bearer {self.require_token()}",
-                "Content-Type": "application/json",
-            },
+            data=json.dumps(payload).encode("utf-8") if method == "POST" else None,
+            method=method,
+            headers=headers,
         )
 
         try:
@@ -94,17 +114,25 @@ class OpsApiClient:
                 payload=payload,
             )
 
-    def _post_via_ssh(self, endpoint: str, payload: dict[str, Any]) -> OpsApiResponse:
+    def _request_via_ssh(
+        self,
+        method: Literal["GET", "POST"],
+        endpoint: str,
+        payload: dict[str, Any],
+        authenticated: bool,
+    ) -> OpsApiResponse:
         normalized_endpoint = f"/{endpoint.lstrip('/')}"
         url = f"{self.base_endpoint.rstrip()}{normalized_endpoint}"
-        token_header = f"Authorization: Bearer {self.require_token()}"
         payload_json = json.dumps(payload)
+        headers = ""
+        if authenticated:
+            headers += f" -H {shlex.quote(f'Authorization: Bearer {self.require_token()}')} \\\n"
+        if method == "POST":
+            headers += " -H 'Content-Type: application/json' \\\n"
+        data_arg = f" -d {shlex.quote(payload_json)}" if method == "POST" else ""
         curl_script = f"""curl -sS -w '\\n__RCJ_HTTP_STATUS__:%{{http_code}}\\n' \\
- -X POST {shlex.quote(url)} \\
- -H {shlex.quote(token_header)} \\
- -H 'Content-Type: application/json' \\
- --max-time {int(self.timeout_seconds)} \\
- -d {shlex.quote(payload_json)}
+ -X {method} {shlex.quote(url)} \\
+{headers} --max-time {int(self.timeout_seconds)}{data_arg}
 curl_exit=$?
 printf '\\n__RCJ_CURL_EXIT__:%s\\n' "$curl_exit"
 """

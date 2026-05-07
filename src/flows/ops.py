@@ -33,6 +33,8 @@ def parse_json_object(value: str, parameter_name: str) -> dict[str, Any]:
 def call_ops_api_task(
     endpoint: str,
     payload: dict[str, Any],
+    method: Literal["GET", "POST"] = "POST",
+    authenticated: bool = True,
     base_endpoint: str = DEFAULT_OPS_BASE_ENDPOINT,
     timeout_seconds: int = DEFAULT_OPS_TIMEOUT_SECONDS,
     execution_mode: Literal["ssh", "local"] = DEFAULT_OPS_EXECUTION_MODE,
@@ -40,7 +42,7 @@ def call_ops_api_task(
     fail_on_error: bool = True,
 ) -> dict[str, Any]:
     logger = get_run_logger()
-    logger.info("POST %s", endpoint)
+    logger.info("%s %s", method, endpoint)
     logger.info("Execution mode: %s", execution_mode)
     if execution_mode == "ssh":
         logger.info("SSH host: %s", ssh_host)
@@ -52,7 +54,12 @@ def call_ops_api_task(
         execution_mode=execution_mode,
         ssh_host=ssh_host,
     )
-    response = client.post(endpoint, payload)
+    response = client.request(
+        method=method,
+        endpoint=endpoint,
+        payload=payload,
+        authenticated=authenticated,
+    )
     logger.info("HTTP %s", response.status)
     logger.info("Response:\n%s", response.body.rstrip())
     print(f"HTTP {response.status}")
@@ -67,6 +74,8 @@ def call_ops_api_task(
 def ops_api_request_flow(
     endpoint: str,
     payload_json: str = "{}",
+    method: Literal["GET", "POST"] = "POST",
+    authenticated: bool = True,
     base_endpoint: str = DEFAULT_OPS_BASE_ENDPOINT,
     timeout_seconds: int = DEFAULT_OPS_TIMEOUT_SECONDS,
     execution_mode: Literal["ssh", "local"] = DEFAULT_OPS_EXECUTION_MODE,
@@ -77,11 +86,115 @@ def ops_api_request_flow(
     return call_ops_api_task(
         endpoint=endpoint,
         payload=payload,
+        method=method,
+        authenticated=authenticated,
         base_endpoint=base_endpoint,
         timeout_seconds=timeout_seconds,
         execution_mode=execution_mode,
         ssh_host=ssh_host,
         fail_on_error=fail_on_error,
+    )
+
+
+@flow(name="Ops Health Check", log_prints=True)
+def ops_health_flow(
+    base_endpoint: str = DEFAULT_OPS_BASE_ENDPOINT,
+    timeout_seconds: int = DEFAULT_OPS_TIMEOUT_SECONDS,
+    execution_mode: Literal["ssh", "local"] = DEFAULT_OPS_EXECUTION_MODE,
+    ssh_host: str = DEFAULT_OPS_SSH_HOST,
+) -> dict[str, Any]:
+    return call_ops_api_task(
+        endpoint="/health",
+        payload={},
+        method="GET",
+        authenticated=False,
+        base_endpoint=base_endpoint,
+        timeout_seconds=timeout_seconds,
+        execution_mode=execution_mode,
+        ssh_host=ssh_host,
+    )
+
+
+@flow(name="Ops Get Balance", log_prints=True)
+def ops_get_balance_flow(
+    exchange: str,
+    account: str = "main",
+    token: str = "USDT",
+    market: str = "",
+    extra_payload_json: str = "{}",
+    base_endpoint: str = DEFAULT_OPS_BASE_ENDPOINT,
+    timeout_seconds: int = DEFAULT_OPS_TIMEOUT_SECONDS,
+    execution_mode: Literal["ssh", "local"] = DEFAULT_OPS_EXECUTION_MODE,
+    ssh_host: str = DEFAULT_OPS_SSH_HOST,
+) -> dict[str, Any]:
+    payload = {
+        "exchange": exchange,
+        "account": account,
+        "token": token.upper(),
+    }
+    if market:
+        payload["market"] = market
+    payload.update(parse_json_object(extra_payload_json, "extra_payload_json"))
+    return call_ops_api_task(
+        endpoint="/get-balance",
+        payload=payload,
+        base_endpoint=base_endpoint,
+        timeout_seconds=timeout_seconds,
+        execution_mode=execution_mode,
+        ssh_host=ssh_host,
+    )
+
+
+@flow(name="Ops Run Transfer", log_prints=True)
+def ops_run_transfer_flow(
+    mode: str,
+    token: str,
+    from_exchange: str,
+    amount: float,
+    sub_account_name: str = "",
+    to_exchange: str = "",
+    extra_payload_json: str = "{}",
+    base_endpoint: str = DEFAULT_OPS_BASE_ENDPOINT,
+    timeout_seconds: int = DEFAULT_OPS_TIMEOUT_SECONDS,
+    execution_mode: Literal["ssh", "local"] = DEFAULT_OPS_EXECUTION_MODE,
+    ssh_host: str = DEFAULT_OPS_SSH_HOST,
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "mode": mode,
+        "token": token.upper(),
+        "from_exchange": from_exchange,
+        "amount": amount,
+    }
+    if sub_account_name:
+        payload["sub_account_name"] = sub_account_name
+    if to_exchange:
+        payload["to_exchange"] = to_exchange
+    payload.update(parse_json_object(extra_payload_json, "extra_payload_json"))
+    return call_ops_api_task(
+        endpoint="/run-transfer",
+        payload=payload,
+        base_endpoint=base_endpoint,
+        timeout_seconds=timeout_seconds,
+        execution_mode=execution_mode,
+        ssh_host=ssh_host,
+    )
+
+
+@flow(name="Ops Run Monitor", log_prints=True)
+def ops_run_monitor_flow(
+    update_time: int = 10,
+    base_endpoint: str = DEFAULT_OPS_BASE_ENDPOINT,
+    timeout_seconds: int = 30,
+    execution_mode: Literal["ssh", "local"] = DEFAULT_OPS_EXECUTION_MODE,
+    ssh_host: str = DEFAULT_OPS_SSH_HOST,
+) -> dict[str, Any]:
+    return call_ops_api_task(
+        endpoint="/run-monitor",
+        payload={"update_time": update_time},
+        base_endpoint=base_endpoint,
+        timeout_seconds=timeout_seconds,
+        execution_mode=execution_mode,
+        ssh_host=ssh_host,
     )
 
 

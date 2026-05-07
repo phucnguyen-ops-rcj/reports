@@ -13,6 +13,7 @@ cd "$REPO_DIR"
 PREFECT_API_URL="http://127.0.0.1:4200/api"
 POOLS=(
     "default-agent-pool"
+    "ops-playbook-agent-pool"
     "ops-agent-pool"
     "volatility-agent-pool"
     "volume-agent-pool"

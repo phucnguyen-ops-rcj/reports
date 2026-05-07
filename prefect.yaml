@@ -66,6 +66,75 @@ deployments:
   work_pool:
     name: ops-agent-pool
   schedules: []
+- name: ops-health
+  tags:
+  - ops
+  - playbook
+  - manual
+  description: Check Mini Service API health.
+  entrypoint: src/flows/ops.py:ops_health_flow
+  parameters:
+    execution_mode: ssh
+    ssh_host: T1_newuser1
+  work_pool:
+    name: ops-playbook-agent-pool
+  schedules: []
+- name: ops-get-balance
+  tags:
+  - ops
+  - playbook
+  - balance
+  - manual
+  description: Get token balance for an exchange/account.
+  entrypoint: src/flows/ops.py:ops_get_balance_flow
+  parameters:
+    exchange: kucoin
+    account: main
+    token: USDT
+    market: ""
+    extra_payload_json: "{}"
+    execution_mode: ssh
+    ssh_host: T1_newuser1
+  work_pool:
+    name: ops-playbook-agent-pool
+  schedules: []
+- name: ops-run-transfer
+  tags:
+  - ops
+  - playbook
+  - transfer
+  - manual
+  description: Run transfer/withdrawal operations from the ops playbook.
+  entrypoint: src/flows/ops.py:ops_run_transfer_flow
+  parameters:
+    mode: trading_to_funding
+    token: USDT
+    from_exchange: okx
+    amount: 100
+    sub_account_name: ""
+    to_exchange: ""
+    extra_payload_json: "{}"
+    execution_mode: ssh
+    ssh_host: T1_newuser1
+  work_pool:
+    name: ops-playbook-agent-pool
+  schedules: []
+- name: ops-run-monitor
+  tags:
+  - ops
+  - playbook
+  - monitor
+  - manual
+  description: Run monitor endpoint for a bounded time window.
+  entrypoint: src/flows/ops.py:ops_run_monitor_flow
+  parameters:
+    update_time: 10
+    timeout_seconds: 30
+    execution_mode: ssh
+    ssh_host: T1_newuser1
+  work_pool:
+    name: ops-playbook-agent-pool
+  schedules: []
 - name: new-listing
   tags:
   - ops

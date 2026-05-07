@@ -13,6 +13,18 @@ Auth header:
 
 ## General Rules
 
+- Prefer Prefect UI deployments on `ops-playbook-agent-pool` for repeated
+  operations:
+
+  | Endpoint | Prefect deployment |
+  | --- | --- |
+  | `GET /health` | `ops-health` |
+  | `POST /get-balance` | `ops-get-balance` |
+  | `POST /run-transfer` | `ops-run-transfer` |
+  | `POST /run-monitor` | `ops-run-monitor` |
+
+  Leave `execution_mode=ssh` and `ssh_host=T1_newuser1`. Output appears in the
+  Prefect flow run logs.
 - Return curl commands only.
 - Do not include SSH wrappers.
 - `token` is always uppercase, for example `usdt` becomes `USDT`.
@@ -27,6 +39,8 @@ Auth header:
 ## Endpoint 1 - GET /health
 
 Use when asked: "is the server up", "health check", "ping the API".
+
+Prefect UI: use `ops-health`.
 
 ```bash
 curl http://18.176.93.228/health
@@ -48,6 +62,9 @@ Required extraction:
 - `token`: optional, default `USDT`.
 - `market`: required only for futures exchanges.
 - Known account aliases are listed in `docs/accounts.md`.
+
+Prefect UI: use `ops-get-balance`. Most runs change `exchange`, `account`, and
+`token`; set `market` only for futures exchanges.
 
 Spot/default example:
 
@@ -99,6 +116,9 @@ Validation:
 - `trading_to_funding` is OKX only.
 - `future_to_main` and `main_to_future` are `kcf` only.
 
+Prefect UI: use `ops-run-transfer`. Fill `sub_account_name`, `to_exchange`, or
+`extra_payload_json` only when the selected mode requires it.
+
 Basic example, no extra field:
 
 ```bash
@@ -143,6 +163,10 @@ Use when asked: "monitor", "show strategy", "stream monitor",
 `update_time` is optional. Use `10` when not provided.
 
 Note: this streams SSE and stays open until interrupted.
+
+Prefect UI: use `ops-run-monitor`. The deployment defaults to
+`timeout_seconds=30` so the UI run captures a bounded monitor sample instead of
+running forever.
 
 ```bash
 curl -N -X POST http://18.176.93.228/run-monitor \

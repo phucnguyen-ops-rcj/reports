@@ -23,6 +23,7 @@ Start or redeploy Prefect with:
 The script creates these work pools and starts workers for:
 
 - `default-agent-pool` for scheduled report flows
+- `ops-playbook-agent-pool` for balance, transfer, monitor, and health checks
 - `ops-agent-pool` for generic/new-listing ops flows
 - `volatility-agent-pool` for volatility model flows
 - `volume-agent-pool` for volume strategy flows
@@ -37,6 +38,10 @@ normally read in the terminal.
 
 | Deployment | Work pool | Common use | Most-used parameters |
 | --- | --- | --- | --- |
+| `ops-health` | `ops-playbook-agent-pool` | Check Mini Service API health. | Usually none. |
+| `ops-get-balance` | `ops-playbook-agent-pool` | Get token balance for an exchange/account. | `exchange`, `account`, `token`; `market` for futures. |
+| `ops-run-transfer` | `ops-playbook-agent-pool` | Run transfer/withdrawal operations. | `mode`, `token`, `from_exchange`, `amount`, plus mode-specific fields. |
+| `ops-run-monitor` | `ops-playbook-agent-pool` | Run a bounded monitor sample. | `update_time`, `timeout_seconds`. |
 | `new-listing` | `ops-agent-pool` | Run `src/config/new_listing/<symbol>.json` setup. | `symbol`, `dry_run`; use `config_path` only for custom files. |
 | `start-volatility-model` | `volatility-agent-pool` | Start volatility after a token is live. | `symbol`; usually keep `market`, `exchange`, `exchange_data`, `risk_tol`, and `strategy` defaults. |
 | `start-volume-strategy` | `volume-agent-pool` | Start the volume strategy for a symbol. | `symbol`. |
