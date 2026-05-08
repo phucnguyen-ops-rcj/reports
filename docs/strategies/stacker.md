@@ -52,23 +52,23 @@ Required fields:
 
 Ask for or look up the correct `feed_host` and `gateway_host` before filling
 the command.
-
+"feed_host":"0.0.0.0:41741","gateway_host":"0.0.0.0:41799"
 ```bash
 curl -X POST http://18.176.93.228/setup_stacker_config \
  -H "Authorization: Bearer ${RCJ_OPS_BEARER_TOKEN}" \
  -H "Content-Type: application/json" \
  -d '{
  "exchanges": "kucoin",
- "base_ccy": "BASE",
+ "base_ccy": "SHARE",
  "quote_ccy": "USDT",
  "market": "spot",
- "feed_host": "0.0.0.0:FEED_PORT",
- "gateway_host": "0.0.0.0:GATEWAY_PORT",
- "tick_size": 0.00001,
+ "feed_host": "0.0.0.0:41740",
+ "gateway_host": "0.0.0.0:41799",
+ "tick_size": 0.0001,
  "quantity_step_size": 0.01,
- "min_price": 0.00001,
- "max_price": 5.0,
- "min_quantity": 10.0,
+ "min_price": 0.0001,
+ "max_price": 25.0,
+ "min_quantity": 1.0,
  "max_quantity": 100000000000,
  "buy_stackers": "[{price: 0.0500 original_quantity: 1000},{price: 0.0499 original_quantity: 1000}]",
  "sell_stackers": "[{price: 0.0600 original_quantity: 1000},{price: 0.0601 original_quantity: 1000}]"
