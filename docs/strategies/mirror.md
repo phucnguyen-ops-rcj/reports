@@ -11,7 +11,8 @@ Most runs change:
 
 The flow builds the standard process name automatically. Use `name_override`
 when the supervisor process name is nonstandard. Output appears in the Prefect
-flow run logs. Leave `execution_mode=ssh` and `ssh_host=T1_newuser1`.
+flow run logs. Default execution mode and SSH host come from
+`RCJ_OPS_EXECUTION_MODE` and `RCJ_OPS_SSH_HOST` in `.env`.
 
 ```bash
 curl -X POST http://18.176.93.228/gateway_control \

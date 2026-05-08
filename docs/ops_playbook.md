@@ -23,8 +23,8 @@ Auth header:
   | `POST /run-transfer` | `ops-run-transfer` |
   | `POST /run-monitor` | `ops-run-monitor` |
 
-  Leave `execution_mode=ssh` and `ssh_host=T1_newuser1`. Output appears in the
-  Prefect flow run logs.
+  Default execution mode and SSH host come from `RCJ_OPS_EXECUTION_MODE` and
+  `RCJ_OPS_SSH_HOST` in `.env`. Output appears in the Prefect flow run logs.
 - Return curl commands only.
 - Do not include SSH wrappers.
 - `token` is always uppercase, for example `usdt` becomes `USDT`.

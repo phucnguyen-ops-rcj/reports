@@ -5,7 +5,8 @@ Prefect UI deployment:
 - `start-volume-strategy`
 - Runs on `volume-agent-pool`.
 - Most runs only change `symbol`.
-- Leave `execution_mode=ssh` and `ssh_host=T1_newuser1`.
+- Default execution mode and SSH host come from `RCJ_OPS_EXECUTION_MODE` and
+  `RCJ_OPS_SSH_HOST` in `.env`.
 - Output appears in the Prefect flow run logs.
 
 Equivalent curl:
@@ -24,7 +25,8 @@ Prefect UI deployment:
 - `volume-strategy-fills`
 - Runs on `volume-agent-pool`.
 - Most runs only change `symbol`; optionally set `date` as `YYYYMMDD`.
-- Leave `execution_mode=ssh` and `ssh_host=T1_newuser1`.
+- Default execution mode and SSH host come from `RCJ_OPS_EXECUTION_MODE` and
+  `RCJ_OPS_SSH_HOST` in `.env`.
 - Output appears in the Prefect flow run logs.
 
 Project command:

@@ -10,7 +10,12 @@ set -euo pipefail
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$REPO_DIR"
 
-PREFECT_API_URL="http://127.0.0.1:4200/api"
+PREFECT_SERVER_HOST="0.0.0.0"
+PREFECT_SERVER_PORT="4200"
+PREFECT_UI_URL="http://100.72.177.110:4200"
+PREFECT_API_URL="$PREFECT_UI_URL/api"
+PREFECT_UI_API_URL="$PREFECT_API_URL"
+export PREFECT_API_URL PREFECT_UI_API_URL PREFECT_UI_URL
 PREFECT_LOG_DIR="$REPO_DIR/logs/prefect"
 PID_DIR="$REPO_DIR/logs/pid"
 POOLS=(
@@ -86,9 +91,16 @@ _wait_for_server() {
     exit 1
 }
 
+_configure_prefect_urls() {
+    uv run prefect config set \
+        PREFECT_API_URL="$PREFECT_API_URL" \
+        PREFECT_UI_API_URL="$PREFECT_UI_API_URL" \
+        PREFECT_UI_URL="$PREFECT_UI_URL" > /dev/null
+}
+
 _deploy() {
     echo "Deploying flows..."
-    uv run prefect config set PREFECT_API_URL="$PREFECT_API_URL" > /dev/null
+    _configure_prefect_urls
 
     # create pools if they don't exist, overwrite to suppress "already exists" warnings
     for pool in "${POOLS[@]}"; do
@@ -105,7 +117,7 @@ _start_server() {
     echo "Starting server..."
     _ensure_runtime_dirs
     _load_prefect_database_env
-    nohup uv run prefect server start >> "$PREFECT_LOG_DIR/server.log" 2>&1 &
+    nohup uv run prefect server start --host "$PREFECT_SERVER_HOST" --port "$PREFECT_SERVER_PORT" >> "$PREFECT_LOG_DIR/server.log" 2>&1 &
     echo $! > "$SERVER_PID_FILE"
     echo "Server started (PID $(cat "$SERVER_PID_FILE"))."
 }
@@ -146,7 +158,7 @@ if [[ "${1:-}" == "start" ]]; then
     _start_worker
     echo ""
     echo "=== All services running ==="
-    echo "  UI:     http://localhost:4200"
+    echo "  UI:     $PREFECT_UI_URL"
     echo "  Server: PID $(cat "$SERVER_PID_FILE")"
     for pool in "${POOLS[@]}"; do
         echo "  Worker $pool: PID $(cat "$(_worker_pid_file "$pool")")"
@@ -197,7 +209,7 @@ _start_worker
 
 echo ""
 echo "=== All services running ==="
-echo "  UI:     http://localhost:4200"
+echo "  UI:     $PREFECT_UI_URL"
 echo "  Server: PID $(cat "$SERVER_PID_FILE")"
 for pool in "${POOLS[@]}"; do
     echo "  Worker $pool: PID $(cat "$(_worker_pid_file "$pool")")"

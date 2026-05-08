@@ -60,8 +60,8 @@ deployments:
   parameters:
     endpoint: /get_token_chan_availability
     payload_json: '{"token": "KAT"}'
-    execution_mode: ssh
-    ssh_host: T1_newuser1
+    # execution_mode: ssh
+    # ssh_host: T1_newuser1
     fail_on_error: true
   work_pool:
     name: ops-agent-pool
@@ -73,9 +73,9 @@ deployments:
   - manual
   description: Check Mini Service API health.
   entrypoint: src/flows/ops.py:ops_health_flow
-  parameters:
-    execution_mode: ssh
-    ssh_host: T1_newuser1
+  # parameters:
+    # execution_mode: ssh
+    # ssh_host: T1_newuser1
   work_pool:
     name: ops-playbook-agent-pool
   schedules: []
@@ -93,8 +93,8 @@ deployments:
     token: USDT
     market: ""
     extra_payload_json: "{}"
-    execution_mode: ssh
-    ssh_host: T1_newuser1
+    # execution_mode: ssh
+    # ssh_host: T1_newuser1
   work_pool:
     name: ops-playbook-agent-pool
   schedules: []
@@ -114,8 +114,8 @@ deployments:
     sub_account_name: ""
     to_exchange: ""
     extra_payload_json: "{}"
-    execution_mode: ssh
-    ssh_host: T1_newuser1
+    # execution_mode: ssh
+    # ssh_host: T1_newuser1
   work_pool:
     name: ops-playbook-agent-pool
   schedules: []
@@ -130,8 +130,8 @@ deployments:
   parameters:
     update_time: 10
     timeout_seconds: 30
-    execution_mode: ssh
-    ssh_host: T1_newuser1
+    # execution_mode: ssh
+    # ssh_host: T1_newuser1
   work_pool:
     name: ops-playbook-agent-pool
   schedules: []
@@ -146,8 +146,8 @@ deployments:
     symbol: testing
     config_path: ""
     dry_run: true
-    execution_mode: ssh
-    ssh_host: T1_newuser1
+    # execution_mode: ssh
+    # ssh_host: T1_newuser1
   work_pool:
     name: ops-agent-pool
   schedules: []
@@ -165,8 +165,8 @@ deployments:
     exchange_data: kucoin
     risk_tol: low
     strategy: slow_mm
-    execution_mode: ssh
-    ssh_host: T1_newuser1
+    # execution_mode: ssh
+    # ssh_host: T1_newuser1
   work_pool:
     name: volatility-agent-pool
   schedules: []
@@ -181,8 +181,8 @@ deployments:
     symbol: KAIO
     date: ""
     quote_ccy: USDT
-    execution_mode: ssh
-    ssh_host: T1_newuser1
+    # execution_mode: ssh
+    # ssh_host: T1_newuser1
   work_pool:
     name: volume-agent-pool
   schedules: []
@@ -196,8 +196,8 @@ deployments:
   parameters:
     symbol: KAIO
     quote_ccy: USDT
-    execution_mode: ssh
-    ssh_host: T1_newuser1
+    # execution_mode: ssh
+    # ssh_host: T1_newuser1
   work_pool:
     name: volume-agent-pool
   schedules: []
@@ -212,8 +212,8 @@ deployments:
     symbol: BILL
     date: ""
     quote_ccy: USDT
-    execution_mode: ssh
-    ssh_host: T1_newuser1
+    # execution_mode: ssh
+    # ssh_host: T1_newuser1
   work_pool:
     name: stacker-agent-pool
   schedules: []
@@ -228,8 +228,8 @@ deployments:
     symbol: BILL
     stacker_level: 1
     quote_ccy: USDT
-    execution_mode: ssh
-    ssh_host: T1_newuser1
+    # execution_mode: ssh
+    # ssh_host: T1_newuser1
   work_pool:
     name: stacker-agent-pool
   schedules: []
@@ -268,8 +268,8 @@ deployments:
     min_quantity: 10.0
     max_quantity: 100000000000
     extra_payload_json: "{}"
-    execution_mode: ssh
-    ssh_host: T1_newuser1
+    # execution_mode: ssh
+    # ssh_host: T1_newuser1
   work_pool:
     name: stacker-agent-pool
   schedules: []
@@ -285,8 +285,8 @@ deployments:
     updates_json: '{"max_price": 10.0}'
     exchanges: kucoin
     quote_ccy: USDT
-    execution_mode: ssh
-    ssh_host: T1_newuser1
+    # execution_mode: ssh
+    # ssh_host: T1_newuser1
   work_pool:
     name: stacker-agent-pool
   schedules: []
@@ -305,8 +305,8 @@ deployments:
     exchange: kucoin
     market: spot
     quote_ccy: USDT
-    execution_mode: ssh
-    ssh_host: T1_newuser1
+    # execution_mode: ssh
+    # ssh_host: T1_newuser1
   work_pool:
     name: mirror-agent-pool
   schedules: []

@@ -10,10 +10,11 @@ from typing import Any, Literal
 
 from src.settings import get_settings
 
-DEFAULT_OPS_BASE_ENDPOINT = "http://18.176.93.228"
-DEFAULT_OPS_TIMEOUT_SECONDS = 60
-DEFAULT_OPS_EXECUTION_MODE: Literal["ssh", "local"] = "ssh"
-DEFAULT_OPS_SSH_HOST = "T1_newuser1"
+_settings = get_settings()
+DEFAULT_OPS_BASE_ENDPOINT = _settings.rcj_ops_base_endpoint
+DEFAULT_OPS_TIMEOUT_SECONDS = _settings.rcj_ops_timeout_seconds
+DEFAULT_OPS_EXECUTION_MODE: Literal["ssh", "local"] = _settings.rcj_ops_execution_mode
+DEFAULT_OPS_SSH_HOST = _settings.rcj_ops_ssh_host
 
 
 @dataclass(frozen=True)
@@ -131,11 +132,11 @@ class OpsApiClient:
             headers += " -H 'Content-Type: application/json' \\\n"
         data_arg = f" -d {shlex.quote(payload_json)}" if method == "POST" else ""
         curl_script = f"""curl -sS -w '\\n__RCJ_HTTP_STATUS__:%{{http_code}}\\n' \\
- -X {method} {shlex.quote(url)} \\
-{headers} --max-time {int(self.timeout_seconds)}{data_arg}
-curl_exit=$?
-printf '\\n__RCJ_CURL_EXIT__:%s\\n' "$curl_exit"
-"""
+        -X {method} {shlex.quote(url)} \\
+        {headers} --max-time {int(self.timeout_seconds)}{data_arg}
+        curl_exit=$?
+        printf '\\n__RCJ_CURL_EXIT__:%s\\n' "$curl_exit"
+        """
         completed = subprocess.run(
             ["ssh", "-q", "-T", self.ssh_host],
             input=curl_script,

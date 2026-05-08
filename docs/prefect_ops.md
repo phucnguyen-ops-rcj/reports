@@ -3,15 +3,16 @@
 Use these manual deployments from the Prefect UI for RCJ ops API work. They run
 on strategy-specific work pools and are separate from daily report jobs.
 
-The Mini Service API is not reachable directly from the local machine, so ops
-deployments default to:
+Configure the default Mini Service API route in `.env`:
 
-- `execution_mode`: `ssh`
-- `ssh_host`: `T1_newuser1`
+- `RCJ_OPS_EXECUTION_MODE`: `ssh` or `local`
+- `RCJ_OPS_SSH_HOST`: SSH host used when execution mode is `ssh`
+- `RCJ_OPS_BASE_ENDPOINT`: Mini Service API base URL
 
-The local Prefect worker SSHes to `T1_newuser1`, performs the API request from
-there, and captures the HTTP status/body back into the Prefect run logs. Use
-`execution_mode: local` only from a machine that can reach the API directly.
+When `RCJ_OPS_EXECUTION_MODE=ssh`, the Prefect worker SSHes to
+`RCJ_OPS_SSH_HOST`, performs the API request from there, and captures the HTTP
+status/body back into the Prefect run logs. Use `local` only from a machine that
+can reach the API directly.
 
 Start or redeploy Prefect with:
 
@@ -70,7 +71,7 @@ normally read in the terminal.
 Most symbol fields accept either `BASE` or `BASE-USDT`; flows normalize to
 `BASE-USDT` or extract `BASE` depending on the endpoint.
 
-Keep `ssh_host` as `T1_newuser1` unless the ops API route moves to another
+Set `RCJ_OPS_SSH_HOST` in `.env` when the ops API route moves to another
 reachable machine.
 
 Use JSON object strings for flexible fields:

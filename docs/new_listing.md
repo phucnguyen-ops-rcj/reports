@@ -32,8 +32,8 @@ Most runs only change:
 
 Set `dry_run` to `true` first to preview the setup in the UI logs. Set
 `config_path` only for a one-off JSON file outside the normal symbol path.
-Leave `execution_mode=ssh` and `ssh_host=T1_newuser1` unless the ops API becomes
-reachable locally.
+The default execution mode and SSH host come from `RCJ_OPS_EXECUTION_MODE` and
+`RCJ_OPS_SSH_HOST` in `.env`.
 
 Base endpoint: `http://18.176.93.228`
 

@@ -156,3 +156,8 @@ class CoinMarketCapClient:
             return float(value)
         except (TypeError, ValueError):
             return None
+
+
+if __name__ == "__main__":
+    client = CoinMarketCapClient()
+    print(client.get_spot_volume_24h(slug="altlayer"))

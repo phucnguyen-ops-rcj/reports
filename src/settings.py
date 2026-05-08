@@ -62,6 +62,10 @@ class Settings(BaseSettings):
     rcj_ops_bearer_token: str = Field(
         default_factory=lambda: os.environ.get("RCJ_OPS_BEARER_TOKEN", "")
     )
+    rcj_ops_base_endpoint: str = Field(default="http://18.176.93.228")
+    rcj_ops_timeout_seconds: int = Field(default=60)
+    rcj_ops_execution_mode: Literal["ssh", "local"] = Field(default="ssh")
+    rcj_ops_ssh_host: str = Field(default="T1_newuser1")
 
     # File paths
     net_pnl_input_path: str = Field(default="data/trades.csv")

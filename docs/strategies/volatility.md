@@ -7,7 +7,8 @@ Prefect UI deployment:
 - Most runs only change `symbol`.
 - Keep defaults unless the listing uses a different market, exchange, risk
   tolerance, or strategy.
-- Leave `execution_mode=ssh` and `ssh_host=T1_newuser1`.
+- Default execution mode and SSH host come from `RCJ_OPS_EXECUTION_MODE` and
+  `RCJ_OPS_SSH_HOST` in `.env`.
 - Output appears in the Prefect flow run logs.
 
 ```bash

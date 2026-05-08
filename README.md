@@ -15,25 +15,15 @@ docker run -d \
 
 Register your number following the [signal-cli-rest-api docs](https://github.com/bbernhard/signal-cli-rest-api). Set `SIGNAL_BASE_URL`, `SIGNAL_SENDER`, and `SIGNAL_RECIPIENT` or `SIGNAL_GROUP_ID` in `.env`.
 
-### 2. PostgreSQL (Prefect database)
+### 2. Prefect database
 
-```bash
-docker run -d \
-  --name prefect-postgres \
-  -e POSTGRES_USER=prefect \
-  -e POSTGRES_PASSWORD=prefect \
-  -e POSTGRES_DB=prefect \
-  -p 5432:5432 \
-  postgres:16
-```
-
-Set `PREFECT_SERVER_DATABASE_CONNECTION_URL` in `.env` (see `.env.example`).
+By default, Prefect uses SQLite under `PREFECT_HOME`. For PostgreSQL, set
+`PREFECT_API_DATABASE_CONNECTION_URL` in `.env` (see `.env.example`).
 
 ## Quickstart
 
 ```bash
 cp .env.example .env   # fill in required values
-uv add asyncpg         # required for PostgreSQL async driver (first time only)
 ./prefect.sh           # fresh start: kill old processes, start server + deploy + worker
 ```
 
@@ -53,8 +43,8 @@ UI available at `http://localhost:4200`.
 Manual RCJ ops workflows are also available in Prefect UI on dedicated work
 pools. See `docs/prefect_ops.md` for balance/transfer/monitor playbook tasks,
 new listing, volatility, volume, stacker, mirror control, and diagnostics
-deployments. These ops flows default to SSH execution through `T1_newuser1`
-because the Mini Service API is not reachable directly from local.
+deployments. Configure their default API route with the `RCJ_OPS_*` values in
+`.env`.
 
 For simple arbitrage parameter analysis, see `docs/arb_param_analysis.md`.
 
@@ -97,6 +87,8 @@ Copy `.env.example` to `.env` and fill in:
 - `COINGECKO_API_KEY`
 - `SIGNAL_SENDER`, `SIGNAL_RECIPIENT` or `SIGNAL_GROUP_ID`, `SIGNAL_BASE_URL`
 - `NET_PNL_INPUT_PATH`, `TRADING_VOLUME_INPUT_PATH` (default: `data/trades.csv`, `data/trading_volume.csv`)
+- `PREFECT_API_URL`, `PREFECT_LOG_DIR`, `PREFECT_PID_DIR`, `PREFECT_WORK_POOLS`
+- `RCJ_OPS_BASE_ENDPOINT`, `RCJ_OPS_TIMEOUT_SECONDS`, `RCJ_OPS_EXECUTION_MODE`, `RCJ_OPS_SSH_HOST`
 
 ## Tests
 

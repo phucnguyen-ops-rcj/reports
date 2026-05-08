@@ -14,7 +14,8 @@ Prefer Prefect UI deployments for repeated operations:
 
 These deployments run on `stacker-agent-pool`. All deployment output appears in
 the Prefect flow run logs.
-Leave `execution_mode=ssh` and `ssh_host=T1_newuser1` for these deployments.
+Default execution mode and SSH host come from `RCJ_OPS_EXECUTION_MODE` and
+`RCJ_OPS_SSH_HOST` in `.env`.
 
 `setup-stacker-config` defaults to the KAIO example: feed host
 `0.0.0.0:41741`, gateway host `0.0.0.0:41799`, quantity step `0.1`, max price
