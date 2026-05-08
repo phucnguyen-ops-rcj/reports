@@ -23,7 +23,7 @@ paths or config variants.
 
 ## Prefect UI
 
-Use the `new-listing` deployment on `ops-agent-pool`.
+Use the `ops-new-listing` deployment on the `ops` work pool.
 
 Most runs only change:
 

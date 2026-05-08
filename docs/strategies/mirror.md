@@ -1,7 +1,7 @@
 `method` can be `start`, `stop`, or `restart`
 
-Prefer Prefect UI deployment `mirror-control`, which runs on
-`mirror-agent-pool`.
+Prefer Prefect UI deployment `mirror-control`, which runs on the `strategies`
+work pool.
 
 Most runs change:
 

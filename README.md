@@ -76,7 +76,7 @@ uv run new_listing --config src/config/new_listing/custom.json
 ./prefect.sh redeploy  # redeploy flows on running server + restart worker
 ```
 
-Flows are defined in `prefect.yaml`. The `daily-morning` deployment runs all three flows in parallel on a cron schedule (`30 1 * * *` UTC). The other three deployments (`market`, `net-pnl`, `trading-volume`) are manual-trigger only.
+Flows are defined in `prefect.yaml`. The `daily-morning` deployment runs all three flows in parallel on a cron schedule (`30 1 * * *` UTC). The individual report deployments (`daily-market`, `daily-net-pnl`, `daily-trading-volume`) are manual-trigger only.
 
 Logs: `logs/prefect/`. Runtime PID files: `logs/pid/`.
 

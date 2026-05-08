@@ -32,25 +32,25 @@ deployments:
   entrypoint: src/flows/daily.py:daily_flow
   parameters: {}
   work_pool:
-    name: default-agent-pool
+    name: daily-morning
     work_queue_name: null
     job_variables: {}
   schedules:
   - cron: 30 9 * * *
     timezone: "Asia/Singapore"
     day_or: true
-- name: market
+- name: daily-market
   entrypoint: src/flows/market.py:market_flow
   work_pool:
-    name: default-agent-pool
-- name: net-pnl
+    name: daily-morning
+- name: daily-net-pnl
   entrypoint: src/flows/net_pnl.py:net_pnl_flow
   work_pool:
-    name: default-agent-pool
-- name: trading-volume
+    name: daily-morning
+- name: daily-trading-volume
   entrypoint: src/flows/trading_volume.py:trading_volume_flow
   work_pool:
-    name: default-agent-pool
+    name: daily-morning
 - name: ops-api-request
   tags:
   - ops
@@ -64,7 +64,7 @@ deployments:
     # ssh_host: T1_newuser1
     fail_on_error: true
   work_pool:
-    name: ops-agent-pool
+    name: ops
   schedules: []
 - name: ops-health
   tags:
@@ -77,7 +77,7 @@ deployments:
     # execution_mode: ssh
     # ssh_host: T1_newuser1
   work_pool:
-    name: ops-playbook-agent-pool
+    name: ops
   schedules: []
 - name: ops-get-balance
   tags:
@@ -96,7 +96,7 @@ deployments:
     # execution_mode: ssh
     # ssh_host: T1_newuser1
   work_pool:
-    name: ops-playbook-agent-pool
+    name: ops
   schedules: []
 - name: ops-run-transfer
   tags:
@@ -117,7 +117,7 @@ deployments:
     # execution_mode: ssh
     # ssh_host: T1_newuser1
   work_pool:
-    name: ops-playbook-agent-pool
+    name: ops
   schedules: []
 - name: ops-run-monitor
   tags:
@@ -133,9 +133,9 @@ deployments:
     # execution_mode: ssh
     # ssh_host: T1_newuser1
   work_pool:
-    name: ops-playbook-agent-pool
+    name: ops
   schedules: []
-- name: new-listing
+- name: ops-new-listing
   tags:
   - ops
   - new-listing
@@ -149,9 +149,9 @@ deployments:
     # execution_mode: ssh
     # ssh_host: T1_newuser1
   work_pool:
-    name: ops-agent-pool
+    name: ops
   schedules: []
-- name: start-volatility-model
+- name: volatility-start-model
   tags:
   - ops
   - volatility
@@ -168,9 +168,9 @@ deployments:
     # execution_mode: ssh
     # ssh_host: T1_newuser1
   work_pool:
-    name: volatility-agent-pool
+    name: strategies
   schedules: []
-- name: volume-strategy-fills
+- name: volume-fills
   tags:
   - ops
   - volume
@@ -184,9 +184,9 @@ deployments:
     # execution_mode: ssh
     # ssh_host: T1_newuser1
   work_pool:
-    name: volume-agent-pool
+    name: strategies
   schedules: []
-- name: start-volume-strategy
+- name: volume-start-strategy
   tags:
   - ops
   - volume
@@ -199,7 +199,7 @@ deployments:
     # execution_mode: ssh
     # ssh_host: T1_newuser1
   work_pool:
-    name: volume-agent-pool
+    name: strategies
   schedules: []
 - name: stacker-status
   tags:
@@ -215,9 +215,9 @@ deployments:
     # execution_mode: ssh
     # ssh_host: T1_newuser1
   work_pool:
-    name: stacker-agent-pool
+    name: strategies
   schedules: []
-- name: launch-stacker
+- name: stacker-launch
   tags:
   - ops
   - stacker
@@ -231,9 +231,9 @@ deployments:
     # execution_mode: ssh
     # ssh_host: T1_newuser1
   work_pool:
-    name: stacker-agent-pool
+    name: strategies
   schedules: []
-- name: setup-stacker-config
+- name: stacker-setup-config
   tags:
   - ops
   - stacker
@@ -271,9 +271,9 @@ deployments:
     # execution_mode: ssh
     # ssh_host: T1_newuser1
   work_pool:
-    name: stacker-agent-pool
+    name: strategies
   schedules: []
-- name: update-stacker-config
+- name: stacker-update-config
   tags:
   - ops
   - stacker
@@ -288,7 +288,7 @@ deployments:
     # execution_mode: ssh
     # ssh_host: T1_newuser1
   work_pool:
-    name: stacker-agent-pool
+    name: strategies
   schedules: []
 - name: mirror-control
   tags:
@@ -308,5 +308,5 @@ deployments:
     # execution_mode: ssh
     # ssh_host: T1_newuser1
   work_pool:
-    name: mirror-agent-pool
+    name: strategies
   schedules: []

@@ -8,16 +8,16 @@ Prefer Prefect UI deployments for repeated operations:
 | Deployment | Use |
 | --- | --- |
 | `stacker-status` | Check accepted/rejected order output. |
-| `launch-stacker` | Manually launch stacker for a symbol and level. |
-| `setup-stacker-config` | Create stacker configs after hosts and stacker lists are known. |
-| `update-stacker-config` | Update an existing stacker config using `updates_json`. |
+| `stacker-launch` | Manually launch stacker for a symbol and level. |
+| `stacker-setup-config` | Create stacker configs after hosts and stacker lists are known. |
+| `stacker-update-config` | Update an existing stacker config using `updates_json`. |
 
-These deployments run on `stacker-agent-pool`. All deployment output appears in
+These deployments run on the `strategies` work pool. All deployment output appears in
 the Prefect flow run logs.
 Default execution mode and SSH host come from `RCJ_OPS_EXECUTION_MODE` and
 `RCJ_OPS_SSH_HOST` in `.env`.
 
-`setup-stacker-config` defaults to the KAIO example: feed host
+`stacker-setup-config` defaults to the KAIO example: feed host
 `0.0.0.0:41741`, gateway host `0.0.0.0:41799`, quantity step `0.1`, max price
 `1.0`, buy stacker price `0.00194` quantity `5077.9708`, and sell stacker price
 `0.95841` quantity `4780.6481`.
@@ -132,7 +132,7 @@ curl -X POST http://18.176.93.228/update_stacker_config \
 
 ## Manually Start Stacker
 
-Prefect UI: use `launch-stacker`; most runs only change `symbol` and
+Prefect UI: use `stacker-launch`; most runs only change `symbol` and
 `stacker_level`.
 
 ```bash

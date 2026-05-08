@@ -2,8 +2,8 @@ Only after token goes live.
 
 Prefect UI deployment:
 
-- `start-volatility-model`
-- Runs on `volatility-agent-pool`.
+- `volatility-start-model`
+- Runs on the `strategies` work pool.
 - Most runs only change `symbol`.
 - Keep defaults unless the listing uses a different market, exchange, risk
   tolerance, or strategy.

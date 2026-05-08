@@ -2,8 +2,8 @@
 
 Prefect UI deployment:
 
-- `start-volume-strategy`
-- Runs on `volume-agent-pool`.
+- `volume-start-strategy`
+- Runs on the `strategies` work pool.
 - Most runs only change `symbol`.
 - Default execution mode and SSH host come from `RCJ_OPS_EXECUTION_MODE` and
   `RCJ_OPS_SSH_HOST` in `.env`.
@@ -22,8 +22,8 @@ curl -X POST http://18.176.93.228/start_volume_strategy \
 
 Prefect UI deployment:
 
-- `volume-strategy-fills`
-- Runs on `volume-agent-pool`.
+- `volume-fills`
+- Runs on the `strategies` work pool.
 - Most runs only change `symbol`; optionally set `date` as `YYYYMMDD`.
 - Default execution mode and SSH host come from `RCJ_OPS_EXECUTION_MODE` and
   `RCJ_OPS_SSH_HOST` in `.env`.

@@ -13,7 +13,7 @@ Auth header:
 
 ## General Rules
 
-- Prefer Prefect UI deployments on `ops-playbook-agent-pool` for repeated
+- Prefer Prefect UI deployments on the `ops` work pool for repeated
   operations:
 
   | Endpoint | Prefect deployment |
