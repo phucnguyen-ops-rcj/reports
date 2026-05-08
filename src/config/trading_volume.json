@@ -27,6 +27,7 @@
         "TAC",
         "METADAO",
         "KAIO",
+        "SHARE",
         "CLUSDTM",
         "BZUSDTM",
         "NATGASUSDTM"
@@ -66,6 +67,7 @@
             "TAC": 2000000,
             "METADAO": 1000000,
             "KAIO": 5000000,
+            "SHARE": 2000000,
             "CLUSDTM": 2000000,
             "BZUSDTM": 2000000,
             "NATGASUSDTM": 2000000
