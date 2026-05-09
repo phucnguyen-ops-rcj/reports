@@ -401,7 +401,7 @@ def main() -> None:
     parser.add_argument(
         "--market-cap-top-n",
         type=int,
-        default=500,
+        default=1000,
         help="Approximation breadth when the exact global market cap series is unavailable.",
     )
     args = parser.parse_args()

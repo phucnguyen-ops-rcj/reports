@@ -48,10 +48,34 @@ class CoinMarketChartPoint(BaseModel):
     market_cap: float | None
 
 
+class CoinListItem(BaseModel):
+    id: str
+    symbol: str
+    name: str
+    platforms: dict[str, str] | None = None
+
+
 class CoinSearchResult(BaseModel):
     id: str
     symbol: str
     name: str
+
+
+class CoinGeckoRateLimitInfo(BaseModel):
+    limit: int | None = None
+    remaining: int | None = None
+    reset_at: str | None = None
+    retry_after_seconds: int | None = None
+
+
+class CoinGeckoApiUsage(BaseModel):
+    plan: str | None = None
+    rate_limit_request_per_minute: int | None = None
+    monthly_call_credit: int | None = None
+    current_total_monthly_calls: int | None = None
+    current_remaining_monthly_calls: int | None = None
+    api_key_rate_limit_request_per_minute: int | None = None
+    api_key_monthly_call_credit: int | None = None
 
 
 class CoinGeckoClient:
@@ -91,6 +115,7 @@ class CoinGeckoClient:
             api_key if api_key is not None else app_settings.coingecko_api_key
         )
         self.user_agent = user_agent
+        self.last_rate_limit_info: CoinGeckoRateLimitInfo | None = None
 
     def get_global_market_summary(self) -> GlobalMarketSummary:
         payload = self._get("/global")
@@ -176,6 +201,88 @@ class CoinGeckoClient:
         return [
             self._parse_coin_market(item) for item in payload if isinstance(item, dict)
         ]
+
+    def get_supported_coins(
+        self,
+        *,
+        include_platform: bool = False,
+        status: str = "active",
+    ) -> list[CoinListItem]:
+        params = {
+            "include_platform": str(include_platform).lower(),
+            "status": status,
+        }
+        payload = self._get("/coins/list", params=params)
+        if not isinstance(payload, list):
+            raise RuntimeError("CoinGecko returned an unexpected coin list shape.")
+
+        coins: list[CoinListItem] = []
+        for item in payload:
+            if not isinstance(item, dict):
+                continue
+            platforms = item.get("platforms")
+            coins.append(
+                CoinListItem(
+                    id=str(item.get("id", "")),
+                    symbol=str(item.get("symbol", "")).upper(),
+                    name=str(item.get("name", "")),
+                    platforms=platforms if isinstance(platforms, dict) else None,
+                )
+            )
+        return coins
+
+    def get_supported_symbols(
+        self,
+        *,
+        include_platform: bool = False,
+        status: str = "active",
+    ) -> list[str]:
+        coins = self.get_supported_coins(
+            include_platform=include_platform,
+            status=status,
+        )
+        return sorted({coin.symbol for coin in coins if coin.symbol})
+
+    def get_all_supported_symbols(
+        self,
+        *,
+        include_platform: bool = False,
+        status: str = "active",
+    ) -> list[str]:
+        return self.get_supported_symbols(
+            include_platform=include_platform,
+            status=status,
+        )
+
+    def get_api_usage(self) -> CoinGeckoApiUsage:
+        payload = self._get("/key")
+        if not isinstance(payload, dict):
+            raise RuntimeError("CoinGecko returned an unexpected API usage shape.")
+        return CoinGeckoApiUsage(
+            plan=self._to_str_or_none(payload.get("plan")),
+            rate_limit_request_per_minute=self._to_int(
+                payload.get("rate_limit_request_per_minute")
+            ),
+            monthly_call_credit=self._to_int(payload.get("monthly_call_credit")),
+            current_total_monthly_calls=self._to_int(
+                payload.get("current_total_monthly_calls")
+            ),
+            current_remaining_monthly_calls=self._to_int(
+                payload.get("current_remaining_monthly_calls")
+            ),
+            api_key_rate_limit_request_per_minute=self._to_int(
+                payload.get("api_key_rate_limit_request_per_minute")
+            ),
+            api_key_monthly_call_credit=self._to_int(
+                payload.get("api_key_monthly_call_credit")
+            ),
+        )
+
+    def get_provider_request_limit(self) -> CoinGeckoApiUsage:
+        return self.get_api_usage()
+
+    def get_last_rate_limit_info(self) -> CoinGeckoRateLimitInfo | None:
+        return self.last_rate_limit_info
 
     def get_market_cap_heatmap_data(
         self,
@@ -380,8 +487,14 @@ class CoinGeckoClient:
 
         try:
             with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+                self.last_rate_limit_info = self._parse_rate_limit_headers(
+                    dict(resp.headers.items())
+                )
                 raw = resp.read().decode("utf-8")
         except urllib.error.HTTPError as exc:
+            self.last_rate_limit_info = self._parse_rate_limit_headers(
+                dict(exc.headers.items()) if exc.headers else {}
+            )
             error_body = exc.read().decode("utf-8", errors="replace")
             raise RuntimeError(f"CoinGecko API HTTP {exc.code}: {error_body}") from exc
         except urllib.error.URLError as exc:
@@ -425,6 +538,18 @@ class CoinGeckoClient:
         lookup_key = key.value if isinstance(key, QuoteCurrency) else key
         return CoinGeckoClient._to_float(value.get(lookup_key))
 
+    @classmethod
+    def _parse_rate_limit_headers(
+        cls, headers: dict[str, str]
+    ) -> CoinGeckoRateLimitInfo:
+        normalized = {key.lower(): value for key, value in headers.items()}
+        return CoinGeckoRateLimitInfo(
+            limit=cls._to_int(normalized.get("x-ratelimit-limit")),
+            remaining=cls._to_int(normalized.get("x-ratelimit-remaining")),
+            reset_at=cls._to_str_or_none(normalized.get("x-ratelimit-reset")),
+            retry_after_seconds=cls._to_int(normalized.get("retry-after")),
+        )
+
     @staticmethod
     def _to_float(value: Any) -> float | None:
         if value is None:
@@ -433,6 +558,12 @@ class CoinGeckoClient:
             return float(value)
         except (TypeError, ValueError):
             return None
+
+    @staticmethod
+    def _to_str_or_none(value: Any) -> str | None:
+        if value is None:
+            return None
+        return str(value)
 
     @staticmethod
     def _to_int(value: Any) -> int | None:
@@ -446,5 +577,5 @@ class CoinGeckoClient:
 
 if __name__ == "__main__":
     client = CoinGeckoClient()
-    summary = client.get_global_market_summary()
+    summary = client.get_last_rate_limit_info()
     print(summary)
