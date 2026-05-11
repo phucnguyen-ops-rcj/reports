@@ -36,8 +36,6 @@ class BinanceKline(BaseModel):
     low_price: float | None
     close_price: float | None
     volume: float | None
-    quote_volume: float | None = None
-    trade_count: int | None = None
     close_time_ms: int
 
 
@@ -213,83 +211,6 @@ class BinanceClient:
     def get_usdt_perp_24h_quote_volume(self, base_asset: str) -> float | None:
         ticker = self.get_futures_24h_ticker(f"{base_asset.upper()}USDT")
         return ticker.quote_volume
-
-    def get_exchange_info(self, symbol: str | None = None) -> dict[str, Any]:
-        params = {"symbol": symbol.upper()} if symbol else None
-        payload = self._get("/api/v3/exchangeInfo", params=params)
-        if not isinstance(payload, dict):
-            raise RuntimeError("Binance returned an unexpected exchangeInfo shape.")
-        return payload
-
-    def get_futures_exchange_info(self, symbol: str | None = None) -> dict[str, Any]:
-        payload = self._get_futures("/fapi/v1/exchangeInfo")
-        if not isinstance(payload, dict):
-            raise RuntimeError(
-                "Binance returned an unexpected futures exchangeInfo shape."
-            )
-        if not symbol:
-            return payload
-        resolved_symbol = symbol.upper()
-        symbols = [
-            item
-            for item in payload.get("symbols", [])
-            if isinstance(item, dict) and item.get("symbol") == resolved_symbol
-        ]
-        return {**payload, "symbols": symbols}
-
-    def get_symbol_rules(self, symbol: str, *, market: str = "spot") -> dict[str, Any]:
-        info = (
-            self.get_futures_exchange_info(symbol)
-            if market == "perp"
-            else self.get_exchange_info(symbol)
-        )
-        symbols = info.get("symbols") or []
-        if not symbols:
-            raise RuntimeError(f"Binance symbol rules not found for {symbol}.")
-        symbol_info = symbols[0]
-        filters = {
-            str(item.get("filterType")): item
-            for item in symbol_info.get("filters", [])
-            if isinstance(item, dict)
-        }
-        lot_size = filters.get("LOT_SIZE", {})
-        price_filter = filters.get("PRICE_FILTER", {})
-        min_notional_filter = (
-            filters.get("MIN_NOTIONAL") or filters.get("NOTIONAL") or {}
-        )
-        return {
-            "symbol": symbol_info.get("symbol", symbol.upper()),
-            "status": symbol_info.get("status"),
-            "min_notional": self._to_float(
-                min_notional_filter.get("minNotional")
-                or min_notional_filter.get("notional")
-            ),
-            "min_qty": self._to_float(lot_size.get("minQty")),
-            "step_size": self._to_float(lot_size.get("stepSize")),
-            "tick_size": self._to_float(price_filter.get("tickSize")),
-        }
-
-    def get_order_book(self, symbol: str, *, limit: int = 100) -> dict[str, Any]:
-        payload = self._get(
-            "/api/v3/depth",
-            params={"symbol": symbol.upper(), "limit": str(limit)},
-        )
-        if not isinstance(payload, dict):
-            raise RuntimeError("Binance returned an unexpected order book shape.")
-        return payload
-
-    def get_futures_order_book(
-        self, symbol: str, *, limit: int = 100
-    ) -> dict[str, Any]:
-        payload = self._get_futures(
-            "/fapi/v1/depth",
-            params={"symbol": symbol.upper(), "limit": str(limit)},
-        )
-        if not isinstance(payload, dict):
-            raise RuntimeError(
-                "Binance returned an unexpected futures order book shape."
-            )
-        return payload
 
     def get_klines(
         self,
@@ -524,8 +445,6 @@ class BinanceClient:
             low_price=cls._to_float(payload[3]),
             close_price=cls._to_float(payload[4]),
             volume=cls._to_float(payload[5]),
-            quote_volume=cls._to_float(payload[7]) if len(payload) > 7 else None,
-            trade_count=int(payload[8]) if len(payload) > 8 else None,
             close_time_ms=int(payload[6]),
         )
 

@@ -29,19 +29,6 @@ Prefect UI deployment:
   `RCJ_OPS_SSH_HOST` in `.env`.
 - Output appears in the Prefect flow run logs.
 
-Project command:
-
-```bash
-uv run strategy_fills KAIO
-uv run strategy_fills KAIO-USDT
-```
-
-Flexible endpoint override:
-
-```bash
-uv run strategy_fills KAIO --endpoint /get_volume_strategy_fills
-```
-
 Equivalent curl:
 
 ```bash

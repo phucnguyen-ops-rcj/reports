@@ -214,5 +214,6 @@ if __name__ == "__main__":
     print(summary.sentence)
 
     coinank_open_interest_to_png(
-        df[df["date"] <= "2026-05-04"], "results/market/coinank_btc_open_interest.png"
-    )  # pyrefly: ignore
+        df[df["date"] <= "2026-05-04"],
+        "results/market/coinank_btc_open_interest.png",  # pyrefly: ignore
+    )

@@ -10,7 +10,6 @@ or two files.
 | --- | --- |
 | `api_reference.md` | Mini Service API conventions, responses, status codes, supported exchanges, and endpoint map. |
 | `accounts.md` | Supported transfer/balance account aliases by exchange. |
-| `arb_param_analysis.md` | Public-data analyzer for simple arbitrage order-size and fill-sleep parameters. |
 | `ops_playbook.md` | Curl-only API command templates for balance, transfer, monitor, and health checks. |
 | `prefect_ops.md` | Prefect UI deployments for new listing, volatility, stacker, mirror control, and diagnostics. |
 | `new_listing.md` | Step-by-step new listing setup curl templates. |

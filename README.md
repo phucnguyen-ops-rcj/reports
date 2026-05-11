@@ -37,16 +37,12 @@ UI available at `http://localhost:4200`.
 | `uv run net_pnl` | Loads trade CSV, runs P&L analysis, sends PNG table + text via Signal |
 | `uv run trading_volume` | Loads volume CSV, checks against thresholds, sends PNG table via Signal |
 | `uv run new_listing <symbol>` | Runs `src/config/new_listing/<symbol>.json` through the new-listing setup flow |
-| `uv run strategy_fills <symbol>` | Fetches volume strategy fills/status with `base_currency`/`quote_currency` |
-| `uv run arb_param_analysis ...` | Uses public Binance/KuCoin data to recommend simple arbitrage size/sleep params |
 
 Manual RCJ ops workflows are also available in Prefect UI on dedicated work
 pools. See `docs/prefect_ops.md` for balance/transfer/monitor playbook tasks,
 new listing, volatility, volume, stacker, mirror control, and diagnostics
 deployments. Configure their default API route with the `RCJ_OPS_*` values in
 `.env`.
-
-For simple arbitrage parameter analysis, see `docs/arb_param_analysis.md`.
 
 Run all three in sequence:
 

@@ -89,8 +89,12 @@ def relative_performance_to_png(
     if market_cap.empty:
         raise ValueError("No market cap data found.")
 
-    candle_dates = mdates.date2num(candles["date"].dt.to_pydatetime())
-    market_dates = mdates.date2num(market_cap["date"].dt.to_pydatetime())
+    candle_dates = mdates.date2num(
+        candles["date"].dt.to_pydatetime()
+    )  # pyrefly: ignore
+    market_dates = mdates.date2num(
+        market_cap["date"].dt.to_pydatetime()
+    )  # pyrefly: ignore
     candle_width = 0.62
 
     fig, ax_market = plt.subplots(figsize=figsize)
@@ -232,7 +236,9 @@ def _load_coin_gecko_price_candles(symbol: str, *, days: int) -> pd.DataFrame:
         )
 
     df = prices.copy()
-    df["date"] = pd.to_datetime(df["timestamp_ms"], unit="ms", utc=True).dt.floor("D")
+    df["date"] = pd.to_datetime(df["timestamp_ms"], unit="ms", utc=True).dt.floor(
+        "D"
+    )  # pyrefly: ignore
     df = df.dropna(subset=["price"])
     df = (
         df.sort_values(by="timestamp_ms")
@@ -358,7 +364,9 @@ def _daily_market_cap_frame(frame: pd.DataFrame, *, prefix: str) -> pd.DataFrame
         return pd.DataFrame(columns=["date", f"{prefix}_market_cap"])
 
     df = frame.copy()
-    df["date"] = pd.to_datetime(df["timestamp_ms"], unit="ms", utc=True).dt.floor("D")
+    df["date"] = pd.to_datetime(df["timestamp_ms"], unit="ms", utc=True).dt.floor(
+        "D"
+    )  # pyrefly: ignore
     df = (
         df.sort_values(by="timestamp_ms")
         .groupby("date", as_index=False)
