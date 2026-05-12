@@ -28,6 +28,7 @@
         "METADAO",
         "KAIO",
         "SHARE",
+        "NXT",
         "CLUSDTM",
         "BZUSDTM",
         "NATGASUSDTM"
@@ -68,6 +69,7 @@
             "METADAO": 1000000,
             "KAIO": 5000000,
             "SHARE": 2000000,
+            "NXT": 1000000,
             "CLUSDTM": 2000000,
             "BZUSDTM": 2000000,
             "NATGASUSDTM": 2000000
