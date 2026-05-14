@@ -29,6 +29,7 @@
         "KAIO",
         "SHARE",
         "NXT",
+        "HOOLI",
         "CLUSDTM",
         "BZUSDTM",
         "NATGASUSDTM"
@@ -70,6 +71,7 @@
             "KAIO": 5000000,
             "SHARE": 2000000,
             "NXT": 1000000,
+            "HOOLI": 2000000,
             "CLUSDTM": 2000000,
             "BZUSDTM": 2000000,
             "NATGASUSDTM": 2000000
