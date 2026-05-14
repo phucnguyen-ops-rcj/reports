@@ -25,6 +25,7 @@ from src.scripts.alt_bb_ata.relative_performance import (
 )
 from src.settings import app_settings
 from src.utils.visualization import (
+    coinank_long_short_realtime_to_png,
     coinank_open_interest_to_png,
     crypto_market_heatmap_to_png,
     etf_net_flows_to_png,
@@ -32,7 +33,7 @@ from src.utils.visualization import (
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_OUTPUT_DIR = Path("result/alt_bb_ata")
+DEFAULT_OUTPUT_DIR = Path("results/alt_bb_ata")
 SUPPORTED_SYMBOLS = {"ALT", "BB", "ATA"}
 REPORT_FILENAME = "report.md"
 CRYPTO_HEATMAP_IMAGE = "crypto_heatmap.png"
@@ -48,6 +49,9 @@ SPOT_ORDER_BOOK_IMBALANCE_IMAGE = "spot_order_book_imbalance.png"
 SPOT_ORDER_BOOK_LIQUIDITY_IMAGE = "spot_order_book_liquidity.png"
 AGGREGATE_BUY_SELL_VOLUME_IMAGE = "aggregate_buy_sell_volume.png"
 VOLUME_BY_EXCHANGE_IMAGE = "volume_by_exchange.png"
+LIQUIDATIONS_SOURCE_URL = "https://www.coinglass.com/pro/futures/Liquidations"
+LONG_SHORT_SOURCE_URL = "https://coinank.com/longshort/realtime"
+SPOT_ORDER_BOOK_LIQUIDITY_SOURCE_URL = "https://www.coinglass.com/pro/depth-delta"
 
 
 @dataclass(slots=True)
@@ -56,6 +60,13 @@ class MarketOverviewAssets:
     etf_sentence: str
     btc_open_interest_sentence: str
     asset_flow_sentence: str
+
+
+@dataclass(slots=True)
+class LongShortAssets:
+    image_path: Path | None
+    sentence: str
+    error: str | None = None
 
 
 @dataclass(slots=True)
@@ -100,6 +111,10 @@ def build_alt_markdown_report(
         output_dir=report_dir,
     )
     perp_analysis = _normalize_perp_image_paths(perp_analysis, report_dir)
+    long_short_assets = _try_long_short_realtime(
+        base_asset,
+        report_dir / LONG_SHORT_IMAGE,
+    )
 
     content = _render_markdown(
         symbol=base_asset,
@@ -113,6 +128,7 @@ def build_alt_markdown_report(
         relative_error=relative_error,
         perp_analysis=perp_analysis,
         perp_error=perp_error,
+        long_short_assets=long_short_assets,
     )
     markdown_path.write_text(content, encoding="utf-8")
     return AltMarkdownReport(
@@ -228,6 +244,32 @@ def _try_coinshares_asset_flows(output_path: Path) -> str:
         )
 
 
+def _try_long_short_realtime(
+    symbol: str,
+    output_path: Path,
+) -> LongShortAssets:
+    try:
+        client = CoinankClient()
+        summary = client.get_long_short_realtime_summary(base_asset=symbol)
+        coinank_long_short_realtime_to_png(summary, output_path)
+        return LongShortAssets(
+            image_path=output_path,
+            sentence="Perp long position vs short position over recent period.",
+        )
+    except Exception as exc:
+        logger.warning(
+            "Failed to build %s long-short realtime snapshot.", symbol, exc_info=True
+        )
+        return LongShortAssets(
+            image_path=None,
+            sentence=_placeholder_with_error(
+                "Perp long position vs short position over recent period.",
+                str(exc),
+            ),
+            error=str(exc),
+        )
+
+
 def _try_relative_performance_chart(
     symbol: str,
     output_path: Path,
@@ -278,17 +320,22 @@ def _normalize_perp_image_paths(
 
     open_interest_path = report_dir / OPEN_INTEREST_IMAGE
     taker_buy_sell_path = report_dir / TAKER_BUY_SELL_IMAGE
+    liquidation_path = report_dir / LIQUIDATIONS_IMAGE
     _copy_if_different(analysis.open_interest_image_path, open_interest_path)
     _copy_if_different(analysis.taker_buy_sell_image_path, taker_buy_sell_path)
+    _copy_if_different(analysis.liquidation_image_path, liquidation_path)
 
     return BinancePerpMarketAnalysis(
         symbol=analysis.symbol,
         open_interest=analysis.open_interest,
         taker_buy_sell=analysis.taker_buy_sell,
+        liquidations=analysis.liquidations,
         open_interest_sentence=analysis.open_interest_sentence,
         taker_buy_sell_sentence=analysis.taker_buy_sell_sentence,
+        liquidation_sentence=analysis.liquidation_sentence,
         open_interest_image_path=open_interest_path,
         taker_buy_sell_image_path=taker_buy_sell_path,
+        liquidation_image_path=liquidation_path,
     )
 
 
@@ -312,6 +359,7 @@ def _render_markdown(
     relative_error: str | None,
     perp_analysis: BinancePerpMarketAnalysis | None,
     perp_error: str | None,
+    long_short_assets: LongShortAssets,
 ) -> str:
     report_date_text = report_date.strftime("%-d %b %Y")
     relative_sentence, relative_caption = build_relative_performance_sentence(
@@ -388,9 +436,15 @@ def _render_markdown(
         "",
         _perp_taker_volume_block(perp_analysis, perp_error, markdown_path),
         "",
-        _perp_liquidation_block(symbol, report_date, markdown_path),
+        _perp_liquidation_block(
+            symbol,
+            report_date,
+            markdown_path,
+            perp_analysis,
+            perp_error,
+        ),
         "",
-        _perp_long_short_block(markdown_path),
+        _perp_long_short_block(markdown_path, long_short_assets),
         "",
         "### <u>Spot order book insight: Book imbalance</u>",
         "",
@@ -417,6 +471,8 @@ def _render_markdown(
             alt_text="Spot order book liquidity",
             fallback_filename=SPOT_ORDER_BOOK_LIQUIDITY_IMAGE,
         ),
+        "",
+        SPOT_ORDER_BOOK_LIQUIDITY_SOURCE_URL,
         "",
         "## <u>Section 3: Trade Performance</u>",
         "",
@@ -537,7 +593,22 @@ def _perp_liquidation_block(
     symbol: str,
     report_date: pd.Timestamp,
     markdown_path: Path,
+    analysis: BinancePerpMarketAnalysis | None,
+    error: str | None,
 ) -> str:
+    if analysis is not None:
+        return "\n\n".join(
+            [
+                _image_or_placeholder(
+                    analysis.liquidation_image_path,
+                    markdown_path=markdown_path,
+                    alt_text=f"{symbol} perp liquidations",
+                    fallback_filename=LIQUIDATIONS_IMAGE,
+                    error=error,
+                ),
+                analysis.liquidation_sentence,
+            ]
+        )
     date_text = report_date.strftime("%-d %B")
     return "\n\n".join(
         [
@@ -547,6 +618,7 @@ def _perp_liquidation_block(
                 alt_text=f"{symbol} perp liquidations",
                 fallback_filename=LIQUIDATIONS_IMAGE,
             ),
+            LIQUIDATIONS_SOURCE_URL,
             (
                 f"Perp liquidations *** over the past 24H at ~*** longs and "
                 f"~*** shorts liquidated as on {date_text}."
@@ -555,7 +627,23 @@ def _perp_liquidation_block(
     )
 
 
-def _perp_long_short_block(markdown_path: Path) -> str:
+def _perp_long_short_block(
+    markdown_path: Path,
+    assets: LongShortAssets,
+) -> str:
+    if assets.image_path is not None:
+        return "\n\n".join(
+            [
+                _image_or_placeholder(
+                    assets.image_path,
+                    markdown_path=markdown_path,
+                    alt_text="Perp long short positioning",
+                    fallback_filename=LONG_SHORT_IMAGE,
+                    error=assets.error,
+                ),
+                assets.sentence,
+            ]
+        )
     return "\n\n".join(
         [
             _image_or_placeholder(
@@ -564,7 +652,8 @@ def _perp_long_short_block(markdown_path: Path) -> str:
                 alt_text="Perp long short positioning",
                 fallback_filename=LONG_SHORT_IMAGE,
             ),
-            "Perp long position vs short position over recent period.",
+            LONG_SHORT_SOURCE_URL,
+            assets.sentence,
         ]
     )
 

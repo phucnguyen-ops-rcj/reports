@@ -6,9 +6,11 @@ from pathlib import Path
 import pandas as pd
 
 from src.clients.binance import BinanceClient
+from src.clients.coinmarketcap import CoinMarketCapClient
 from src.utils.visualization import (
     binance_perp_open_interest_to_png,
     binance_perp_taker_buy_sell_to_png,
+    coinmarketcap_liquidations_to_png,
 )
 
 
@@ -17,10 +19,13 @@ class BinancePerpMarketAnalysis:
     symbol: str
     open_interest: pd.DataFrame
     taker_buy_sell: pd.DataFrame
+    liquidations: pd.DataFrame
     open_interest_sentence: str
     taker_buy_sell_sentence: str
+    liquidation_sentence: str
     open_interest_image_path: Path
     taker_buy_sell_image_path: Path
+    liquidation_image_path: Path
 
 
 def build_binance_perp_market_analysis(
@@ -30,9 +35,11 @@ def build_binance_perp_market_analysis(
     days: int = 30,
     output_dir: str | Path = "results/market",
     binance_client: BinanceClient | None = None,
+    coinmarketcap_client: CoinMarketCapClient | None = None,
 ) -> BinancePerpMarketAnalysis:
     base_asset = _base_asset(symbol)
     client = binance_client or BinanceClient()
+    coinmarketcap = coinmarketcap_client or CoinMarketCapClient()
     start_time_ms, end_time_ms = _time_window_ms(report_date, days=days)
 
     open_interest = client.get_futures_open_interest_history(
@@ -49,6 +56,7 @@ def build_binance_perp_market_analysis(
         start_time_ms=start_time_ms,
         end_time_ms=end_time_ms,
     )
+    liquidations = coinmarketcap.get_liquidation_chart(symbol=base_asset)
 
     output_base = Path(output_dir)
     open_interest_image_path = (
@@ -56,6 +64,9 @@ def build_binance_perp_market_analysis(
     )
     taker_buy_sell_image_path = (
         output_base / f"{base_asset.lower()}_binance_perp_taker_buy_sell.png"
+    )
+    liquidation_image_path = (
+        output_base / f"{base_asset.lower()}_coinmarketcap_liquidations.png"
     )
 
     binance_perp_open_interest_to_png(
@@ -70,11 +81,18 @@ def build_binance_perp_market_analysis(
         base_asset=base_asset,
         days=days,
     )
+    coinmarketcap_liquidations_to_png(
+        liquidations,
+        liquidation_image_path,
+        base_asset=base_asset,
+        days=days,
+    )
 
     return BinancePerpMarketAnalysis(
         symbol=base_asset,
         open_interest=open_interest,
         taker_buy_sell=taker_buy_sell,
+        liquidations=liquidations,
         open_interest_sentence=build_open_interest_sentence(
             open_interest,
             base_asset=base_asset,
@@ -85,8 +103,13 @@ def build_binance_perp_market_analysis(
             base_asset=base_asset,
             report_date=report_date,
         ),
+        liquidation_sentence=build_liquidation_sentence(
+            liquidations,
+            report_date=report_date,
+        ),
         open_interest_image_path=open_interest_image_path,
         taker_buy_sell_image_path=taker_buy_sell_image_path,
+        liquidation_image_path=liquidation_image_path,
     )
 
 
@@ -130,6 +153,25 @@ def build_taker_buy_sell_sentence(
     )
 
 
+def build_liquidation_sentence(
+    df: pd.DataFrame,
+    *,
+    report_date: str | pd.Timestamp | None = None,
+) -> str:
+    row, previous_row = _row_and_previous(df, report_date=report_date)
+    total = float(row["long_liquidation_usd"]) + float(row["short_liquidation_usd"])
+    previous_total = float(previous_row["long_liquidation_usd"]) + float(
+        previous_row["short_liquidation_usd"]
+    )
+    direction = "increased" if total > previous_total else "decreased"
+    return (
+        f"Perp liquidations {direction} over the past 24H at "
+        f"~${float(row['long_liquidation_usd']):,.0f} longs and "
+        f"~${float(row['short_liquidation_usd']):,.0f} shorts liquidated "
+        f"as on {_format_report_date(row['date'])}."
+    )
+
+
 def _row_and_previous(
     df: pd.DataFrame,
     *,
@@ -148,7 +190,9 @@ def _row_and_previous(
         else:
             target = target.tz_convert("UTC")
         target_date = target.date()
-        matches = plot_df.index[plot_df["date"].dt.date == target_date].tolist()
+        matches = plot_df.index[
+            plot_df["date"].dt.date == target_date
+        ].tolist()  # pyrefly: ignore
         if not matches:
             raise ValueError(f"No Binance perp data found for {target_date}.")
         row_index = matches[-1]
