@@ -33,7 +33,7 @@ def task_save(volume_summary: pd.DataFrame, prefix: str = "") -> tuple:
     csv_path = save_csv(volume_summary, out_dir, prefix)
     logger.info(f"CSV saved to: {csv_path}")
     png_path = trading_volume_to_png_styled(
-        volume_summary, out_dir / "daily_trading_volume.png"
+        volume_summary, out_dir / f"{prefix}_daily_trading_volume.png"
     )
     logger.info(f"PNG saved to: {png_path}")
     return png_path, csv_path
@@ -66,14 +66,21 @@ def trading_volume_flow(
 ) -> tuple:
     df: pd.DataFrame = task_load_data(source, input_path, symbols)
     volume_summary: pd.DataFrame = task_analyze(df)
-    mask: pd.Series = volume_summary["remaining_days"].lt(0)
-
-    in_tradings = volume_summary.loc[~mask].copy()
-    not_in_tradings = volume_summary.loc[mask].copy()
+    remaining_days_positive: pd.DataFrame = volume_summary[
+        volume_summary["remaining_days"] > 0
+    ].copy()
+    listed_more_than_14_days: pd.DataFrame = volume_summary[
+        volume_summary["remaining_days"].between(-50, 0, inclusive="both")
+    ].copy()
+    png_path = None
+    csv_path = None
     for df_data, prefix in [
-        (in_tradings, "Recently Listing"),
-        (not_in_tradings, "Previous Listing"),
+        (remaining_days_positive, "Remaining days > 0"),
+        (listed_more_than_14_days, "Listed more than 14 days"),
     ]:
+        if df_data.empty:
+            logger.info(f"Skipping {prefix} report because it has no rows.")
+            continue
         png_path, csv_path = task_save(df_data, prefix)  # pyrefly: ignore
         try:
             task_send_signal(png_path, prefix)

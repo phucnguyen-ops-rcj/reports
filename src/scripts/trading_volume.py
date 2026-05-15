@@ -91,13 +91,18 @@ def _generate_and_send_report(
     """Save CSV and PNG report files, and send only the PNG via Signal."""
     csv_path = save_csv(volume_summary, out_dir, prefix="")
     logger.info(f"CSV saved to: {csv_path}")
-    mask = volume_summary["remaining_days"] < 0
-    in_trading = volume_summary[~mask]
-    not_in_trading = volume_summary[mask]
+    remaining_days_positive = volume_summary[volume_summary["remaining_days"] > 0]
+    listed_more_than_14_days = volume_summary[
+        volume_summary["remaining_days"].between(-50, 0, inclusive="both")
+    ]
+    png_path = None
     for df_data, prefix in [
-        (in_trading, "Recently Listing"),
-        (not_in_trading, "Previous Listing"),
+        (remaining_days_positive, "Remaining days > 0"),
+        (listed_more_than_14_days, "Listed more than 14 days"),
     ]:
+        if df_data.empty:
+            logger.info(f"Skipping {prefix} report because it has no rows.")
+            continue
         png_path = trading_volume_to_png_styled(
             df_data,
             out_dir / f"{prefix}_daily_trading_volume.png",
