@@ -3,7 +3,7 @@ from pathlib import Path
 
 from prefect import flow, task
 
-from src.clients.coingecko import CoinGeckoClient
+from src.clients.third_parties.coingecko import CoinGeckoClient
 from src.clients.signal import SignalClient
 from src.settings import app_settings
 from src.utils.format_message import build_market_summary_report

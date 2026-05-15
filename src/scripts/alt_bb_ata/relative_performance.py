@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 import pandas as pd
 
-from src.clients.binance import BinanceClient
-from src.clients.coingecko import CoinGeckoClient
+from src.clients.exchanges.binance import BinanceClient
+from src.clients.third_parties.coingecko import CoinGeckoClient
 
 DEFAULT_COINGECKO_COIN_IDS = {
     "ALT": "altlayer",
@@ -67,7 +67,7 @@ def relative_performance_to_png(
     output_path: str | Path | None = None,
     *,
     days: int = 14,
-    market_cap_top_n: int = 30,
+    market_cap_top_n: int = 500,
     figsize: tuple[float, float] = (11, 5.2),
     dpi: int = 220,
 ) -> Path:

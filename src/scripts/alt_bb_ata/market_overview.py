@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from pydantic import BaseModel
 
-from src.clients.binance import BinanceClient
-from src.clients.bybit import BybitClient
-from src.clients.coinmarketcap import CoinMarketCapClient
+from src.clients.exchanges.binance import BinanceClient
+from src.clients.exchanges.bybit import BybitClient
+from src.clients.third_parties.coinmarketcap import CoinMarketCapClient
 from src.utils.format_message import build_alt_market_summary_sentence
 
 

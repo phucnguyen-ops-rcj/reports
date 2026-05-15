@@ -7,10 +7,10 @@ from pathlib import Path
 
 import pandas as pd
 
-from src.clients.binance import BinanceClient
-from src.clients.coinank import CoinankClient
-from src.clients.coinshares import CoinSharesClient
-from src.clients.farside import FarsideClient
+from src.clients.exchanges.binance import BinanceClient
+from src.clients.third_parties.coinank import CoinankClient
+from src.clients.third_parties.coinshares import CoinSharesClient
+from src.clients.third_parties.farside import FarsideClient
 from src.scripts.alt_bb_ata.market_overview import (
     AltMarketSummary,
     get_alt_market_summary,

@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pandas as pd
 
-from src.clients.binance import BinanceClient
-from src.clients.coinmarketcap import CoinMarketCapClient
+from src.clients.exchanges.binance import BinanceClient
+from src.clients.third_parties.coinmarketcap import CoinMarketCapClient
 from src.utils.visualization import (
     binance_perp_open_interest_to_png,
     binance_perp_taker_buy_sell_to_png,

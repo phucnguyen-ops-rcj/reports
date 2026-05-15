@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from src.clients.coingecko import GlobalMarketSummary
+from src.clients.third_parties.coingecko import GlobalMarketSummary
 from src.utils.constants import CATEGORY_STRATEGY_MAPPING
 from src.settings import app_settings
 import pandas as pd

@@ -7,7 +7,7 @@ from src.settings import app_settings
 from src.utils.save_data import save_csv
 from src.utils.wrangle import wrangle_pnl_data, wrangle_trading_volume_data
 from typing import Literal
-from src.clients.kucoin import KucoinClient
+from src.clients.exchanges.kucoin import KucoinClient
 from src.utils.constants import MONITORING_SYMBOLS
 
 logger = logging.getLogger(__name__)
