@@ -11,6 +11,10 @@ from src.clients.exchanges.binance import BinanceClient
 from src.clients.third_parties.coinank import CoinankClient
 from src.clients.third_parties.coinshares import CoinSharesClient
 from src.clients.third_parties.farside import FarsideClient
+from src.scripts.alt_bb_ata.markdown_conversion import (
+    markdown_to_pdf,
+    markdown_to_word,
+)
 from src.scripts.alt_bb_ata.market_overview import (
     AltMarketSummary,
     get_alt_market_summary,
@@ -76,6 +80,18 @@ class AltMarkdownReport:
     days: int
     markdown_path: Path
     content: str
+
+
+def export_alt_markdown_report(
+    report: AltMarkdownReport,
+    *,
+    output_format: str = "docx",
+) -> Path:
+    if output_format == "pdf":
+        return markdown_to_pdf(report.markdown_path)
+    if output_format == "docx":
+        return markdown_to_word(report.markdown_path)
+    raise ValueError(f"Unsupported export format: {output_format}")
 
 
 def build_alt_markdown_report(
@@ -723,7 +739,9 @@ def _is_relative_to(path: Path, base: Path) -> bool:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Build an ALT/BB/ATA markdown report.")
+    parser = argparse.ArgumentParser(
+        description="Build an ALT/BB/ATA report and export it to Word or PDF."
+    )
     parser.add_argument(
         "symbol", choices=sorted(SUPPORTED_SYMBOLS), help="Report symbol."
     )
@@ -743,6 +761,12 @@ def parse_args() -> argparse.Namespace:
         default=str(DEFAULT_OUTPUT_DIR),
         help="Directory for the markdown report and generated charts.",
     )
+    parser.add_argument(
+        "--format",
+        choices=("docx", "pdf"),
+        default="docx",
+        help="Export format. Defaults to docx.",
+    )
     return parser.parse_args()
 
 
@@ -755,7 +779,8 @@ def main() -> None:
         days=args.days,
         output_dir=args.output_dir,
     )
-    print(report.markdown_path)
+    export_path = export_alt_markdown_report(report, output_format=args.format)
+    print(export_path)
 
 
 if __name__ == "__main__":
