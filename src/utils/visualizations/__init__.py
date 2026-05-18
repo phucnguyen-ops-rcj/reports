@@ -1,12 +1,4 @@
-"""Stable visualization import surface.
-
-Implementation is split across smaller modules for maintainability:
-- `visualizations.heatmap`
-- `visualizations.market`
-- `visualizations.tables`
-"""
-
-from __future__ import annotations
+"""Visualization package namespace."""
 
 from src.utils.visualizations.heatmap import (
     crypto_market_heatmap_to_png,

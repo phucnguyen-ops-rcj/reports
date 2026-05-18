@@ -1,9 +1,11 @@
-
 import json
 from pathlib import Path
 
 _net_pnl_config_file = Path(__file__).resolve().parents[1] / "config" / "net_pnl.json"
-_trading_volume_config_file = Path(__file__).resolve().parents[1] / "config" / "trading_volume.json"
+# _trading_volume_config_file = Path(__file__).resolve().parents[1] / "config" / "trading_volume.json"
+_trading_volume_config_file = Path(
+    "/Users/nguyentienphuc/rcj/ops_bot/.docker-data/trading_volume.json"
+)
 
 with open(_net_pnl_config_file) as f:
     _data = json.load(f)
@@ -34,4 +36,6 @@ for exchange, requirements in REQUIREMENT_VOLUME.items():
     # ALL MONITORING_SYMBOLS must have requirement volume defined, otherwise raise error
     for symbol in MONITORING_SYMBOLS:
         if symbol not in requirements:
-            raise ValueError(f"All monitoring symbols must have requirement volume defined in REQUIREMENT_VOLUME. Missing: {symbol} in exchange {exchange}")
+            raise ValueError(
+                f"All monitoring symbols must have requirement volume defined in REQUIREMENT_VOLUME. Missing: {symbol} in exchange {exchange}"
+            )

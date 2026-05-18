@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import json
+import subprocess
+
 from src.clients.databases.redis import RedisClient
 
 
@@ -79,3 +82,35 @@ def test_sample_keys_returns_typed_summaries():
     assert samples[1]["type"] == "hash"
     assert samples[2]["sample"] == ["a", "b", "c"]
     assert samples[3]["sample"] == [("alice", 10.0), ("bob", 20.0)]
+
+
+def test_ssh_execution_mode_uses_remote_action(monkeypatch):
+    captured: dict[str, object] = {}
+
+    def fake_run(*args, **kwargs):
+        captured["args"] = args
+        captured["kwargs"] = kwargs
+        return subprocess.CompletedProcess(
+            args=args[0],
+            returncode=0,
+            stdout=json.dumps(["remote:key"]),
+            stderr="",
+        )
+
+    monkeypatch.setattr("src.clients.databases.redis.subprocess.run", fake_run)
+    client = RedisClient(
+        host="172.31.33.22",
+        port=6380,
+        username="newuser1",
+        password="secret",
+        execution_mode="ssh",
+        ssh_host="T1_newuser1",
+        ssh_workdir="/remote/reports",
+    )
+
+    assert client.scan_keys(limit=1) == ["remote:key"]
+    ssh_args = captured["args"][0]
+    assert ssh_args[:4] == ["ssh", "-q", "-T", "T1_newuser1"]
+    assert "cd /remote/reports" in ssh_args[4]
+    assert "scan_iter" in ssh_args[4]
+    assert "172.31.33.22" in ssh_args[4]
