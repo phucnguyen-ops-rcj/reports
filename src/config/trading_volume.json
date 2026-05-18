@@ -30,6 +30,7 @@
         "SHARE",
         "NXT",
         "HOOLI",
+        "ATWO",
         "CLUSDTM",
         "BZUSDTM",
         "NATGASUSDTM"
@@ -72,6 +73,7 @@
             "SHARE": 2000000,
             "NXT": 1000000,
             "HOOLI": 2000000,
+            "ATWO:": 1000000,
             "CLUSDTM": 2000000,
             "BZUSDTM": 2000000,
             "NATGASUSDTM": 2000000
