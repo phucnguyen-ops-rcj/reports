@@ -20,7 +20,6 @@ PREFECT_LOG_DIR="$REPO_DIR/logs/prefect"
 PID_DIR="$REPO_DIR/logs/pid"
 POOLS=(
     "daily-morning"
-    "ops"
     "strategies"
 )
 SERVER_PID_FILE="$PID_DIR/prefect_server.pid"

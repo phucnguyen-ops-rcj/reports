@@ -1,7 +1,7 @@
 # Prefect Ops UI
 
-Use these manual deployments from the Prefect UI for RCJ ops API work. They run
-on the shared `ops` or `strategies` work pools and are separate from daily
+Use these manual deployments from the Prefect UI for RCJ strategy API work.
+They run on the shared `strategies` work pool and are separate from daily
 report jobs.
 
 Configure the default Mini Service API route in `.env`:
@@ -25,22 +25,18 @@ Start or redeploy Prefect with:
 The script creates these work pools and starts workers for:
 
 - `daily-morning` for scheduled report flows
-- `ops` for generic/new-listing ops flows and playbook checks
 - `strategies` for volatility, volume, stacker, and mirror flows
 
-All ops flows log the request payload, HTTP status, and raw response body. Open
-the flow run in the Prefect UI and check **Logs** for the same output you would
-normally read in the terminal.
+Strategy ops flows log the request payload, HTTP status, and cleaned response
+body. Successful strategy actions also send a structured Signal group message
+with an action title, the request payload, and the API response. Open the flow
+run in the Prefect UI and check **Logs** for the same output you would normally
+read in the terminal.
 
 ## Deployments
 
 | Deployment | Work pool | Common use | Most-used parameters |
 | --- | --- | --- | --- |
-| `ops-health` | `ops` | Check Mini Service API health. | Usually none. |
-| `ops-get-balance` | `ops` | Get token balance for an exchange/account. | `exchange`, `account`, `token`; `market` for futures. |
-| `ops-run-transfer` | `ops` | Run transfer/withdrawal operations. | `mode`, `token`, `from_exchange`, `amount`, plus mode-specific fields. |
-| `ops-run-monitor` | `ops` | Run a bounded monitor sample. | `update_time`, `timeout_seconds`. |
-| `ops-new-listing` | `ops` | Run `src/config/new_listing/<symbol>.json` setup. | `symbol`, `dry_run`; use `config_path` only for custom files. |
 | `volatility-start-model` | `strategies` | Start volatility after a token is live. | `symbol`; usually keep `market`, `exchange`, `exchange_data`, `risk_tol`, and `strategy` defaults. |
 | `volume-start-strategy` | `strategies` | Start the volume strategy for a symbol. | `symbol`. |
 | `volume-fills` | `strategies` | Check volume strategy fill output. | `symbol`, optional `date`. |
@@ -49,7 +45,6 @@ normally read in the terminal.
 | `stacker-setup-config` | `strategies` | Create stacker configs. | `symbol`, `feed_host`, `gateway_host`, `buy_stackers`, `sell_stackers`. |
 | `stacker-update-config` | `strategies` | Update existing stacker configs. | `symbol`, `updates_json`. |
 | `mirror-control` | `strategies` | Start/stop/restart mirror gateway/feed/strategy processes. | `symbol`, `component`, `method`; use `name_override` for nonstandard process names. |
-| `ops-api-request` | `ops` | Escape hatch for another POST endpoint. | `endpoint`, `payload_json`. |
 
 ## Stacker Defaults
 

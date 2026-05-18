@@ -99,3 +99,6 @@ uv run prefect --no-prompt deploy --all
 ```
 
 Do not deploy individual flows by CLI unless explicitly requested.
+The active Prefect work pools are `daily-morning` and `strategies`. Do not
+recreate the retired `ops` pool or its old manual deployments unless explicitly
+requested.
