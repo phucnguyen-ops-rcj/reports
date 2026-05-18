@@ -114,6 +114,14 @@ class OpsApiClient:
                 body=body,
                 payload=payload,
             )
+        except urllib.error.URLError as exc:
+            reason = getattr(exc, "reason", exc)
+            return OpsApiResponse(
+                endpoint=normalized_endpoint,
+                status=0,
+                body=f"request transport failed: {reason}",
+                payload=payload,
+            )
 
     def _request_via_ssh(
         self,

@@ -17,7 +17,10 @@ from src.clients.ops_api import (
     base_from_symbol,
     normalize_symbol,
 )
+from src.clients.signal import SignalClient
 from src.scripts.new_listing import load_config, resolve_config_path, run_new_listing
+from src.settings import app_settings
+from src.utils.ops_response import format_ops_response_body
 
 
 def parse_json_object(value: str, parameter_name: str) -> dict[str, Any]:
@@ -40,6 +43,7 @@ def call_ops_api_task(
     execution_mode: Literal["ssh", "local"] = DEFAULT_OPS_EXECUTION_MODE,
     ssh_host: str = DEFAULT_OPS_SSH_HOST,
     fail_on_error: bool = True,
+    send_signal_to_group: bool = False,
 ) -> dict[str, Any]:
     logger = get_run_logger()
     logger.info("%s %s", method, endpoint)
@@ -60,14 +64,91 @@ def call_ops_api_task(
         payload=payload,
         authenticated=authenticated,
     )
+    formatted_body = format_ops_response_body(endpoint, response.body)
     logger.info("HTTP %s", response.status)
-    logger.info("Response:\n%s", response.body.rstrip())
+    logger.info("Response:\n%s", formatted_body)
     print(f"HTTP {response.status}")
-    print(response.body.rstrip())
+    print(formatted_body)
+
+    if response.ok and send_signal_to_group:
+        send_ops_signal_to_group(endpoint, payload, formatted_body, logger)
 
     if fail_on_error and not response.ok:
+        if response.status == 0:
+            raise RuntimeError(f"{endpoint} transport failed: {response.body}")
         raise RuntimeError(f"{endpoint} failed with HTTP {response.status}.")
     return response.as_dict()
+
+
+def send_ops_signal_to_group(
+    endpoint: str,
+    payload: dict[str, Any],
+    response_body: str,
+    logger: Any,
+) -> None:
+    if not app_settings.enable_signal_notifications:
+        return
+    group_id = app_settings.signal_group_id
+    if not group_id:
+        return
+
+    message = build_ops_signal_message(endpoint, payload, response_body)
+    client = SignalClient()
+    try:
+        client.send(message, group_id=group_id)
+    except Exception:
+        logger.error("Signal send failed for %s", endpoint, exc_info=True)
+        return
+    logger.info("Ops API response sent to Signal group for %s", endpoint)
+
+
+def build_ops_signal_message(
+    endpoint: str,
+    payload: dict[str, Any],
+    response_body: str,
+) -> str:
+    payload_json = json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False)
+    return (
+        f"{describe_ops_signal_action(endpoint, payload)}\n\n"
+        f"Payload:\n{payload_json}\n\n"
+        f"API response:\n{response_body}"
+    )
+
+
+def describe_ops_signal_action(endpoint: str, payload: dict[str, Any]) -> str:
+    if endpoint == "/start_volume_strategy":
+        return "Started volume strategy"
+    if endpoint == "/launch_stacker":
+        return "Started stacker"
+    if endpoint == "/start_volatility_model":
+        return "Started volatility model"
+    if endpoint == "/get_stacker_accepted_orders":
+        return "Checked stacker status"
+    if endpoint == "/get_volume_strategy_fills":
+        return "Checked volume strategy fills"
+    if endpoint == "/setup_stacker_config":
+        return "Set up stacker config"
+    if endpoint == "/update_stacker_config":
+        return "Updated stacker config"
+    if endpoint in {"/gateway_control", "/feed_control", "/strategy_control"}:
+        component_names = {
+            "/gateway_control": "mirror gateway",
+            "/feed_control": "mirror feed",
+            "/strategy_control": "mirror strategy",
+        }
+        verb = past_tense_action(str(payload.get("method", "")))
+        return f"{verb} {component_names[endpoint]}"
+    return f"RCJ ops API {endpoint}"
+
+
+def past_tense_action(action: str) -> str:
+    normalized = action.strip().lower()
+    mapping = {
+        "start": "Started",
+        "stop": "Stopped",
+        "restart": "Restarted",
+    }
+    return mapping.get(normalized, normalized.title() or "Ran")
 
 
 @flow(name="Ops API Request", log_prints=True)
@@ -257,6 +338,7 @@ def volatility_model_flow(
         timeout_seconds=timeout_seconds,
         execution_mode=execution_mode,
         ssh_host=ssh_host,
+        send_signal_to_group=True,
     )
 
 
@@ -283,6 +365,7 @@ def volume_strategy_fills_flow(
         timeout_seconds=timeout_seconds,
         execution_mode=execution_mode,
         ssh_host=ssh_host,
+        send_signal_to_group=True,
     )
 
 
@@ -306,6 +389,7 @@ def start_volume_strategy_flow(
         timeout_seconds=timeout_seconds,
         execution_mode=execution_mode,
         ssh_host=ssh_host,
+        send_signal_to_group=True,
     )
 
 
@@ -329,6 +413,7 @@ def stacker_status_flow(
         timeout_seconds=timeout_seconds,
         execution_mode=execution_mode,
         ssh_host=ssh_host,
+        send_signal_to_group=True,
     )
 
 
@@ -354,6 +439,7 @@ def stacker_launch_flow(
         timeout_seconds=timeout_seconds,
         execution_mode=execution_mode,
         ssh_host=ssh_host,
+        send_signal_to_group=True,
     )
 
 
@@ -403,6 +489,7 @@ def stacker_setup_flow(
         timeout_seconds=timeout_seconds,
         execution_mode=execution_mode,
         ssh_host=ssh_host,
+        send_signal_to_group=True,
     )
 
 
@@ -430,6 +517,7 @@ def stacker_update_flow(
         timeout_seconds=timeout_seconds,
         execution_mode=execution_mode,
         ssh_host=ssh_host,
+        send_signal_to_group=True,
     )
 
 
@@ -479,4 +567,5 @@ def mirror_control_flow(
         timeout_seconds=timeout_seconds,
         execution_mode=execution_mode,
         ssh_host=ssh_host,
+        send_signal_to_group=True,
     )
