@@ -115,17 +115,6 @@ def _build_symbol_strategy_detail(df, loss_symbols):
     return loss_sym_strats
 
 
-def _build_final_table(w_category_strat_sum_df, loss_sym_df):
-    symbol_rows = loss_sym_df.rename(columns={"mapped_symbol": "strategy"}).copy()
-    symbol_rows["category"] = "-"
-    symbol_rows["category_total_npnl"] = 0.0
-    return pd.concat(
-        [w_category_strat_sum_df, symbol_rows],
-        ignore_index=True,
-        sort=False,
-    )
-
-
 def _generate_and_send_report(
     report_text, final_df, out_dir, recipient=None, group_id=None
 ):
@@ -184,7 +173,14 @@ def main():
         loss_sym_df, loss_symbols, severe_symbols = _analyze_symbol_losses(df)
 
         # Build final table
-        final_df = _build_final_table(w_category_strat_sum_df, loss_sym_df)
+        final_df = pd.concat(
+            [
+                w_category_strat_sum_df,
+                loss_sym_df.rename(columns={"mapped_symbol": "strategy"}),
+            ],
+            ignore_index=True,
+            sort=False,
+        )
 
         # Deep dive into symbol-strategy details
         loss_sym_strats = _build_symbol_strategy_detail(df, loss_symbols)
