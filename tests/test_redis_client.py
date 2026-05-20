@@ -7,84 +7,30 @@ from src.clients.databases.redis import RedisClient
 
 
 class FakeRedis:
-    def ping(self):
-        return True
-
-    def info(self):
-        return {"redis_version": "8.0.0"}
-
-    def dbsize(self):
-        return 4
-
-    def exists(self, key: str):
-        return key in {"plain", "hash", "items", "scores"}
-
-    def type(self, key: str):
-        return {
-            "plain": "string",
-            "hash": "hash",
-            "items": "list",
-            "scores": "zset",
-        }[key]
-
-    def ttl(self, key: str):
-        return {"plain": 120, "hash": -1, "items": 60, "scores": 300}[key]
-
     def scan_iter(self, match=None, count=100):
-        for key in ["plain", "hash", "items", "scores"]:
-            yield key
-
-    def get(self, key: str):
-        return "hello"
-
-    def hgetall(self, key: str):
-        return {"field1": "value1", "field2": "value2"}
-
-    def llen(self, key: str):
-        return 3
-
-    def lrange(self, key: str, start: int, end: int):
-        return ["a", "b", "c"]
-
-    def zcard(self, key: str):
-        return 2
-
-    def zrange(self, key: str, start: int, end: int, withscores: bool = False):
-        return [("alice", 10.0), ("bob", 20.0)]
-
-    def delete(self, *keys: str):
-        return len(keys)
+        keys = [
+            "KUC4:BTC:Spot:Buy",
+            "KUC4:ETH:Spot:Sell",
+            "BIN2:SOL:Future:NetRpnl",
+            "BIN2:BTC:Future:NetUpnl",
+            "invalid:key",
+        ]
+        market_token = None if match is None else match.split(":")[2]
+        for key in keys:
+            if market_token is None or f":{market_token}:" in key:
+                yield key
 
     def close(self):
         return None
 
 
-def test_scan_keys_respects_limit():
+def test_get_symbols_by_market():
     client = RedisClient(client=FakeRedis())
-    assert client.scan_keys(limit=2) == ["plain", "hash"]
+    assert client.get_symbols_by_market("spot") == ["BTC", "ETH"]
+    assert client.get_symbols_by_market("perp") == ["BTC", "SOL"]
 
 
-def test_describe_string_key():
-    client = RedisClient(client=FakeRedis())
-    assert client.describe_key("plain") == {
-        "key": "plain",
-        "exists": True,
-        "type": "string",
-        "ttl": 120,
-        "value": "hello",
-    }
-
-
-def test_sample_keys_returns_typed_summaries():
-    client = RedisClient(client=FakeRedis())
-    samples = client.sample_keys(limit=4, sample_size=2)
-    assert len(samples) == 4
-    assert samples[1]["type"] == "hash"
-    assert samples[2]["sample"] == ["a", "b", "c"]
-    assert samples[3]["sample"] == [("alice", 10.0), ("bob", 20.0)]
-
-
-def test_ssh_execution_mode_uses_remote_action(monkeypatch):
+def test_ssh_execution_mode_uses_remote_scan(monkeypatch):
     captured: dict[str, object] = {}
 
     def fake_run(*args, **kwargs):
@@ -93,7 +39,7 @@ def test_ssh_execution_mode_uses_remote_action(monkeypatch):
         return subprocess.CompletedProcess(
             args=args[0],
             returncode=0,
-            stdout=json.dumps(["remote:key"]),
+            stdout=json.dumps(["BIN2:SOL:Future:NetRpnl"]),
             stderr="",
         )
 
@@ -108,9 +54,9 @@ def test_ssh_execution_mode_uses_remote_action(monkeypatch):
         ssh_workdir="/remote/reports",
     )
 
-    assert client.scan_keys(limit=1) == ["remote:key"]
+    assert client.get_symbols_by_market("perp") == ["SOL"]
     ssh_args = captured["args"][0]
     assert ssh_args[:4] == ["ssh", "-q", "-T", "T1_newuser1"]
     assert "cd /remote/reports" in ssh_args[4]
-    assert "scan_iter" in ssh_args[4]
     assert "172.31.33.22" in ssh_args[4]
+    assert "*:*:Future:*" in ssh_args[4]

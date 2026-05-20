@@ -64,14 +64,18 @@ def call_ops_api_task(
         payload=payload,
         authenticated=authenticated,
     )
-    formatted_body = format_ops_response_body(endpoint, response.body)
     logger.info("HTTP %s", response.status)
-    logger.info("Response:\n%s", formatted_body)
+    logger.info("Response:\n%s", response.body.rstrip())
     print(f"HTTP {response.status}")
-    print(formatted_body)
+    print(response.body.rstrip())
 
     if response.ok and send_signal_to_group:
-        send_ops_signal_to_group(endpoint, payload, formatted_body, logger)
+        send_ops_signal_to_group(
+            endpoint,
+            payload,
+            format_ops_response_body(endpoint, response.body),
+            logger,
+        )
 
     if fail_on_error and not response.ok:
         if response.status == 0:

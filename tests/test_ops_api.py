@@ -57,6 +57,7 @@ def test_call_ops_api_task_raises_transport_failure_with_original_error(monkeypa
 
 def test_call_ops_api_task_sends_cleaned_strategy_message_to_signal_group(monkeypatch):
     captured: dict[str, str] = {}
+    logged: dict[str, str] = {}
     body = """Welcome to Ubuntu 22.04.3 LTS (GNU/Linux 6.5.0-1023-aws x86_64)
 
 *** System restart required ***
@@ -73,7 +74,7 @@ def test_call_ops_api_task_sends_cleaned_strategy_message_to_signal_group(monkey
     class FakeSignalClient:
         def send(self, message, *, recipient=None, group_id=None, attachments=None):
             captured["message"] = message
-            captured["group_id"] = group_id
+            captured["group_id"] = group_id  # pyrefly: ignore
             captured["recipient"] = recipient or ""
             return {"success": True}
 
@@ -81,7 +82,9 @@ def test_call_ops_api_task_sends_cleaned_strategy_message_to_signal_group(monkey
     monkeypatch.setattr(
         "src.flows.ops.get_run_logger",
         lambda: SimpleNamespace(
-            info=lambda *args, **kwargs: None,
+            info=lambda fmt, *args: logged.setdefault("response", args[0])
+            if fmt == "Response:\n%s"
+            else None,
             error=lambda *args, **kwargs: None,
         ),
     )
@@ -96,6 +99,7 @@ def test_call_ops_api_task_sends_cleaned_strategy_message_to_signal_group(monkey
     )
 
     assert response["status"] == 200
+    assert logged["response"] == body.rstrip()
     assert captured == {
         "message": """Checked stacker status
 

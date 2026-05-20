@@ -39,10 +39,8 @@ _SSH_MOTD_END_MARKERS = (
 
 def format_ops_response_body(endpoint: str, body: str) -> str:
     payload = extract_json_payload(body)
-    if isinstance(payload, dict):
-        if endpoint == "/get-balance":
-            payload = compact_balance_payload(payload)
-        return json.dumps(payload, separators=(",", ":"), ensure_ascii=False)
+    if isinstance(payload, (dict, list)):
+        return json.dumps(payload, indent=2, ensure_ascii=False)
 
     cleaned_body = strip_ssh_motd(body).rstrip()
     return cleaned_body or "<empty response>"
@@ -51,22 +49,18 @@ def format_ops_response_body(endpoint: str, body: str) -> str:
 def extract_json_payload(body: str) -> dict[str, Any] | list[Any] | None:
     decoder = json.JSONDecoder()
     latest_payload: dict[str, Any] | list[Any] | None = None
+    latest_payload_span = -1
     for index, char in enumerate(body):
         if char not in "[{":
             continue
         try:
-            payload, _ = decoder.raw_decode(body[index:])
+            payload, end_index = decoder.raw_decode(body[index:])
         except json.JSONDecodeError:
             continue
-        if isinstance(payload, (dict, list)):
+        if isinstance(payload, (dict, list)) and end_index > latest_payload_span:
             latest_payload = payload
+            latest_payload_span = end_index
     return latest_payload
-
-
-def compact_balance_payload(payload: dict[str, Any]) -> dict[str, Any]:
-    keys = ("account", "balance", "exchange", "token")
-    compact = {key: payload[key] for key in keys if key in payload}
-    return compact or payload
 
 
 def strip_ssh_motd(body: str) -> str:

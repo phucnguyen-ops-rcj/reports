@@ -39,6 +39,13 @@ class Settings(BaseSettings):
     influxdb_token: str = Field(default_factory=lambda: os.environ["INFLUXDB_TOKEN"])
     influxdb_org: str
 
+    # Redis
+    redis_host: str = Field(default="172.31.33.22")
+    redis_port: int = Field(default=6380)
+    redis_username: str = Field(default="newuser1")
+    redis_password: str = Field(default_factory=lambda: os.environ["REDISCLI_AUTH"])
+    redis_db: int = Field(default=0)
+
     # KuCoin API
     kucoin_spot_base_url: str
     kucoin_future_base_url: str
@@ -55,8 +62,7 @@ class Settings(BaseSettings):
     )
     coinshares_base_url: str = Field(default="https://researchblog.coinshares.com")
     farside_base_url: str = Field(default="https://farside.co.uk")
-    tradingdigits_base_url: str = Field(default="https://www.tradingdigits.io")
-    tradingview_base_url: str = Field(default="https://www.tradingview.com")
+    rcj_trading_base_url: str = Field(default="https://1rf9t4k2tc.xyz")
 
     # RCJ ops API
     rcj_ops_bearer_token: str = Field(

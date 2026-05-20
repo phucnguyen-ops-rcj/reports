@@ -11,7 +11,7 @@ import pandas as pd
 from matplotlib.colors import to_rgb
 
 logger = logging.getLogger(__name__)
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[3]
 PYECHARTS_ASSET_DIR = REPO_ROOT / "data" / "pyecharts_assets"
 ECHARTS_JS = PYECHARTS_ASSET_DIR / "echarts.min.js"
 
@@ -92,7 +92,7 @@ def market_change_color(
     if change is None or pd.isna(change):
         return to_rgb("#9aa0a6")
 
-    intensity = min(abs(float(change)) / max_abs_change, 1.0)
+    intensity = min(abs(float(change)) / max_abs_change, 1.0)  # pyrefly: ignore
     if change >= 0:
         low = np.array(to_rgb("#6fa35f"))
         high = np.array(to_rgb("#2e7d32"))
@@ -134,7 +134,7 @@ def format_axis_signed_thousands(value: float) -> str:
 def format_turnover_value(value: float | None) -> str:
     if value is None or not np.isfinite(value):
         return "***"
-    absolute = abs(float(value))
+    absolute = abs(float(value))  # pyrefly: ignore
     if absolute >= 1_000_000:
         return f"${absolute / 1_000_000:.2f}M"
     if absolute >= 1_000:
@@ -145,19 +145,19 @@ def format_turnover_value(value: float | None) -> str:
 def format_ratio_percent(value: float | None) -> str:
     if value is None or not np.isfinite(value):
         return "***"
-    return f"{float(value) * 100:.2f}%"
+    return f"{float(value) * 100:.2f}%"  # pyrefly: ignore
 
 
 def format_percent_value(value: float | None) -> str:
     if value is None or not np.isfinite(value):
         return "***"
-    return f"{float(value):+.2f}%"
+    return f"{float(value):+.2f}%"  # pyrefly: ignore
 
 
 def format_price_value(value: float | None) -> str:
     if value is None or not np.isfinite(value):
         return "***"
-    return f"${float(value):.6f}"
+    return f"${float(value):.6f}"  # pyrefly: ignore
 
 
 def ratio_fill_color(
@@ -167,7 +167,7 @@ def ratio_fill_color(
 ) -> tuple[float, float, float]:
     if ratio is None or not np.isfinite(ratio):
         return (1.0, 1.0, 1.0)
-    ratio_value = min(max(float(ratio), 0.0), 1.0)
+    ratio_value = min(max(float(ratio), 0.0), 1.0)  # pyrefly: ignore
     strength = 0.18 + 0.42 * ratio_value
     if positive:
         return (

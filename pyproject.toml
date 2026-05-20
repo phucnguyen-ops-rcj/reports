@@ -9,6 +9,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
+    "redis>=6.4.0",
     "influxdb-client>=1.50.0",
     "matplotlib>=3.10.8",
     "pandas>=3.0.2",
@@ -22,6 +23,10 @@ dependencies = [
     "prefect>=3.0.0",
     "tqdm>=4.67.3",
     "asyncpg>=0.31.0",
+    "pyecharts>=2.1.0",
+    "snapshot-selenium>=0.0.2",
+    "selenium>=4.44.0",
+    "python-docx>=1.2.0",
 ]
 
 [project.scripts]
@@ -30,8 +35,11 @@ market = "src.scripts.market:main"
 trading_volume = "src.scripts.trading_volume:main"
 new_listing = "src.scripts.new_listing:main"
 alt_report = "src.scripts.alt_bb_ata.report:main"
+alt_report_conversion = "src.scripts.alt_bb_ata.markdown_conversion:main"
 test_signal = "tests.cli:test_signal_client"
 daily_report = "src.flows.daily:daily_flow"
+redis_inspect = "src.utils.redis.inspect:main"
+redis_net_pnl_export = "src.utils.redis.net_pnl_export:main"
 
 [tool.setuptools.packages.find]
 include = ["src*", "tests*"]
