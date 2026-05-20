@@ -52,6 +52,9 @@ Run focused tests with `uv run pytest path/to/test.py` or
 - Use `by=` as a keyword with `DataFrame.sort_values`.
 - Add short comments only for non-obvious business logic, especially pandas
   transforms, aggregations, filters, and ratio calculations.
+- When adding a new function or method intended for direct use or quick
+  verification, add a minimal runnable usage example under
+  `if __name__ == "__main__":` in the relevant module.
 - Use existing helpers from `src.utils.dataframe` instead of reimplementing
   mapping, prefix extraction, ratio calculation, aggregation, or threshold
   filtering.

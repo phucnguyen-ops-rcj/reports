@@ -4,7 +4,12 @@ import pandas as pd
 from src.settings import app_settings
 from src.clients.signal import SignalClient
 from src.utils.load_data import load_pnl_data
-from src.utils.constants import THRESHOLDS, FINAL_COLUMNS, STRATEGY_NAME_MAPPING, STRATEGY_CATEGORY_MAPPING
+from src.utils.constants import (
+    THRESHOLDS,
+    FINAL_COLUMNS,
+    STRATEGY_NAME_MAPPING,
+    STRATEGY_CATEGORY_MAPPING,
+)
 from src.utils.dataframe import (
     aggregate_metric_columns,
     calculate_ratio_column,
@@ -20,11 +25,14 @@ logger = logging.getLogger(__name__)
 
 def build_group_summary(df, by_cols):
     summary_df = aggregate_metric_columns(df, by_cols, FINAL_COLUMNS[1:])
-    return calculate_ratio_column(summary_df, "npnl_r+un", "volume_$", "npnl/volume_%", scale=100)
+    return calculate_ratio_column(
+        summary_df, "npnl_r+un", "volume_$", "npnl/volume_%", scale=100
+    )
 
 
 def add_strategy_name(df, key_col):
     return map_column_with_fallback(df, key_col, "name", STRATEGY_NAME_MAPPING)
+
 
 def add_strategy_category(df, key_col):
     return map_column_with_fallback(df, key_col, "category", STRATEGY_CATEGORY_MAPPING)
@@ -45,26 +53,39 @@ def _build_strategy_summary_table(df):
     """Build strategy summary with categories and total row."""
     strat_sum = build_group_summary(df, ["strategy"])
     w_category_strat_sum_df = add_strategy_category(strat_sum, "strategy")
-    w_category_strat_sum_df["category_total_npnl"] = w_category_strat_sum_df.groupby("category")["npnl_r+un"].transform("sum")
-    w_category_strat_sum_df = calculate_ratio_column(w_category_strat_sum_df, "npnl_r+un", "volume_$", "npnl/volume_%", scale=100)
-    w_category_strat_sum_df.sort_values(["category_total_npnl", "strategy"], inplace=True, ascending=[True, True])
-    category_total_npnl_sum = (
-        w_category_strat_sum_df
-        .drop_duplicates(subset=["category"])["category_total_npnl"]
-        .sum()
+    w_category_strat_sum_df["category_total_npnl"] = w_category_strat_sum_df.groupby(
+        "category"
+    )["npnl_r+un"].transform("sum")
+    w_category_strat_sum_df = calculate_ratio_column(
+        w_category_strat_sum_df, "npnl_r+un", "volume_$", "npnl/volume_%", scale=100
     )
-    
-    _total_row = pd.DataFrame({
-        "strategy": ["Total"],
-        "volume_$": [w_category_strat_sum_df["volume_$"].sum()],
-        "npnl_r+un": [w_category_strat_sum_df["npnl_r+un"].sum()],
-        "npnl/volume_%": [round(w_category_strat_sum_df["npnl_r+un"].sum() / strat_sum["volume_$"].sum() * 100, 2)],
-        "net_position_$": [w_category_strat_sum_df["net_position_$"].sum()],
-        "unpnl": [w_category_strat_sum_df["unpnl"].sum()],
-        "rpnlwfees": [w_category_strat_sum_df["rpnlwfees"].sum()],
-        "category": ["-"],
-        "category_total_npnl": [category_total_npnl_sum],
-    })
+    w_category_strat_sum_df.sort_values(
+        ["category_total_npnl", "strategy"], inplace=True, ascending=[True, True]
+    )
+    category_total_npnl_sum = w_category_strat_sum_df.drop_duplicates(
+        subset=["category"]
+    )["category_total_npnl"].sum()
+
+    _total_row = pd.DataFrame(
+        {
+            "strategy": ["Total"],
+            "volume_$": [w_category_strat_sum_df["volume_$"].sum()],
+            "npnl_r+un": [w_category_strat_sum_df["npnl_r+un"].sum()],
+            "npnl/volume_%": [
+                round(
+                    w_category_strat_sum_df["npnl_r+un"].sum()
+                    / strat_sum["volume_$"].sum()
+                    * 100,
+                    2,
+                )
+            ],
+            "net_position_$": [w_category_strat_sum_df["net_position_$"].sum()],
+            "unpnl": [w_category_strat_sum_df["unpnl"].sum()],
+            "rpnlwfees": [w_category_strat_sum_df["rpnlwfees"].sum()],
+            "category": ["-"],
+            "category_total_npnl": [category_total_npnl_sum],
+        }
+    )
     return pd.concat([w_category_strat_sum_df, _total_row], ignore_index=True)
 
 
@@ -94,7 +115,20 @@ def _build_symbol_strategy_detail(df, loss_symbols):
     return loss_sym_strats
 
 
-def _generate_and_send_report(report_text, final_df, out_dir, recipient=None, group_id=None):
+def _build_final_table(w_category_strat_sum_df, loss_sym_df):
+    symbol_rows = loss_sym_df.rename(columns={"mapped_symbol": "strategy"}).copy()
+    symbol_rows["category"] = "-"
+    symbol_rows["category_total_npnl"] = 0.0
+    return pd.concat(
+        [w_category_strat_sum_df, symbol_rows],
+        ignore_index=True,
+        sort=False,
+    )
+
+
+def _generate_and_send_report(
+    report_text, final_df, out_dir, recipient=None, group_id=None
+):
     """Generate report files and send via Signal client."""
     text_path = save_report(report_text, out_dir)
     logger.info(f"Report text saved to: {text_path}")
@@ -103,9 +137,7 @@ def _generate_and_send_report(report_text, final_df, out_dir, recipient=None, gr
     logger.info(f"CSV saved to: {csv_path}")
 
     png_path = net_pnl_to_png_styled(
-        final_df,
-        out_dir / "daily_net_pnl_by_strategy.png",
-        highlight_col="npnl_r+un"
+        final_df, out_dir / "daily_net_pnl_by_strategy.png", highlight_col="npnl_r+un"
     )
     logger.info(f"PNG saved to: {png_path}")
     if not app_settings.enable_signal_notifications:
@@ -123,7 +155,10 @@ def _generate_and_send_report(report_text, final_df, out_dir, recipient=None, gr
 
 
 def main():
-    logging.basicConfig(level=app_settings.log_level.upper(), format='%(asctime)s - %(levelname)s - %(message)s')
+    logging.basicConfig(
+        level=app_settings.log_level.upper(),
+        format="%(asctime)s - %(levelname)s - %(message)s",
+    )
     try:
         file_path = app_settings.net_pnl_input_path
         logger.info(f"Loading data from: {file_path}")
@@ -149,7 +184,7 @@ def main():
         loss_sym_df, loss_symbols, severe_symbols = _analyze_symbol_losses(df)
 
         # Build final table
-        final_df = pd.concat([w_category_strat_sum_df, loss_sym_df.rename(columns={"mapped_symbol": "strategy"})], ignore_index=True, sort=False)
+        final_df = _build_final_table(w_category_strat_sum_df, loss_sym_df)
 
         # Deep dive into symbol-strategy details
         loss_sym_strats = _build_symbol_strategy_detail(df, loss_symbols)
@@ -171,7 +206,9 @@ def main():
     out_dir = Path(app_settings.output_dir) / "net_pnl"
     recipient = app_settings.signal_recipient
     group_id = app_settings.signal_group_id
-    png_path, csv_path, text_path = _generate_and_send_report(report_text, final_df, out_dir, recipient, group_id)
+    png_path, csv_path, text_path = _generate_and_send_report(
+        report_text, final_df, out_dir, recipient, group_id
+    )
 
     return report_text, png_path, csv_path, text_path
 

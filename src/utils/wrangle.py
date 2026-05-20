@@ -16,6 +16,14 @@ def wrangle_pnl_data(df):
     df.columns = ANALYSIS_DATA_COLUMNS  # NOTE: the order of columns in the raw data must match the order in ANALYSIS_DATA_COLUMNS
     # standardize strategy names
     df["strategy"] = df["strategy"].str.replace(" ", "", regex=True).str.lower()
+    df["strategy"] = df["strategy"].replace(
+        {
+            "strategy42": "strategy4-2",
+            "strategy92": "strategy9-2",
+            "kucc42": "kucc4-2",
+            "kucc92": "kucc9-2",
+        }
+    )
 
     # symbols of the same tokens will have same name, e.g. BONK and 1000BONK will both be mapped to BONK
     df = map_column_with_fallback(df, "symbol", "mapped_symbol", SYMBOL_MAPPING)
