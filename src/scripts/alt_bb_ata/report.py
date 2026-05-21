@@ -31,6 +31,9 @@ from src.scripts.alt_bb_ata.liquidity_table import build_liquidity_table_chart
 from src.scripts.alt_bb_ata.aggregate_buy_sell_volume import (
     build_aggregate_buy_sell_volume_chart,
 )
+from src.scripts.alt_bb_ata.spot_order_book_imbalance import (
+    build_spot_order_book_imbalance_chart,
+)
 from src.scripts.alt_bb_ata.volume_per_exchange import (
     build_all_exchange_volume_charts,
 )
@@ -139,6 +142,14 @@ def build_alt_markdown_report(
         base_asset,
         report_dir / LONG_SHORT_IMAGE,
     )
+    spot_order_book_imbalance_path, spot_order_book_imbalance_error = (
+        _try_spot_order_book_imbalance_chart(
+            base_asset,
+            report_date=target_date.strftime("%Y-%m-%d"),
+            days=days,
+            output_dir=report_dir,
+        )
+    )
     liquidity_table_path, liquidity_table_error = _try_liquidity_table_chart(
         base_asset,
         report_date=target_date.strftime("%Y-%m-%d"),
@@ -173,6 +184,8 @@ def build_alt_markdown_report(
         perp_analysis=perp_analysis,
         perp_error=perp_error,
         long_short_assets=long_short_assets,
+        spot_order_book_imbalance_path=spot_order_book_imbalance_path,
+        spot_order_book_imbalance_error=spot_order_book_imbalance_error,
         liquidity_table_path=liquidity_table_path,
         liquidity_table_error=liquidity_table_error,
         aggregate_buy_sell_path=aggregate_buy_sell_path,
@@ -427,6 +440,30 @@ def _try_exchange_volume_charts(
         return [], [str(exc)]
 
 
+def _try_spot_order_book_imbalance_chart(
+    symbol: str,
+    *,
+    report_date: str,
+    days: int,
+    output_dir: Path,
+) -> tuple[Path | None, str | None]:
+    try:
+        chart = build_spot_order_book_imbalance_chart(
+            symbol,
+            report_date=report_date,
+            days=days,
+            output_dir=output_dir,
+        )
+        return chart.output_path, None
+    except Exception as exc:
+        logger.warning(
+            "Failed to build %s spot order book imbalance chart.",
+            symbol,
+            exc_info=True,
+        )
+        return None, str(exc)
+
+
 def _normalize_perp_image_paths(
     analysis: BinancePerpMarketAnalysis | None,
     report_dir: Path,
@@ -476,6 +513,8 @@ def _render_markdown(
     perp_analysis: BinancePerpMarketAnalysis | None,
     perp_error: str | None,
     long_short_assets: LongShortAssets,
+    spot_order_book_imbalance_path: Path | None,
+    spot_order_book_imbalance_error: str | None,
     liquidity_table_path: Path | None,
     liquidity_table_error: str | None,
     aggregate_buy_sell_path: Path | None,
@@ -576,10 +615,11 @@ def _render_markdown(
         "- The order book imbalance levels were generally *** in the past 14 days.",
         "",
         _image_or_placeholder(
-            None,
+            spot_order_book_imbalance_path,
             markdown_path=markdown_path,
             alt_text="Spot order book imbalance",
             fallback_filename=SPOT_ORDER_BOOK_IMBALANCE_IMAGE,
+            error=spot_order_book_imbalance_error,
         ),
         "",
         "### <u>Spot order book liquidity</u>",

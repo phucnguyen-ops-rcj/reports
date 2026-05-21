@@ -40,7 +40,11 @@ def build_spot_order_book_imbalance_chart(
 ) -> SpotOrderBookImbalanceChart:
     base_asset = _base_asset(symbol)
     client = influxdb_client or InfluxDBClient()
-    chart_df = client.get_order_book_imbalance_history(base_asset, days=days)
+    chart_df = client.get_order_book_imbalance_history(
+        base_asset,
+        bucket="test",
+        days=days,
+    )
     if chart_df.empty:
         raise ValueError(
             f"No max-level order book imbalance data found for {base_asset}/USDT."
@@ -172,11 +176,9 @@ def _resolve_output_path(
     symbol: str,
     report_date: str | pd.Timestamp | None,
 ) -> Path:
-    if report_date is None:
-        return output_dir / symbol / DEFAULT_IMAGE_NAME
-
-    target_date = pd.Timestamp(report_date).strftime("%Y-%m-%d")
-    return output_dir / target_date / symbol / DEFAULT_IMAGE_NAME
+    _ = symbol
+    _ = report_date
+    return output_dir / DEFAULT_IMAGE_NAME
 
 
 def main() -> None:

@@ -6,6 +6,7 @@ import pandas as pd
 
 from src.scripts.alt_bb_ata.aggregate_buy_sell_volume import (
     build_aggregate_buy_sell_volume_chart,
+    _load_price_data,
     _normalize_buy_sell_history,
 )
 
@@ -109,3 +110,35 @@ def test_build_aggregate_buy_sell_volume_chart(tmp_path: Path) -> None:
     )
 
     assert chart.output_path.exists()
+
+
+def test_load_price_data_filters_to_requested_window() -> None:
+    class ExtraKlineBinanceClient(FakeBinanceClient):
+        def get_klines(
+            self,
+            symbol: str,
+            *,
+            interval: str = "1d",
+            limit: int = 30,
+            start_time_ms: int | None = None,
+            end_time_ms: int | None = None,
+        ) -> list[FakeBinanceClient._Kline]:
+            _ = symbol
+            _ = interval
+            _ = limit
+            _ = start_time_ms
+            _ = end_time_ms
+            return [
+                self._Kline(1778198400000, 1.0, 1.1, 0.9, 1.05, 10.0),
+                self._Kline(1778284800000, 1.05, 1.2, 1.0, 1.15, 11.0),
+                self._Kline(1778371200000, 1.15, 1.25, 1.1, 1.2, 12.0),
+            ]
+
+    df = _load_price_data(
+        ExtraKlineBinanceClient(),
+        "ALTUSDT",
+        report_date="2026-05-09",
+        days=2,
+    )
+
+    assert list(df["date"]) == [pd.Timestamp("2026-05-08"), pd.Timestamp("2026-05-09")]

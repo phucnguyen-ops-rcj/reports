@@ -39,7 +39,7 @@ class InfluxDBClient:
         self,
         symbol: str,
         *,
-        bucket: str = "test",
+        bucket: str = "Prod",
         days: int = 14,
         exchanges: tuple[str, ...] = ("binance", "kucoin"),
         imbalance_type: str = "max_level",

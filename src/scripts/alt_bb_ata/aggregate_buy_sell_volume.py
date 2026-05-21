@@ -306,6 +306,7 @@ def _load_price_data(
     report_date: str | pd.Timestamp | None,
     days: int,
 ) -> pd.DataFrame:
+    start_date, end_date = _window_dates(report_date=report_date, days=days)
     start_time_ms, end_time_ms = _time_window_ms(report_date, days=days)
     klines = client.get_klines(
         price_symbol,
@@ -330,7 +331,11 @@ def _load_price_data(
     df = pd.DataFrame(rows, columns=["date", "open", "high", "low", "close", "volume"])
     if df.empty:
         raise ValueError(f"No Binance kline data found for {price_symbol}.")
-    return df.sort_values(by="date").tail(days).reset_index(drop=True)
+    window_df = df.sort_values(by="date")
+    window_df = window_df[
+        (window_df["date"] >= start_date) & (window_df["date"] <= end_date)
+    ]
+    return window_df.reset_index(drop=True)
 
 
 def _window_dates(
