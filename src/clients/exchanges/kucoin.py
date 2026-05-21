@@ -96,6 +96,66 @@ class KucoinClient:
             records, columns=["timestamp_utc", "product", "base", "usd_volume_24h"]
         )
 
+    def get_spot_quote_volume_history(
+        self,
+        symbol: str,
+        *,
+        days: int,
+        report_date: str | pd.Timestamp | None = None,
+    ) -> pd.DataFrame:
+        if days <= 0:
+            raise ValueError("days must be positive.")
+
+        end_dt = _resolve_report_end(report_date)
+        start_dt = end_dt - timedelta(days=days - 1)
+        payload = self._get(
+            self.spot_base_url,
+            "/api/v1/market/candles",
+            params={
+                "symbol": symbol.upper(),
+                "type": "1day",
+                "startAt": str(int(start_dt.timestamp())),
+                "endAt": str(int((end_dt + timedelta(days=1)).timestamp())),
+            },
+        )
+        if str(payload.get("code")) != "200000":
+            raise ValueError(f"KuCoin spot kline error for {symbol.upper()}: {payload}")
+
+        rows: list[dict[str, object]] = []
+        for item in payload.get("data") or []:
+            if not isinstance(item, list) or len(item) < 7:
+                continue
+            rows.append(
+                {
+                    "date": pd.to_datetime(int(item[0]), unit="s", utc=True)
+                    .floor("D")
+                    .tz_localize(None),
+                    "quote_volume": self._to_float(item[6]),
+                }
+            )
+        return pd.DataFrame(rows, columns=["date", "quote_volume"]).sort_values(
+            by="date"
+        )
+
+    def get_spot_order_book(self, symbol: str) -> dict[str, Any]:
+        payload = self._get(
+            self.spot_base_url,
+            "/api/v1/market/orderbook/level2_100",
+            params={"symbol": symbol.upper()},
+        )
+        if str(payload.get("code")) != "200000":
+            raise ValueError(f"KuCoin order book error for {symbol.upper()}: {payload}")
+        data = payload.get("data")
+        if not isinstance(data, dict):
+            raise ValueError("KuCoin returned an unexpected order-book shape.")
+        return {
+            "exchange": "kucoin",
+            "symbol": symbol.upper(),
+            "bids": self._parse_price_levels(data.get("bids")),
+            "asks": self._parse_price_levels(data.get("asks")),
+            "timestamp_ms": self._to_int(data.get("time")),
+        }
+
     # ---------- Private: history fetching ----------
 
     def _fetch_history_spot(
@@ -304,6 +364,48 @@ class KucoinClient:
     def _utc_ts() -> str:
         """Current UTC timestamp as YYYY-MM-DD_HH-MM-SS."""
         return datetime.now(timezone.utc).strftime("%Y-%m-%d_%H-%M-%S")
+
+    @staticmethod
+    def _to_int(value: Any) -> int | None:
+        if value is None:
+            return None
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return None
+
+    @classmethod
+    def _parse_price_levels(cls, payload: Any) -> list[tuple[float, float]]:
+        if not isinstance(payload, list):
+            return []
+
+        levels: list[tuple[float, float]] = []
+        for item in payload:
+            if not isinstance(item, list) or len(item) < 2:
+                continue
+            price = cls._to_float(item[0])
+            size = cls._to_float(item[1])
+            if price is None or size is None:
+                continue
+            levels.append((price, size))
+        return levels
+
+
+def _resolve_report_end(
+    report_date: str | pd.Timestamp | None,
+) -> datetime:
+    if report_date is None:
+        return datetime.now(timezone.utc).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+
+    timestamp = pd.Timestamp(report_date)
+    if timestamp.tzinfo is None:
+        timestamp = timestamp.tz_localize("UTC")
+    else:
+        timestamp = timestamp.tz_convert("UTC")
+    timestamp = timestamp.normalize()
+    return timestamp.to_pydatetime()
 
 
 if __name__ == "__main__":

@@ -208,7 +208,7 @@ def _time_window_ms(
     days: int,
 ) -> tuple[int | None, int | None]:
     if report_date is None:
-        report_date = pd.Timestamp.utcnow().normalize()
+        report_date = pd.Timestamp.now(tz="UTC").normalize()
 
     target = pd.Timestamp(report_date)
     if target.tzinfo is None:

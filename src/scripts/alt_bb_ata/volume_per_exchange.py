@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -12,55 +13,21 @@ from src.clients.databases.influxdb import InfluxDBClient
 
 DEFAULT_OUTPUT_DIR = Path("results/alt_bb_ata")
 DEFAULT_TIMEZONE = "UTC"
+DEFAULT_SYMBOL = "ALT"
+CONFIG_PATH = (
+    Path(__file__).resolve().parents[2] / "config" / "volume_per_exchange.json"
+)
 GRID_COLOR = "#d9dde3"
 BAR_COLOR = "#59b45a"
 TEXT_COLOR = "#111111"
 SUBTLE_TEXT_COLOR = "#6d7781"
 DIVIDER_COLOR = "#7b7b7b"
 
-EXCHANGE_VOLUME_PAGES = [
-    {
-        "page_no": 2,
-        "page_count": 6,
-        "label": "Binance ALTUSDT",
-        "measurement": "binance_ALTUSDT_ohlcv",
-        "filename": "binance_altusdt_volume.png",
-    },
-    {
-        "page_no": 3,
-        "page_count": 6,
-        "label": "Binance ALTUSDC",
-        "measurement": "binance_ALTUSDC_ohlcv",
-        "filename": "binance_altusdc_volume.png",
-    },
-    {
-        "page_no": 4,
-        "page_count": 6,
-        "label": "KuCoin ALTUSDT",
-        "measurement": "kucoin_KALT-USDT_ohlcv",
-        "filename": "kucoin_altusdt_volume.png",
-    },
-    {
-        "page_no": 5,
-        "page_count": 6,
-        "label": "Gate ALTUSDT",
-        "measurement": "gateio_ALT_USDT_ohlcv",
-        "filename": "gate_altusdt_volume.png",
-    },
-    {
-        "page_no": 6,
-        "page_count": 6,
-        "label": "Bybit ALTUSDT",
-        "measurement": "bybit_ALTUSDT_ohlcv",
-        "filename": "bybit_altusdt_volume.png",
-    },
-]
-
 
 @dataclass(slots=True)
 class ExchangeVolumeChart:
     label: str
-    measurement: str
+    measurements: list[str]
     output_path: Path
     data: pd.DataFrame
     available: bool
@@ -78,16 +45,17 @@ def build_exchange_volume_chart(
     client = influxdb_client or InfluxDBClient()
     output_path = _resolve_output_path(
         Path(output_dir),
-        page["filename"],
+        str(page["filename"]),
         report_date=report_date,
     )
-    volume_df = client.get_ohlcv_volume_history(
-        str(page["measurement"]),
-        report_date=report_date,
+    volume_df = client.get_trade_notional_history(
+        list(page["trade_measurements"]),
         days=days,
+        report_date=report_date,
         timezone=timezone,
     )
-    if volume_df.empty:
+    chart_df = _normalize_volume_history(volume_df, report_date=report_date, days=days)
+    if chart_df["volume"].sum() <= 0:
         unavailable_exchange_volume_to_png(
             output_path,
             label=str(page["label"]),
@@ -96,18 +64,18 @@ def build_exchange_volume_chart(
             days=days,
             report_date=report_date,
             timezone=timezone,
-            measurement=str(page["measurement"]),
+            measurements=list(page["trade_measurements"]),
         )
         return ExchangeVolumeChart(
             label=str(page["label"]),
-            measurement=str(page["measurement"]),
+            measurements=list(page["trade_measurements"]),
             output_path=output_path,
-            data=volume_df,
+            data=chart_df,
             available=False,
         )
 
     exchange_volume_to_png(
-        volume_df,
+        chart_df,
         output_path,
         label=str(page["label"]),
         page_no=int(page["page_no"]),
@@ -118,9 +86,9 @@ def build_exchange_volume_chart(
     )
     return ExchangeVolumeChart(
         label=str(page["label"]),
-        measurement=str(page["measurement"]),
+        measurements=list(page["trade_measurements"]),
         output_path=output_path,
-        data=volume_df,
+        data=chart_df,
         available=True,
     )
 
@@ -166,7 +134,7 @@ def exchange_volume_to_png(
     fig.text(
         0.045,
         0.92,
-        f"Volume per exchange  [{page_no} of {page_count}] {days} days window     {plot_start} - {plot_end}  / {timezone} 00:00-00:00",
+        f"Volume per exchange [{page_no} of {page_count}] {days} days window     {plot_start} - {plot_end} / {timezone} 00:00-00:00",
         ha="left",
         va="top",
         fontsize=14,
@@ -184,7 +152,7 @@ def exchange_volume_to_png(
     fig.text(
         0.045,
         0.81,
-        f"{label} Trade volume– 24 hr interval",
+        f"{label} Trade volume - 24 hr interval",
         ha="left",
         va="top",
         fontsize=17,
@@ -200,12 +168,12 @@ def exchange_volume_to_png(
     ax.set_yticklabels([])
 
     max_volume = float(plot_df["volume"].max())
-    ax.set_ylim(0, max_volume * 1.14)
+    ax.set_ylim(0, max_volume * 1.14 if max_volume > 0 else 1.0)
 
     for bar, value in zip(bars, plot_df["volume"], strict=False):
         ax.text(
             bar.get_x() + bar.get_width() / 2,
-            bar.get_height() + max_volume * 0.015,
+            bar.get_height() + max(max_volume * 0.015, 1.0),
             f"{int(round(float(value)))}",
             ha="center",
             va="bottom",
@@ -232,7 +200,7 @@ def unavailable_exchange_volume_to_png(
     days: int,
     report_date: str | pd.Timestamp | None,
     timezone: str,
-    measurement: str,
+    measurements: list[str],
     figsize: tuple[float, float] = (13.5, 4.8),
     dpi: int = 220,
 ) -> Path:
@@ -247,7 +215,7 @@ def unavailable_exchange_volume_to_png(
     fig.text(
         0.045,
         0.92,
-        f"Volume per exchange  [{page_no} of {page_count}] {days} days window     {start_date} - {end_date}  / {timezone} 00:00-00:00",
+        f"Volume per exchange [{page_no} of {page_count}] {days} days window     {start_date} - {end_date} / {timezone} 00:00-00:00",
         ha="left",
         va="top",
         fontsize=14,
@@ -265,7 +233,7 @@ def unavailable_exchange_volume_to_png(
     fig.text(
         0.045,
         0.81,
-        f"{label} Trade volume– 24 hr interval",
+        f"{label} Trade volume - 24 hr interval",
         ha="left",
         va="top",
         fontsize=17,
@@ -274,7 +242,7 @@ def unavailable_exchange_volume_to_png(
     fig.text(
         0.5,
         0.44,
-        "No OHLCV volume data available",
+        "No trade volume data available",
         ha="center",
         va="center",
         fontsize=18,
@@ -283,11 +251,11 @@ def unavailable_exchange_volume_to_png(
     )
     fig.text(
         0.5,
-        0.34,
-        measurement,
+        0.32,
+        ", ".join(measurements),
         ha="center",
         va="center",
-        fontsize=12,
+        fontsize=10,
         color=SUBTLE_TEXT_COLOR,
     )
 
@@ -299,6 +267,7 @@ def unavailable_exchange_volume_to_png(
 
 def build_all_exchange_volume_charts(
     *,
+    symbol: str = DEFAULT_SYMBOL,
     report_date: str | pd.Timestamp | None = None,
     days: int = 14,
     output_dir: str | Path = DEFAULT_OUTPUT_DIR,
@@ -307,7 +276,7 @@ def build_all_exchange_volume_charts(
 ) -> list[ExchangeVolumeChart]:
     client = influxdb_client or InfluxDBClient()
     charts: list[ExchangeVolumeChart] = []
-    for page in EXCHANGE_VOLUME_PAGES:
+    for page in _load_symbol_pages(symbol):
         charts.append(
             build_exchange_volume_chart(
                 page,
@@ -321,6 +290,35 @@ def build_all_exchange_volume_charts(
     return charts
 
 
+def _load_symbol_pages(symbol: str) -> list[dict[str, object]]:
+    payload = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+    pages = payload.get(symbol.upper())
+    if not isinstance(pages, list) or not pages:
+        raise ValueError(f"No volume-per-exchange configuration found for {symbol}.")
+    return pages
+
+
+def _normalize_volume_history(
+    volume_df: pd.DataFrame,
+    *,
+    report_date: str | pd.Timestamp | None,
+    days: int,
+) -> pd.DataFrame:
+    start_date, end_date = _window_date_timestamps(report_date=report_date, days=days)
+    date_index = pd.date_range(start_date, end_date, freq="D")
+    if volume_df.empty:
+        return pd.DataFrame({"date": date_index, "volume": [0.0] * len(date_index)})
+    daily_df = (
+        volume_df.groupby("date", as_index=False)
+        .agg(volume=("our_notional", "sum"))
+        .set_index("date")
+        .reindex(date_index, fill_value=0.0)
+        .rename_axis("date")
+        .reset_index()
+    )
+    return daily_df.loc[:, ["date", "volume"]]
+
+
 def _resolve_output_path(
     output_dir: Path,
     filename: str,
@@ -328,9 +326,9 @@ def _resolve_output_path(
     report_date: str | pd.Timestamp | None,
 ) -> Path:
     if report_date is None:
-        return output_dir / "ALT" / filename
+        return output_dir / DEFAULT_SYMBOL / filename
     target_date = pd.Timestamp(report_date).strftime("%Y-%m-%d")
-    return output_dir / target_date / "ALT" / filename
+    return output_dir / target_date / DEFAULT_SYMBOL / filename
 
 
 def _window_dates(
@@ -338,8 +336,17 @@ def _window_dates(
     report_date: str | pd.Timestamp | None,
     days: int,
 ) -> tuple[str, str]:
+    start_date, end_date = _window_date_timestamps(report_date=report_date, days=days)
+    return start_date.strftime("%-d %B"), end_date.strftime("%-d %B")
+
+
+def _window_date_timestamps(
+    *,
+    report_date: str | pd.Timestamp | None,
+    days: int,
+) -> tuple[pd.Timestamp, pd.Timestamp]:
     if report_date is None:
-        end_date = pd.Timestamp.utcnow().normalize().tz_localize("UTC")
+        end_date = pd.Timestamp.now(tz="UTC").normalize()
     else:
         end_date = pd.Timestamp(report_date)
         if end_date.tzinfo is None:
@@ -348,12 +355,12 @@ def _window_dates(
             end_date = end_date.tz_convert("UTC")
         end_date = end_date.normalize()
     start_date = end_date - pd.Timedelta(days=days - 1)
-    return start_date.strftime("%-d %B"), end_date.strftime("%-d %B")
+    return start_date.tz_localize(None), end_date.tz_localize(None)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Render per-exchange ALT volume charts from OHLCV Influx measurements."
+        description="Render per-exchange ALT volume charts from trade-fill Influx measurements."
     )
     parser.add_argument(
         "--report-date", default=None, help="Report date in YYYY-MM-DD format."

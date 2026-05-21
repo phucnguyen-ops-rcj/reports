@@ -89,7 +89,10 @@ class InfluxDBClient:
         df = pd.DataFrame(rows)
         df["time"] = pd.to_datetime(df["time"], utc=True)
         df["date"] = (
-            df["time"].dt.tz_convert(tz_name).dt.floor("D").dt.tz_localize(None)
+            df["time"]
+            .dt.tz_convert(tz_name)
+            .dt.floor("D")
+            .dt.tz_localize(None)  # pyrefly: ignore
         )
         daily_df = (
             df.groupby(["date", "exchange", "symbol", "type"], as_index=False)
@@ -144,6 +147,7 @@ class InfluxDBClient:
         df["time"] = pd.to_datetime(df["time"], utc=True)
         df["date"] = (
             (df["time"].dt.tz_convert(timezone) - pd.Timedelta(days=1))
+              # pyrefly: ignore
             .dt.floor("D")
             .dt.tz_localize(None)
         )
@@ -201,6 +205,7 @@ class InfluxDBClient:
         df["time"] = pd.to_datetime(df["time"], utc=True)
         df["date"] = (
             (df["time"].dt.tz_convert(timezone) - pd.Timedelta(days=1))
+              # pyrefly: ignore
             .dt.floor("D")
             .dt.tz_localize(None)
         )
@@ -254,11 +259,128 @@ class InfluxDBClient:
         df["time"] = pd.to_datetime(df["time"], utc=True)
         df["date"] = (
             (df["time"].dt.tz_convert(timezone) - pd.Timedelta(days=1))
+              # pyrefly: ignore
             .dt.floor("D")
             .dt.tz_localize(None)
         )
         return (
             df.loc[:, ["date", "volume"]].sort_values(by="date").reset_index(drop=True)
+        )
+
+    def get_trade_notional_history(
+        self,
+        measurement_names: list[str],
+        *,
+        bucket: str = "Prod",
+        days: int = 14,
+        report_date: str | pd.Timestamp | None = None,
+        timezone: str = "UTC",
+    ) -> pd.DataFrame:
+        if days <= 0:
+            raise ValueError("days must be positive.")
+        if not measurement_names:
+            raise ValueError("measurement_names must not be empty.")
+
+        start, stop = self._time_range_bounds(report_date, days=days, timezone=timezone)
+        query_api = self._client.query_api()
+        rows: list[dict[str, object]] = []
+
+        for measurement_name in measurement_names:
+            query = f"""
+            from(bucket: "{bucket}")
+              |> range(start: {start}, stop: {stop})
+              |> filter(fn: (r) => r._measurement == "{measurement_name}")
+              |> filter(fn: (r) => r._field == "value")
+              |> keep(columns: ["_time", "_value"])
+            """
+            tables = query_api.query(query)
+            for table in tables:
+                for record in table.records:
+                    rows.append(
+                        {
+                            "measurement": measurement_name,
+                            "time": pd.Timestamp(record.get_time()),
+                            "value": abs(float(record.get_value())),
+                        }
+                    )
+
+        if not rows:
+            return pd.DataFrame(columns=["date", "measurement", "our_notional"])
+
+        df = pd.DataFrame(rows)
+        df["time"] = pd.to_datetime(df["time"], utc=True)
+        df["date"] = (
+            df["time"]
+            .dt.tz_convert(timezone)
+            .dt.floor("D")
+            .dt.tz_localize(None)  # pyrefly: ignore
+        )
+        return (
+            df.groupby(["date", "measurement"], as_index=False)
+            .agg(our_notional=("value", "sum"))
+            .sort_values(by=["date", "measurement"])
+            .reset_index(drop=True)
+        )
+
+    def get_trade_buy_sell_notional_history(
+        self,
+        measurement_names: list[str],
+        *,
+        bucket: str = "Prod",
+        days: int = 14,
+        report_date: str | pd.Timestamp | None = None,
+        timezone: str = "UTC",
+    ) -> pd.DataFrame:
+        if days <= 0:
+            raise ValueError("days must be positive.")
+        if not measurement_names:
+            raise ValueError("measurement_names must not be empty.")
+
+        start, stop = self._time_range_bounds(report_date, days=days, timezone=timezone)
+        query_api = self._client.query_api()
+        rows: list[dict[str, object]] = []
+
+        for measurement_name in measurement_names:
+            query = f"""
+            from(bucket: "{bucket}")
+              |> range(start: {start}, stop: {stop})
+              |> filter(fn: (r) => r._measurement == "{measurement_name}")
+              |> filter(fn: (r) => r._field == "value" or r._field == "side")
+              |> pivot(rowKey: ["_time"], columnKey: ["_field"], valueColumn: "_value")
+              |> keep(columns: ["_time", "value", "side"])
+            """
+            tables = query_api.query(query)
+            for table in tables:
+                for record in table.records:
+                    side = record.values.get("side")
+                    value = record.values.get("value")
+                    if side is None or value is None:
+                        continue
+                    rows.append(
+                        {
+                            "measurement": measurement_name,
+                            "time": pd.Timestamp(record.get_time()),
+                            "side": str(side).lower(),
+                            "value": abs(float(value)),
+                        }
+                    )
+
+        if not rows:
+            return pd.DataFrame(columns=["date", "side", "notional"])
+
+        df = pd.DataFrame(rows)
+        df["time"] = pd.to_datetime(df["time"], utc=True)
+        df["date"] = (
+            df["time"]
+            .dt.tz_convert(timezone)
+            .dt.floor("D")
+            .dt.tz_localize(None)  # pyrefly: ignore
+        )
+        return (
+            df.groupby(["date", "side"], as_index=False)
+            .agg(notional=("value", "sum"))
+            .sort_values(by=["date", "side"])
+            .reset_index(drop=True)
         )
 
     @staticmethod
@@ -282,7 +404,7 @@ class InfluxDBClient:
         stop_date = end_date + pd.Timedelta(days=1)
         return start_date.tz_convert("UTC").isoformat(), stop_date.tz_convert(
             "UTC"
-        ).isoformat()
+        ).isoformat()  # pyrefly: ignore
 
     @staticmethod
     def _normalize_spot_symbol(symbol: str) -> str:
@@ -296,5 +418,5 @@ class InfluxDBClient:
 
 if __name__ == "__main__":
     client = InfluxDBClient()
-    measurements = client.get_all_measurements("test")
+    measurements = client.get_all_measurements("Prod")
     print(measurements)

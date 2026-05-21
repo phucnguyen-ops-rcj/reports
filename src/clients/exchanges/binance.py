@@ -212,6 +212,68 @@ class BinanceClient:
         ticker = self.get_futures_24h_ticker(f"{base_asset.upper()}USDT")
         return ticker.quote_volume
 
+    def get_spot_quote_volume_history(
+        self,
+        symbol: str,
+        *,
+        days: int,
+        report_date: str | pd.Timestamp | None = None,
+    ) -> pd.DataFrame:
+        if days <= 0:
+            raise ValueError("days must be positive.")
+
+        start_time_ms, end_time_ms = _daily_window_bounds_ms(report_date, days=days)
+        payload = self._get(
+            "/api/v3/klines",
+            params={
+                "symbol": symbol.upper(),
+                "interval": "1d",
+                "startTime": str(start_time_ms),
+                "endTime": str(end_time_ms),
+                "limit": str(days),
+            },
+        )
+        if not isinstance(payload, list):
+            raise RuntimeError(
+                "Binance returned an unexpected spot kline response shape."
+            )
+
+        rows: list[dict[str, object]] = []
+        for item in payload:
+            if not isinstance(item, list) or len(item) < 8:
+                continue
+            rows.append(
+                {
+                    "date": pd.to_datetime(int(item[0]), unit="ms", utc=True)
+                    .floor("D")
+                    .tz_localize(None),
+                    "quote_volume": self._to_float(item[7]),
+                }
+            )
+        return pd.DataFrame(rows, columns=["date", "quote_volume"]).sort_values(
+            by="date"
+        )
+
+    def get_spot_order_book(
+        self,
+        symbol: str,
+        *,
+        limit: int = 1000,
+    ) -> dict[str, Any]:
+        payload = self._get(
+            "/api/v3/depth",
+            params={"symbol": symbol.upper(), "limit": str(limit)},
+        )
+        if not isinstance(payload, dict):
+            raise RuntimeError("Binance returned an unexpected order-book shape.")
+        return {
+            "exchange": "binance",
+            "symbol": symbol.upper(),
+            "bids": self._parse_price_levels(payload.get("bids")),
+            "asks": self._parse_price_levels(payload.get("asks")),
+            "timestamp_ms": None,
+        }
+
     def get_klines(
         self,
         symbol: str,
@@ -507,6 +569,42 @@ class BinanceClient:
             return float(value)
         except (TypeError, ValueError):
             return None
+
+    @classmethod
+    def _parse_price_levels(cls, payload: Any) -> list[tuple[float, float]]:
+        if not isinstance(payload, list):
+            return []
+
+        levels: list[tuple[float, float]] = []
+        for item in payload:
+            if not isinstance(item, list) or len(item) < 2:
+                continue
+            price = cls._to_float(item[0])
+            size = cls._to_float(item[1])
+            if price is None or size is None:
+                continue
+            levels.append((price, size))
+        return levels
+
+
+def _daily_window_bounds_ms(
+    report_date: str | pd.Timestamp | None,
+    *,
+    days: int,
+) -> tuple[int, int]:
+    if report_date is None:
+        end_date = pd.Timestamp.now(tz="UTC").normalize()
+    else:
+        end_date = pd.Timestamp(report_date)
+        if end_date.tzinfo is None:
+            end_date = end_date.tz_localize("UTC")
+        else:
+            end_date = end_date.tz_convert("UTC")
+        end_date = end_date.normalize()
+
+    start_date = end_date - pd.Timedelta(days=days - 1)
+    stop_date = end_date + pd.Timedelta(days=1)
+    return int(start_date.timestamp() * 1000), int(stop_date.timestamp() * 1000)
 
 
 if __name__ == "__main__":

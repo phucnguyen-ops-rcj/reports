@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -11,33 +12,18 @@ import numpy as np
 import pandas as pd
 
 from src.clients.databases.influxdb import InfluxDBClient
+from src.clients.exchanges.binance import BinanceClient
 
 DEFAULT_OUTPUT_DIR = Path("results/alt_bb_ata")
 DEFAULT_IMAGE_NAME = "aggregate_buy_sell_volume.png"
-SUPPORTED_SYMBOLS = {"ALT", "BB", "ATA"}
 DEFAULT_TIMEZONE = "UTC"
-BAR_COLOR = "#59b45a"
+CONFIG_PATH = (
+    Path(__file__).resolve().parents[2] / "config" / "aggregate_buy_sell_volume.json"
+)
+SUPPORTED_SYMBOLS = {"ALT"}
+BUY_COLOR = "#59b45a"
+SELL_COLOR = "#f06a78"
 GRID_COLOR = "#d2d8df"
-OHLCV_MEASUREMENTS = {
-    "ALT": [
-        "binance_ALTUSDT_ohlcv",
-        "binance_ALTUSDC_ohlcv",
-        "bybit_ALTUSDT_ohlcv",
-        "gateio_ALT_USDT_ohlcv",
-        "kucoin_KALT-USDT_ohlcv",
-    ],
-    "BB": [
-        "gateio_BB_USDT_ohlcv",
-        "kucoin_BB-USDT_ohlcv",
-        "bybit_BBUSDT_ohlcv",
-        "binance_BBUSDT_ohlcv",
-    ],
-    "ATA": [
-        "kucoin_ATA-USDT_ohlcv",
-        "gateio_ATA_USDT_ohlcv",
-        "binance_ATAUSDT_ohlcv",
-    ],
-}
 
 
 @dataclass(slots=True)
@@ -57,43 +43,45 @@ def build_aggregate_buy_sell_volume_chart(
     output_dir: str | Path = DEFAULT_OUTPUT_DIR,
     timezone: str = DEFAULT_TIMEZONE,
     influxdb_client: InfluxDBClient | None = None,
+    binance_client: BinanceClient | None = None,
 ) -> AggregateBuySellVolumeChart:
     base_asset = _base_asset(symbol)
+    config = _load_symbol_config(base_asset)
     client = influxdb_client or InfluxDBClient()
-    measurement_names = OHLCV_MEASUREMENTS.get(base_asset, [])
-    if not measurement_names:
-        raise ValueError(f"No OHLCV measurements configured for {base_asset}.")
+    price_client = binance_client or BinanceClient()
 
-    volume_df = client.get_aggregate_ohlcv_volume_history(
-        measurement_names,
+    volume_df = client.get_trade_buy_sell_notional_history(
+        list(config["trade_measurements"]),
         days=days,
         report_date=report_date,
         timezone=timezone,
     )
     if volume_df.empty:
-        raise ValueError(f"No OHLCV volume data found for {base_asset}.")
+        raise ValueError(f"No trade buy/sell data found for {base_asset}.")
 
-    price_df = _load_price_data(
-        client,
-        base_asset,
+    chart_volume_df = _normalize_buy_sell_history(
+        volume_df,
         report_date=report_date,
         days=days,
-        timezone=timezone,
+    )
+    price_df = _load_price_data(
+        price_client,
+        str(config["price_symbol"]),
+        report_date=report_date,
+        days=days,
     )
     output_path = _resolve_output_path(Path(output_dir), base_asset, report_date)
     aggregate_buy_sell_volume_to_png(
-        volume_df,
+        chart_volume_df,
         price_df,
         output_path,
         base_asset=base_asset,
-        days=days,
-        timezone=timezone,
     )
     return AggregateBuySellVolumeChart(
         symbol=base_asset,
         days=days,
         output_path=output_path,
-        volume_data=volume_df,
+        volume_data=chart_volume_df,
         price_data=price_df,
     )
 
@@ -104,32 +92,25 @@ def aggregate_buy_sell_volume_to_png(
     output_path: str | Path,
     *,
     base_asset: str,
-    days: int,
-    timezone: str,
-    figsize: tuple[float, float] = (14, 8),
+    figsize: tuple[float, float] = (14, 6.7),
     dpi: int = 180,
 ) -> Path:
     out_path = Path(output_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
-    plot_volume = (
-        volume_df.copy().sort_values(by="date").tail(days).reset_index(drop=True)
-    )
-    plot_price = (
-        price_df.copy().sort_values(by="date").tail(days).reset_index(drop=True)
-    )
+    plot_volume = volume_df.copy().sort_values(by="date").reset_index(drop=True)
+    plot_price = price_df.copy().sort_values(by="date").reset_index(drop=True)
     if plot_volume.empty or plot_price.empty:
         raise ValueError("Volume or price data is empty.")
 
-    merged_dates = plot_volume["date"]
-    plot_price = plot_price[plot_price["date"].isin(merged_dates)].reset_index(
+    plot_price = plot_price[plot_price["date"].isin(plot_volume["date"])].reset_index(
         drop=True
     )
     if plot_price.empty:
         raise ValueError("No overlapping price data found for the requested period.")
 
     fig = plt.figure(figsize=figsize)
-    gs = fig.add_gridspec(2, 1, height_ratios=[1.08, 1.0], hspace=0.18)
+    gs = fig.add_gridspec(2, 1, height_ratios=[1.0, 1.0], hspace=0.16)
     ax_bar = fig.add_subplot(gs[0, 0])
     ax_price = fig.add_subplot(gs[1, 0])
     ax_volume = ax_price.twinx()
@@ -138,78 +119,47 @@ def aggregate_buy_sell_volume_to_png(
     for axis in [ax_bar, ax_price, ax_volume]:
         axis.set_facecolor("white")
 
-    fig.text(
-        0.03,
-        0.96,
-        "I.",
-        ha="left",
-        va="top",
-        fontsize=15,
-        fontweight="bold",
-        color="#111111",
-    )
-    fig.text(
-        0.085,
-        0.96,
-        "Aggregate trade volume across all exchanges",
-        ha="left",
-        va="top",
-        fontsize=16,
-        fontweight="bold",
-        color="#111111",
-    )
-
-    plot_start = plot_volume["date"].min().strftime("%-d %B")
-    plot_end = plot_volume["date"].max().strftime("%-d %B")
-    fig.text(
-        0.03,
-        0.885,
-        f"Volume per exchange [1 of 1]  {days} days window  {plot_start} - {plot_end} / {timezone} 00:00-00:00",
-        ha="left",
-        va="top",
-        fontsize=11,
-        color="#333333",
-    )
-    fig.add_artist(
-        plt.Line2D(
-            [0.03, 0.71],
-            [0.865, 0.865],
-            transform=fig.transFigure,
-            color="#777777",
-            linewidth=0.8,
-        )
-    )
-    fig.text(
-        0.03,
-        0.83,
-        "Aggregated trade volume – 24 hr interval",
-        ha="left",
-        va="center",
-        fontsize=16,
-        color="#111111",
-    )
-
     x = np.arange(len(plot_volume))
-    volumes = plot_volume["volume"].astype(float)
-    bars = ax_bar.bar(
-        x,
-        volumes,
-        width=0.92,
-        color=BAR_COLOR,
-        edgecolor=BAR_COLOR,
+    width = 0.36
+    buy_values = plot_volume["buy"].astype(float)
+    sell_values = plot_volume["sell"].astype(float)
+    buy_bars = ax_bar.bar(
+        x - width / 2,
+        buy_values,
+        width=width,
+        color=BUY_COLOR,
+        edgecolor=BUY_COLOR,
         zorder=3,
+        label="Buy",
+    )
+    sell_bars = ax_bar.bar(
+        x + width / 2,
+        sell_values,
+        width=width,
+        color=SELL_COLOR,
+        edgecolor=SELL_COLOR,
+        zorder=3,
+        label="Sell",
     )
 
     ax_bar.text(
         0.0,
-        0.98,
-        f"Aggregate Volume {base_asset}",
+        1.02,
+        f"Aggregate Buy / Sell {base_asset}",
         transform=ax_bar.transAxes,
         ha="left",
-        va="top",
+        va="bottom",
         fontsize=8,
         color="#333333",
         fontweight="bold",
+    )
+    ax_bar.legend(
+        loc="upper right",
+        frameon=False,
+        fontsize=8,
+        ncol=2,
+        handlelength=1.0,
+        columnspacing=0.8,
     )
     ax_bar.grid(
         True, axis="y", linestyle="-", linewidth=0.6, alpha=0.22, color=GRID_COLOR
@@ -221,30 +171,22 @@ def aggregate_buy_sell_volume_to_png(
     ax_bar.set_xticklabels([d.strftime("%m/%d 00:00") for d in plot_volume["date"]])
     ax_bar.set_yticklabels([])
 
-    max_bar_value = float(volumes.max())
-    for bar, value in zip(bars, volumes, strict=False):
-        ax_bar.text(
-            bar.get_x() + bar.get_width() / 2,
-            bar.get_height() + max_bar_value * 0.01,
-            f"{int(round(value))}",
-            ha="center",
-            va="bottom",
-            fontsize=5,
-            color="#777777",
-        )
+    max_bar_value = float(max(buy_values.max(), sell_values.max()))
+    for bars in [buy_bars, sell_bars]:
+        for bar in bars:
+            height = float(bar.get_height())
+            ax_bar.text(
+                bar.get_x() + bar.get_width() / 2,
+                height + max_bar_value * 0.01,
+                f"{int(round(height))}",
+                ha="center",
+                va="bottom",
+                fontsize=5,
+                color="#777777",
+            )
 
     for spine in ax_bar.spines.values():
         spine.set_visible(False)
-
-    fig.text(
-        0.03,
-        0.445,
-        "Price - K-Line for the same time period",
-        ha="left",
-        va="center",
-        fontsize=16,
-        color="#111111",
-    )
 
     candle_x = mdates.date2num(plot_price["date"].dt.to_pydatetime())  # pyrefly: ignore
     candle_width = 0.62
@@ -253,7 +195,7 @@ def aggregate_buy_sell_volume_to_png(
         high_price = float(row.high)
         low_price = float(row.low)
         close_price = float(row.close)
-        color = BAR_COLOR if close_price >= open_price else "#ff0040"
+        color = BUY_COLOR if close_price >= open_price else "#ff0040"
         ax_price.vlines(
             x_value, low_price, high_price, color=color, linewidth=1.0, zorder=4
         )
@@ -270,7 +212,7 @@ def aggregate_buy_sell_volume_to_png(
         )
 
     volume_colors = [
-        BAR_COLOR if close_price >= open_price else "#ff5b73"
+        BUY_COLOR if close_price >= open_price else SELL_COLOR
         for open_price, close_price in zip(
             plot_price["open"], plot_price["close"], strict=False
         )
@@ -280,7 +222,7 @@ def aggregate_buy_sell_volume_to_png(
         plot_price["volume"].astype(float),
         color=volume_colors,
         width=0.62,
-        alpha=0.28,
+        alpha=0.22,
         zorder=1,
     )
 
@@ -307,30 +249,107 @@ def aggregate_buy_sell_volume_to_png(
     for spine in ax_volume.spines.values():
         spine.set_visible(False)
 
-    fig.subplots_adjust(left=0.08, right=0.97, bottom=0.08, top=0.86, hspace=0.2)
+    fig.subplots_adjust(left=0.08, right=0.97, bottom=0.08, top=0.95, hspace=0.2)
     plt.savefig(out_path, dpi=dpi, bbox_inches="tight", facecolor="white")
     plt.close(fig)
     return out_path
 
 
-def _load_price_data(
-    client: InfluxDBClient,
-    symbol: str,
+def _load_symbol_config(symbol: str) -> dict[str, object]:
+    payload = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+    config = payload.get(symbol.upper())
+    if not isinstance(config, dict):
+        raise ValueError(f"No aggregate buy/sell configuration found for {symbol}.")
+    return config
+
+
+def _normalize_buy_sell_history(
+    volume_df: pd.DataFrame,
     *,
     report_date: str | pd.Timestamp | None,
     days: int,
-    timezone: str,
 ) -> pd.DataFrame:
-    for measurement_name in OHLCV_MEASUREMENTS.get(symbol, []):
-        df = client.get_ohlcv_history(
-            measurement_name,
-            report_date=report_date,
-            days=days,
-            timezone=timezone,
+    start_date, end_date = _window_dates(report_date=report_date, days=days)
+    date_index = pd.date_range(start_date, end_date, freq="D")
+    pivot_df = (
+        volume_df.pivot_table(
+            index="date",
+            columns="side",
+            values="notional",
+            aggfunc="sum",
+            fill_value=0.0,
         )
-        if not df.empty:
-            return df
-    raise ValueError(f"No OHLCV data found for {symbol}.")
+        .reindex(date_index, fill_value=0.0)
+        .rename_axis("date")
+        .reset_index()
+    )
+    for col in ["buy", "sell"]:
+        if col not in pivot_df.columns:
+            pivot_df[col] = 0.0
+    return pivot_df.loc[:, ["date", "buy", "sell"]]
+
+
+def _load_price_data(
+    client: BinanceClient,
+    price_symbol: str,
+    *,
+    report_date: str | pd.Timestamp | None,
+    days: int,
+) -> pd.DataFrame:
+    start_time_ms, end_time_ms = _time_window_ms(report_date, days=days)
+    klines = client.get_klines(
+        price_symbol,
+        interval="1d",
+        limit=min(max(days + 2, 2), 1000),
+        start_time_ms=start_time_ms,
+        end_time_ms=end_time_ms,
+    )
+    rows = [
+        {
+            "date": pd.to_datetime(kline.open_time_ms, unit="ms", utc=True)
+            .floor("D")
+            .tz_localize(None),
+            "open": kline.open_price,
+            "high": kline.high_price,
+            "low": kline.low_price,
+            "close": kline.close_price,
+            "volume": kline.volume,
+        }
+        for kline in klines
+    ]
+    df = pd.DataFrame(rows, columns=["date", "open", "high", "low", "close", "volume"])
+    if df.empty:
+        raise ValueError(f"No Binance kline data found for {price_symbol}.")
+    return df.sort_values(by="date").tail(days).reset_index(drop=True)
+
+
+def _window_dates(
+    *,
+    report_date: str | pd.Timestamp | None,
+    days: int,
+) -> tuple[pd.Timestamp, pd.Timestamp]:
+    if report_date is None:
+        end_date = pd.Timestamp.now(tz="UTC").normalize()
+    else:
+        end_date = pd.Timestamp(report_date)
+        if end_date.tzinfo is None:
+            end_date = end_date.tz_localize("UTC")
+        else:
+            end_date = end_date.tz_convert("UTC")
+        end_date = end_date.normalize()
+    start_date = end_date - pd.Timedelta(days=days - 1)
+    return start_date.tz_localize(None), end_date.tz_localize(None)
+
+
+def _time_window_ms(
+    report_date: str | pd.Timestamp | None,
+    *,
+    days: int,
+) -> tuple[int | None, int | None]:
+    start_date, end_date = _window_dates(report_date=report_date, days=days)
+    start_ts = pd.Timestamp(start_date).tz_localize("UTC")
+    stop_ts = pd.Timestamp(end_date).tz_localize("UTC") + pd.Timedelta(days=1)
+    return int(start_ts.timestamp() * 1000), int(stop_ts.timestamp() * 1000)
 
 
 def _base_asset(symbol: str) -> str:
@@ -352,22 +371,15 @@ def _resolve_output_path(
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Render aggregate trade volume and K-line chart from InfluxDB."
+        description="Render aggregate buy/sell notional and K-line chart."
     )
+    parser.add_argument("symbol", nargs="?", default="ALT", help="Base asset.")
+    parser.add_argument("--report-date", default=None, help="Optional YYYY-MM-DD.")
+    parser.add_argument("--days", type=int, default=14, help="Trailing days.")
     parser.add_argument(
-        "symbol", nargs="?", default="ALT", help="Base asset, e.g. ALT, BB, ATA."
-    )
-    parser.add_argument(
-        "--report-date", default=None, help="Optional report date in YYYY-MM-DD format."
-    )
-    parser.add_argument("--days", type=int, default=14, help="Trailing days to plot.")
-    parser.add_argument(
-        "--output-dir", default=str(DEFAULT_OUTPUT_DIR), help="Output directory."
-    )
-    parser.add_argument(
-        "--timezone",
-        default=DEFAULT_TIMEZONE,
-        help="Chart timezone label and aggregation timezone.",
+        "--output-dir",
+        default=str(DEFAULT_OUTPUT_DIR),
+        help="Output directory.",
     )
     args = parser.parse_args()
 
@@ -382,7 +394,6 @@ def main() -> None:
         report_date=args.report_date,
         days=args.days,
         output_dir=args.output_dir,
-        timezone=args.timezone,
     )
     print(chart.output_path)
 

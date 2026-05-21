@@ -1,0 +1,47 @@
+{
+  "ALT": [
+    {
+      "exchange": "binance",
+      "exchange_label": "Binance",
+      "pair": "ALTUSDC",
+      "public_symbol": "ALTUSDC",
+      "trade_measurements": ["binance_binancecpp_ALT_USDC_trade"],
+      "spread_bps": 30
+    },
+    {
+      "exchange": "binance",
+      "exchange_label": "Binance",
+      "pair": "ALTUSDT",
+      "public_symbol": "ALTUSDT",
+      "trade_measurements": ["binance_binancecpp_ALT_USDT_1_trade"],
+      "spread_bps": 20
+    },
+    {
+      "exchange": "bybit",
+      "exchange_label": "Bybit",
+      "pair": "ALTUSDT",
+      "public_symbol": "ALTUSDT",
+      "trade_measurements": [
+        "bybit_bybitcpp_ALT_USDT_trade",
+        "bybit_bybitcpp_ALT_USDT_3_trade"
+      ],
+      "spread_bps": 20
+    },
+    {
+      "exchange": "gateio",
+      "exchange_label": "Gate",
+      "pair": "ALTUSDT",
+      "public_symbol": "ALT_USDT",
+      "trade_measurements": ["gateio_gateiocpp_ALT_USDT_trade"],
+      "spread_bps": 40
+    },
+    {
+      "exchange": "kucoin",
+      "exchange_label": "Kucoin",
+      "pair": "ALTUSDT",
+      "public_symbol": "KALT-USDT",
+      "trade_measurements": ["kucoin_kucoincpp_KALT_USDT_wo_vol_trade"],
+      "spread_bps": 20
+    }
+  ]
+}

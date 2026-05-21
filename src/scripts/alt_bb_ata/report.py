@@ -27,6 +27,13 @@ from src.scripts.alt_bb_ata.relative_performance import (
     build_relative_performance_sentence,
     relative_performance_to_png,
 )
+from src.scripts.alt_bb_ata.liquidity_table import build_liquidity_table_chart
+from src.scripts.alt_bb_ata.aggregate_buy_sell_volume import (
+    build_aggregate_buy_sell_volume_chart,
+)
+from src.scripts.alt_bb_ata.volume_per_exchange import (
+    build_all_exchange_volume_charts,
+)
 from src.settings import app_settings
 from src.utils.visualization import (
     coinank_long_short_realtime_to_png,
@@ -53,6 +60,7 @@ SPOT_ORDER_BOOK_IMBALANCE_IMAGE = "spot_order_book_imbalance.png"
 SPOT_ORDER_BOOK_LIQUIDITY_IMAGE = "spot_order_book_liquidity.png"
 AGGREGATE_BUY_SELL_VOLUME_IMAGE = "aggregate_buy_sell_volume.png"
 VOLUME_BY_EXCHANGE_IMAGE = "volume_by_exchange.png"
+LIQUIDITY_TABLE_IMAGE = "liquidity_summary_table.png"
 LIQUIDATIONS_SOURCE_URL = "https://www.coinglass.com/pro/futures/Liquidations"
 LONG_SHORT_SOURCE_URL = "https://coinank.com/longshort/realtime"
 SPOT_ORDER_BOOK_LIQUIDITY_SOURCE_URL = "https://www.coinglass.com/pro/depth-delta"
@@ -131,6 +139,26 @@ def build_alt_markdown_report(
         base_asset,
         report_dir / LONG_SHORT_IMAGE,
     )
+    liquidity_table_path, liquidity_table_error = _try_liquidity_table_chart(
+        base_asset,
+        report_date=target_date.strftime("%Y-%m-%d"),
+        days=days,
+        output_dir=report_dir,
+    )
+    aggregate_buy_sell_path, aggregate_buy_sell_error = (
+        _try_aggregate_buy_sell_volume_chart(
+            base_asset,
+            report_date=target_date.strftime("%Y-%m-%d"),
+            days=days,
+            output_dir=report_dir,
+        )
+    )
+    exchange_volume_paths, exchange_volume_errors = _try_exchange_volume_charts(
+        base_asset,
+        report_date=target_date.strftime("%Y-%m-%d"),
+        days=days,
+        output_dir=report_dir,
+    )
 
     content = _render_markdown(
         symbol=base_asset,
@@ -145,6 +173,12 @@ def build_alt_markdown_report(
         perp_analysis=perp_analysis,
         perp_error=perp_error,
         long_short_assets=long_short_assets,
+        liquidity_table_path=liquidity_table_path,
+        liquidity_table_error=liquidity_table_error,
+        aggregate_buy_sell_path=aggregate_buy_sell_path,
+        aggregate_buy_sell_error=aggregate_buy_sell_error,
+        exchange_volume_paths=exchange_volume_paths,
+        exchange_volume_errors=exchange_volume_errors,
     )
     markdown_path.write_text(content, encoding="utf-8")
     return AltMarkdownReport(
@@ -327,6 +361,72 @@ def _try_perp_analysis(
         return None, str(exc)
 
 
+def _try_liquidity_table_chart(
+    symbol: str,
+    *,
+    report_date: str,
+    days: int,
+    output_dir: Path,
+) -> tuple[Path | None, str | None]:
+    try:
+        chart = build_liquidity_table_chart(
+            symbol,
+            report_date=report_date,
+            days=days,
+            output_dir=output_dir,
+        )
+        return chart.output_path, None
+    except Exception as exc:
+        logger.warning(
+            "Failed to build %s liquidity summary table.", symbol, exc_info=True
+        )
+        return None, str(exc)
+
+
+def _try_aggregate_buy_sell_volume_chart(
+    symbol: str,
+    *,
+    report_date: str,
+    days: int,
+    output_dir: Path,
+) -> tuple[Path | None, str | None]:
+    try:
+        chart = build_aggregate_buy_sell_volume_chart(
+            symbol,
+            report_date=report_date,
+            days=days,
+            output_dir=output_dir,
+        )
+        return chart.output_path, None
+    except Exception as exc:
+        logger.warning(
+            "Failed to build %s aggregate buy/sell chart.", symbol, exc_info=True
+        )
+        return None, str(exc)
+
+
+def _try_exchange_volume_charts(
+    symbol: str,
+    *,
+    report_date: str,
+    days: int,
+    output_dir: Path,
+) -> tuple[list[Path], list[str]]:
+    try:
+        charts = build_all_exchange_volume_charts(
+            symbol=symbol,
+            report_date=report_date,
+            days=days,
+            output_dir=output_dir,
+        )
+        return [chart.output_path for chart in charts], []
+    except Exception as exc:
+        logger.warning(
+            "Failed to build %s exchange-volume charts.", symbol, exc_info=True
+        )
+        return [], [str(exc)]
+
+
 def _normalize_perp_image_paths(
     analysis: BinancePerpMarketAnalysis | None,
     report_dir: Path,
@@ -376,6 +476,12 @@ def _render_markdown(
     perp_analysis: BinancePerpMarketAnalysis | None,
     perp_error: str | None,
     long_short_assets: LongShortAssets,
+    liquidity_table_path: Path | None,
+    liquidity_table_error: str | None,
+    aggregate_buy_sell_path: Path | None,
+    aggregate_buy_sell_error: str | None,
+    exchange_volume_paths: list[Path],
+    exchange_volume_errors: list[str],
 ) -> str:
     report_date_text = report_date.strftime("%-d %b %Y")
     relative_sentence, relative_caption = build_relative_performance_sentence(
@@ -496,24 +602,54 @@ def _render_markdown(
         "",
         "The section below goes through our trade performance over the past week, including aggregate buys and sells as well as trade volume and market share by exchange and trading pair.",
         "",
+        _image_or_placeholder(
+            liquidity_table_path,
+            markdown_path=markdown_path,
+            alt_text="Liquidity summary table",
+            fallback_filename=LIQUIDITY_TABLE_IMAGE,
+            error=liquidity_table_error,
+        ),
+        "",
         "- Aggregate buy/sell volume across all exchanges",
         "",
         _image_or_placeholder(
-            None,
+            aggregate_buy_sell_path,
             markdown_path=markdown_path,
             alt_text="Aggregate buy sell volume",
             fallback_filename=AGGREGATE_BUY_SELL_VOLUME_IMAGE,
+            error=aggregate_buy_sell_error,
         ),
         "",
         "- Volume by exchange",
         "",
-        _image_or_placeholder(
-            None,
-            markdown_path=markdown_path,
-            alt_text="Volume by exchange",
-            fallback_filename=VOLUME_BY_EXCHANGE_IMAGE,
-        ),
     ]
+    if exchange_volume_paths:
+        for index, image_path in enumerate(exchange_volume_paths):
+            lines.extend(
+                [
+                    _image_or_placeholder(
+                        image_path,
+                        markdown_path=markdown_path,
+                        alt_text=f"Volume by exchange {index + 1}",
+                        fallback_filename=image_path.name,
+                    ),
+                    "",
+                ]
+            )
+    else:
+        lines.extend(
+            [
+                _image_or_placeholder(
+                    None,
+                    markdown_path=markdown_path,
+                    alt_text="Volume by exchange",
+                    fallback_filename=VOLUME_BY_EXCHANGE_IMAGE,
+                    error="; ".join(exchange_volume_errors)
+                    if exchange_volume_errors
+                    else None,
+                ),
+            ]
+        )
     return "\n".join(lines).strip() + "\n"
 
 

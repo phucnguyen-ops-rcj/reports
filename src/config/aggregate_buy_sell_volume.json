@@ -1,0 +1,13 @@
+{
+  "ALT": {
+    "price_symbol": "ALTUSDT",
+    "trade_measurements": [
+      "binance_binancecpp_ALT_USDT_1_trade",
+      "binance_binancecpp_ALT_USDC_trade",
+      "bybit_bybitcpp_ALT_USDT_trade",
+      "bybit_bybitcpp_ALT_USDT_3_trade",
+      "gateio_gateiocpp_ALT_USDT_trade",
+      "kucoin_kucoincpp_KALT_USDT_wo_vol_trade"
+    ]
+  }
+}

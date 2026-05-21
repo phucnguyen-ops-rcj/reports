@@ -1,0 +1,42 @@
+{
+  "ALT": [
+    {
+      "page_no": 2,
+      "page_count": 6,
+      "label": "Binance ALTUSDT",
+      "trade_measurements": ["binance_binancecpp_ALT_USDT_1_trade"],
+      "filename": "binance_altusdt_volume.png"
+    },
+    {
+      "page_no": 3,
+      "page_count": 6,
+      "label": "Binance ALTUSDC",
+      "trade_measurements": ["binance_binancecpp_ALT_USDC_trade"],
+      "filename": "binance_altusdc_volume.png"
+    },
+    {
+      "page_no": 4,
+      "page_count": 6,
+      "label": "KuCoin ALTUSDT",
+      "trade_measurements": ["kucoin_kucoincpp_KALT_USDT_wo_vol_trade"],
+      "filename": "kucoin_altusdt_volume.png"
+    },
+    {
+      "page_no": 5,
+      "page_count": 6,
+      "label": "Gate ALTUSDT",
+      "trade_measurements": ["gateio_gateiocpp_ALT_USDT_trade"],
+      "filename": "gate_altusdt_volume.png"
+    },
+    {
+      "page_no": 6,
+      "page_count": 6,
+      "label": "Bybit ALTUSDT",
+      "trade_measurements": [
+        "bybit_bybitcpp_ALT_USDT_trade",
+        "bybit_bybitcpp_ALT_USDT_3_trade"
+      ],
+      "filename": "bybit_altusdt_volume.png"
+    }
+  ]
+}
