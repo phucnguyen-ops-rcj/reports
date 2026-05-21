@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -10,13 +9,11 @@ import numpy as np
 import pandas as pd
 
 from src.clients.databases.influxdb import InfluxDBClient
+from src.scripts.alt_bb_ata.report_config import load_alt_report_section
 
 DEFAULT_OUTPUT_DIR = Path("results/alt_bb_ata")
 DEFAULT_TIMEZONE = "UTC"
 DEFAULT_SYMBOL = "ALT"
-CONFIG_PATH = (
-    Path(__file__).resolve().parents[2] / "config" / "volume_per_exchange.json"
-)
 GRID_COLOR = "#d9dde3"
 BAR_COLOR = "#59b45a"
 TEXT_COLOR = "#111111"
@@ -43,18 +40,23 @@ def build_exchange_volume_chart(
     influxdb_client: InfluxDBClient | None = None,
 ) -> ExchangeVolumeChart:
     client = influxdb_client or InfluxDBClient()
+    data_report_date = _effective_data_report_date(report_date)
     output_path = _resolve_output_path(
         Path(output_dir),
         str(page["filename"]),
         report_date=report_date,
     )
-    volume_df = client.get_trade_notional_history(
+    volume_df = client.get_trade_amount_history(
         list(page["trade_measurements"]),
         days=days,
-        report_date=report_date,
+        report_date=data_report_date,
         timezone=timezone,
     )
-    chart_df = _normalize_volume_history(volume_df, report_date=report_date, days=days)
+    chart_df = _normalize_volume_history(
+        volume_df,
+        report_date=data_report_date,
+        days=days,
+    )
     if chart_df["volume"].sum() <= 0:
         unavailable_exchange_volume_to_png(
             output_path,
@@ -62,7 +64,7 @@ def build_exchange_volume_chart(
             page_no=int(page["page_no"]),
             page_count=int(page["page_count"]),
             days=days,
-            report_date=report_date,
+            report_date=data_report_date,
             timezone=timezone,
             measurements=list(page["trade_measurements"]),
         )
@@ -81,7 +83,7 @@ def build_exchange_volume_chart(
         page_no=int(page["page_no"]),
         page_count=int(page["page_count"]),
         days=days,
-        report_date=report_date,
+        report_date=data_report_date,
         timezone=timezone,
     )
     return ExchangeVolumeChart(
@@ -291,8 +293,7 @@ def build_all_exchange_volume_charts(
 
 
 def _load_symbol_pages(symbol: str) -> list[dict[str, object]]:
-    payload = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
-    pages = payload.get(symbol.upper())
+    pages = load_alt_report_section(symbol, "volume_per_exchange")
     if not isinstance(pages, list) or not pages:
         raise ValueError(f"No volume-per-exchange configuration found for {symbol}.")
     return pages
@@ -310,7 +311,7 @@ def _normalize_volume_history(
         return pd.DataFrame({"date": date_index, "volume": [0.0] * len(date_index)})
     daily_df = (
         volume_df.groupby("date", as_index=False)
-        .agg(volume=("our_notional", "sum"))
+        .agg(volume=("our_amount", "sum"))
         .set_index("date")
         .reindex(date_index, fill_value=0.0)
         .rename_axis("date")
@@ -325,10 +326,8 @@ def _resolve_output_path(
     *,
     report_date: str | pd.Timestamp | None,
 ) -> Path:
-    if report_date is None:
-        return output_dir / DEFAULT_SYMBOL / filename
-    target_date = pd.Timestamp(report_date).strftime("%Y-%m-%d")
-    return output_dir / target_date / DEFAULT_SYMBOL / filename
+    _ = report_date
+    return output_dir / filename
 
 
 def _window_dates(
@@ -345,17 +344,29 @@ def _window_date_timestamps(
     report_date: str | pd.Timestamp | None,
     days: int,
 ) -> tuple[pd.Timestamp, pd.Timestamp]:
-    if report_date is None:
-        end_date = pd.Timestamp.now(tz="UTC").normalize()
-    else:
-        end_date = pd.Timestamp(report_date)
-        if end_date.tzinfo is None:
-            end_date = end_date.tz_localize("UTC")
-        else:
-            end_date = end_date.tz_convert("UTC")
-        end_date = end_date.normalize()
+    end_date = _resolve_utc_report_date(report_date)
     start_date = end_date - pd.Timedelta(days=days - 1)
     return start_date.tz_localize(None), end_date.tz_localize(None)
+
+
+def _effective_data_report_date(
+    report_date: str | pd.Timestamp | None,
+) -> pd.Timestamp:
+    return _resolve_utc_report_date(report_date) - pd.Timedelta(days=1)
+
+
+def _resolve_utc_report_date(
+    report_date: str | pd.Timestamp | None,
+) -> pd.Timestamp:
+    if report_date is None:
+        return pd.Timestamp.now(tz="UTC").normalize()
+
+    target_date = pd.Timestamp(report_date)
+    if target_date.tzinfo is None:
+        target_date = target_date.tz_localize("UTC")
+    else:
+        target_date = target_date.tz_convert("UTC")
+    return target_date.normalize()
 
 
 def main() -> None:

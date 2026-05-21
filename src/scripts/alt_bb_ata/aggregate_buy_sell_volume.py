@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -13,13 +12,11 @@ import pandas as pd
 
 from src.clients.databases.influxdb import InfluxDBClient
 from src.clients.exchanges.binance import BinanceClient
+from src.scripts.alt_bb_ata.report_config import load_alt_report_section
 
 DEFAULT_OUTPUT_DIR = Path("results/alt_bb_ata")
 DEFAULT_IMAGE_NAME = "aggregate_buy_sell_volume.png"
 DEFAULT_TIMEZONE = "UTC"
-CONFIG_PATH = (
-    Path(__file__).resolve().parents[2] / "config" / "aggregate_buy_sell_volume.json"
-)
 SUPPORTED_SYMBOLS = {"ALT"}
 BUY_COLOR = "#59b45a"
 SELL_COLOR = "#f06a78"
@@ -49,11 +46,12 @@ def build_aggregate_buy_sell_volume_chart(
     config = _load_symbol_config(base_asset)
     client = influxdb_client or InfluxDBClient()
     price_client = binance_client or BinanceClient()
+    data_report_date = _effective_data_report_date(report_date)
 
-    volume_df = client.get_trade_buy_sell_notional_history(
+    volume_df = client.get_trade_buy_sell_amount_history(
         list(config["trade_measurements"]),
         days=days,
-        report_date=report_date,
+        report_date=data_report_date,
         timezone=timezone,
     )
     if volume_df.empty:
@@ -61,13 +59,13 @@ def build_aggregate_buy_sell_volume_chart(
 
     chart_volume_df = _normalize_buy_sell_history(
         volume_df,
-        report_date=report_date,
+        report_date=data_report_date,
         days=days,
     )
     price_df = _load_price_data(
         price_client,
         str(config["price_symbol"]),
-        report_date=report_date,
+        report_date=data_report_date,
         days=days,
     )
     output_path = _resolve_output_path(Path(output_dir), base_asset, report_date)
@@ -222,8 +220,20 @@ def aggregate_buy_sell_volume_to_png(
         plot_price["volume"].astype(float),
         color=volume_colors,
         width=0.62,
-        alpha=0.22,
+        alpha=0.28,
         zorder=1,
+    )
+    ax_price.text(
+        0.01,
+        0.06,
+        "Binance spot volume",
+        transform=ax_price.transAxes,
+        ha="left",
+        va="bottom",
+        fontsize=8,
+        color="#8a95a1",
+        bbox={"facecolor": "white", "edgecolor": "none", "alpha": 0.72, "pad": 1.5},
+        zorder=6,
     )
 
     ax_price.grid(
@@ -242,7 +252,8 @@ def aggregate_buy_sell_volume_to_png(
     price_max = float(plot_price["high"].max())
     price_padding = max((price_max - price_min) * 0.18, price_max * 0.01)
     ax_price.set_ylim(max(0, price_min - price_padding), price_max + price_padding)
-    ax_volume.set_ylim(0, float(plot_price["volume"].max()) * 5.0)
+    # Keep the public-volume bars visible without overpowering the candlesticks.
+    ax_volume.set_ylim(0, float(plot_price["volume"].max()) * 2.2)
 
     for spine in ax_price.spines.values():
         spine.set_visible(False)
@@ -256,8 +267,7 @@ def aggregate_buy_sell_volume_to_png(
 
 
 def _load_symbol_config(symbol: str) -> dict[str, object]:
-    payload = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
-    config = payload.get(symbol.upper())
+    config = load_alt_report_section(symbol, "aggregate_buy_sell_volume")
     if not isinstance(config, dict):
         raise ValueError(f"No aggregate buy/sell configuration found for {symbol}.")
     return config
@@ -275,7 +285,7 @@ def _normalize_buy_sell_history(
         volume_df.pivot_table(
             index="date",
             columns="side",
-            values="notional",
+            values="amount",
             aggfunc="sum",
             fill_value=0.0,
         )
@@ -328,17 +338,29 @@ def _window_dates(
     report_date: str | pd.Timestamp | None,
     days: int,
 ) -> tuple[pd.Timestamp, pd.Timestamp]:
-    if report_date is None:
-        end_date = pd.Timestamp.now(tz="UTC").normalize()
-    else:
-        end_date = pd.Timestamp(report_date)
-        if end_date.tzinfo is None:
-            end_date = end_date.tz_localize("UTC")
-        else:
-            end_date = end_date.tz_convert("UTC")
-        end_date = end_date.normalize()
+    end_date = _resolve_utc_report_date(report_date)
     start_date = end_date - pd.Timedelta(days=days - 1)
     return start_date.tz_localize(None), end_date.tz_localize(None)
+
+
+def _effective_data_report_date(
+    report_date: str | pd.Timestamp | None,
+) -> pd.Timestamp:
+    return _resolve_utc_report_date(report_date) - pd.Timedelta(days=1)
+
+
+def _resolve_utc_report_date(
+    report_date: str | pd.Timestamp | None,
+) -> pd.Timestamp:
+    if report_date is None:
+        return pd.Timestamp.now(tz="UTC").normalize()
+
+    target_date = pd.Timestamp(report_date)
+    if target_date.tzinfo is None:
+        target_date = target_date.tz_localize("UTC")
+    else:
+        target_date = target_date.tz_convert("UTC")
+    return target_date.normalize()
 
 
 def _time_window_ms(
@@ -362,16 +384,14 @@ def _resolve_output_path(
     symbol: str,
     report_date: str | pd.Timestamp | None,
 ) -> Path:
-    if report_date is None:
-        return output_dir / symbol / DEFAULT_IMAGE_NAME
-
-    target_date = pd.Timestamp(report_date).strftime("%Y-%m-%d")
-    return output_dir / target_date / symbol / DEFAULT_IMAGE_NAME
+    _ = symbol
+    _ = report_date
+    return output_dir / DEFAULT_IMAGE_NAME
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Render aggregate buy/sell notional and K-line chart."
+        description="Render aggregate buy/sell amount and K-line chart."
     )
     parser.add_argument("symbol", nargs="?", default="ALT", help="Base asset.")
     parser.add_argument("--report-date", default=None, help="Optional YYYY-MM-DD.")

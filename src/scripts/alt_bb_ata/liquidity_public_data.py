@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import json
-from pathlib import Path
 from typing import Any
 
 import pandas as pd
@@ -10,13 +8,11 @@ from src.clients.exchanges.binance import BinanceClient
 from src.clients.exchanges.bybit import BybitClient
 from src.clients.exchanges.gateio import GateioClient
 from src.clients.exchanges.kucoin import KucoinClient
-
-CONFIG_PATH = Path(__file__).resolve().parents[2] / "config" / "alt_liquidity.json"
+from src.scripts.alt_bb_ata.report_config import load_alt_report_section
 
 
 def load_liquidity_row_configs(symbol: str) -> list[dict[str, Any]]:
-    payload = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
-    rows = payload.get(symbol.upper())
+    rows = load_alt_report_section(symbol, "liquidity_table")
     if not isinstance(rows, list) or not rows:
         raise ValueError(f"No liquidity configuration found for {symbol.upper()}.")
     return rows

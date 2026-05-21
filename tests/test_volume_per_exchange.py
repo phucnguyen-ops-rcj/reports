@@ -11,7 +11,7 @@ from src.scripts.alt_bb_ata.volume_per_exchange import (
 
 
 class FakeInfluxDBClient:
-    def get_trade_notional_history(
+    def get_trade_amount_history(
         self,
         measurement_names: list[str],
         *,
@@ -32,7 +32,7 @@ class FakeInfluxDBClient:
                     pd.Timestamp("2026-05-09"),
                 ],
                 "measurement": ["m1", "m1"],
-                "our_notional": [120.0, 240.0],
+                "our_amount": [120.0, 240.0],
             }
         )
 
@@ -46,7 +46,7 @@ def test_normalize_volume_history() -> None:
                     pd.Timestamp("2026-05-09"),
                 ],
                 "measurement": ["m1", "m1"],
-                "our_notional": [120.0, 240.0],
+                "our_amount": [120.0, 240.0],
             }
         ),
         report_date="2026-05-09",
@@ -65,7 +65,7 @@ def test_build_exchange_volume_chart(tmp_path: Path) -> None:
             "trade_measurements": ["binance_binancecpp_ALT_USDT_1_trade"],
             "filename": "binance_altusdt_volume.png",
         },
-        report_date="2026-05-09",
+        report_date="2026-05-10",
         days=2,
         output_dir=tmp_path,
         influxdb_client=FakeInfluxDBClient(),

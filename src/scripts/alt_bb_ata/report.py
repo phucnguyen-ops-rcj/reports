@@ -494,7 +494,7 @@ def _render_markdown(
         "",
         "## <u>Section 1: Market overview</u>",
         "",
-        f"- {market_assets.crypto_market_sentence}",
+        market_assets.crypto_market_sentence,
         "",
         _image_or_placeholder(
             markdown_path.parent / CRYPTO_HEATMAP_IMAGE,
@@ -503,7 +503,7 @@ def _render_markdown(
             fallback_filename=CRYPTO_HEATMAP_IMAGE,
         ),
         "",
-        f"- {market_assets.etf_sentence}",
+        market_assets.etf_sentence,
         "",
         _image_or_placeholder(
             markdown_path.parent / ETF_NET_FLOWS_IMAGE,
@@ -512,7 +512,7 @@ def _render_markdown(
             fallback_filename=ETF_NET_FLOWS_IMAGE,
         ),
         "",
-        f"- {market_assets.btc_open_interest_sentence}",
+        market_assets.btc_open_interest_sentence,
         "",
         _image_or_placeholder(
             markdown_path.parent / BTC_OPEN_INTEREST_IMAGE,
@@ -536,8 +536,8 @@ def _render_markdown(
         "",
         "### <u>Relative performance</u>",
         "",
-        f"- {relative_sentence}",
-        f"- {relative_caption}",
+        relative_sentence,
+        relative_caption,
         "",
         _image_or_placeholder(
             relative_chart_path,
@@ -610,7 +610,7 @@ def _render_markdown(
             error=liquidity_table_error,
         ),
         "",
-        "- Aggregate buy/sell volume across all exchanges",
+        "Aggregate buy/sell volume across all exchanges",
         "",
         _image_or_placeholder(
             aggregate_buy_sell_path,
@@ -620,7 +620,7 @@ def _render_markdown(
             error=aggregate_buy_sell_error,
         ),
         "",
-        "- Volume by exchange",
+        "Volume by exchange",
         "",
     ]
     if exchange_volume_paths:

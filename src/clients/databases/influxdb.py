@@ -147,7 +147,7 @@ class InfluxDBClient:
         df["time"] = pd.to_datetime(df["time"], utc=True)
         df["date"] = (
             (df["time"].dt.tz_convert(timezone) - pd.Timedelta(days=1))
-              # pyrefly: ignore
+            # pyrefly: ignore
             .dt.floor("D")
             .dt.tz_localize(None)
         )
@@ -205,7 +205,7 @@ class InfluxDBClient:
         df["time"] = pd.to_datetime(df["time"], utc=True)
         df["date"] = (
             (df["time"].dt.tz_convert(timezone) - pd.Timedelta(days=1))
-              # pyrefly: ignore
+            # pyrefly: ignore
             .dt.floor("D")
             .dt.tz_localize(None)
         )
@@ -259,7 +259,7 @@ class InfluxDBClient:
         df["time"] = pd.to_datetime(df["time"], utc=True)
         df["date"] = (
             (df["time"].dt.tz_convert(timezone) - pd.Timedelta(days=1))
-              # pyrefly: ignore
+            # pyrefly: ignore
             .dt.floor("D")
             .dt.tz_localize(None)
         )
@@ -383,6 +383,116 @@ class InfluxDBClient:
             .reset_index(drop=True)
         )
 
+    def get_trade_amount_history(
+        self,
+        measurement_names: list[str],
+        *,
+        bucket: str = "Prod",
+        days: int = 14,
+        report_date: str | pd.Timestamp | None = None,
+        timezone: str = "UTC",
+    ) -> pd.DataFrame:
+        if days <= 0:
+            raise ValueError("days must be positive.")
+        if not measurement_names:
+            raise ValueError("measurement_names must not be empty.")
+
+        start, stop = self._time_range_bounds(report_date, days=days, timezone=timezone)
+        query_api = self._client.query_api()
+        rows: list[dict[str, object]] = []
+
+        for measurement_name in measurement_names:
+            query = f"""
+            from(bucket: "{bucket}")
+              |> range(start: {start}, stop: {stop})
+              |> filter(fn: (r) => r._measurement == "{measurement_name}")
+              |> filter(fn: (r) => r._field == "amount")
+              |> keep(columns: ["_time", "_value"])
+            """
+            tables = query_api.query(query)
+            for table in tables:
+                for record in table.records:
+                    rows.append(
+                        {
+                            "measurement": measurement_name,
+                            "time": pd.Timestamp(record.get_time()),
+                            "value": abs(float(record.get_value())),
+                        }
+                    )
+
+        if not rows:
+            return pd.DataFrame(columns=["date", "measurement", "our_amount"])
+
+        df = pd.DataFrame(rows)
+        df["time"] = pd.to_datetime(df["time"], utc=True)
+        df["date"] = (
+            df["time"].dt.tz_convert(timezone).dt.floor("D").dt.tz_localize(None)
+        )
+        return (
+            df.groupby(["date", "measurement"], as_index=False)
+            .agg(our_amount=("value", "sum"))
+            .sort_values(by=["date", "measurement"])
+            .reset_index(drop=True)
+        )
+
+    def get_trade_buy_sell_amount_history(
+        self,
+        measurement_names: list[str],
+        *,
+        bucket: str = "Prod",
+        days: int = 14,
+        report_date: str | pd.Timestamp | None = None,
+        timezone: str = "UTC",
+    ) -> pd.DataFrame:
+        if days <= 0:
+            raise ValueError("days must be positive.")
+        if not measurement_names:
+            raise ValueError("measurement_names must not be empty.")
+
+        start, stop = self._time_range_bounds(report_date, days=days, timezone=timezone)
+        query_api = self._client.query_api()
+        rows: list[dict[str, object]] = []
+
+        for measurement_name in measurement_names:
+            query = f"""
+            from(bucket: "{bucket}")
+              |> range(start: {start}, stop: {stop})
+              |> filter(fn: (r) => r._measurement == "{measurement_name}")
+              |> filter(fn: (r) => r._field == "amount" or r._field == "side")
+              |> pivot(rowKey: ["_time"], columnKey: ["_field"], valueColumn: "_value")
+              |> keep(columns: ["_time", "amount", "side"])
+            """
+            tables = query_api.query(query)
+            for table in tables:
+                for record in table.records:
+                    side = record.values.get("side")
+                    amount = record.values.get("amount")
+                    if side is None or amount is None:
+                        continue
+                    rows.append(
+                        {
+                            "measurement": measurement_name,
+                            "time": pd.Timestamp(record.get_time()),
+                            "side": str(side).lower(),
+                            "value": abs(float(amount)),
+                        }
+                    )
+
+        if not rows:
+            return pd.DataFrame(columns=["date", "side", "amount"])
+
+        df = pd.DataFrame(rows)
+        df["time"] = pd.to_datetime(df["time"], utc=True)
+        df["date"] = (
+            df["time"].dt.tz_convert(timezone).dt.floor("D").dt.tz_localize(None)
+        )
+        return (
+            df.groupby(["date", "side"], as_index=False)
+            .agg(amount=("value", "sum"))
+            .sort_values(by=["date", "side"])
+            .reset_index(drop=True)
+        )
+
     @staticmethod
     def _time_range_bounds(
         report_date: str | pd.Timestamp | None,
@@ -419,4 +529,6 @@ class InfluxDBClient:
 if __name__ == "__main__":
     client = InfluxDBClient()
     measurements = client.get_all_measurements("Prod")
-    print(measurements)
+    # print(measurements)
+    df = client.get_trade_amount_history(["bybit_bybitcpp_ALT_USDT_trade"], days=20)
+    print(df)

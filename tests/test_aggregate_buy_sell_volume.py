@@ -11,7 +11,7 @@ from src.scripts.alt_bb_ata.aggregate_buy_sell_volume import (
 
 
 class FakeInfluxDBClient:
-    def get_trade_buy_sell_notional_history(
+    def get_trade_buy_sell_amount_history(
         self,
         measurement_names: list[str],
         *,
@@ -33,7 +33,7 @@ class FakeInfluxDBClient:
                     pd.Timestamp("2026-05-09"),
                 ],
                 "side": ["buy", "sell", "buy"],
-                "notional": [100.0, 80.0, 40.0],
+                "amount": [100.0, 80.0, 40.0],
             }
         )
 
@@ -86,13 +86,14 @@ def test_normalize_buy_sell_history() -> None:
                     pd.Timestamp("2026-05-09"),
                 ],
                 "side": ["buy", "sell", "buy"],
-                "notional": [100.0, 80.0, 40.0],
+                "amount": [100.0, 80.0, 40.0],
             }
         ),
         report_date="2026-05-09",
         days=2,
     )
 
+    assert list(df["date"]) == [pd.Timestamp("2026-05-08"), pd.Timestamp("2026-05-09")]
     assert list(df["buy"]) == [100.0, 40.0]
     assert list(df["sell"]) == [80.0, 0.0]
 
@@ -100,7 +101,7 @@ def test_normalize_buy_sell_history() -> None:
 def test_build_aggregate_buy_sell_volume_chart(tmp_path: Path) -> None:
     chart = build_aggregate_buy_sell_volume_chart(
         "ALT",
-        report_date="2026-05-09",
+        report_date="2026-05-10",
         days=2,
         output_dir=tmp_path,
         influxdb_client=FakeInfluxDBClient(),

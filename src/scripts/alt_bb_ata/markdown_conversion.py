@@ -151,7 +151,6 @@ def markdown_to_word(
             image_path = markdown_file.parent / image_match.group("path")
             if image_path.exists():
                 document.add_picture(str(image_path), width=max_image_width)
-                document.add_paragraph(image_path.name)
             else:
                 document.add_paragraph(
                     f"[Missing image: {image_path.name} ({image_match.group('alt') or 'image'})]"

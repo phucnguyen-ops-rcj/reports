@@ -245,10 +245,9 @@ def _resolve_output_path(
     symbol: str,
     report_date: str | pd.Timestamp | None,
 ) -> Path:
-    if report_date is None:
-        return output_dir / symbol / DEFAULT_IMAGE_NAME
-    target_date = pd.Timestamp(report_date).strftime("%Y-%m-%d")
-    return output_dir / target_date / symbol / DEFAULT_IMAGE_NAME
+    _ = symbol
+    _ = report_date
+    return output_dir / DEFAULT_IMAGE_NAME
 
 
 def _window_dates(
