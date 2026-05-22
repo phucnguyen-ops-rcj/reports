@@ -70,7 +70,7 @@ def trading_volume_flow(
         volume_summary["remaining_days"] > 0
     ].copy()
     listed_more_than_14_days: pd.DataFrame = volume_summary[
-        volume_summary["remaining_days"].between(-50, 0, inclusive="both")
+        volume_summary["remaining_days"].between(-30, 0, inclusive="both")
     ].copy()
     png_path = None
     csv_path = None

@@ -93,7 +93,7 @@ def _generate_and_send_report(
     logger.info(f"CSV saved to: {csv_path}")
     remaining_days_positive = volume_summary[volume_summary["remaining_days"] > 0]
     listed_more_than_14_days = volume_summary[
-        volume_summary["remaining_days"].between(-50, 0, inclusive="both")
+        volume_summary["remaining_days"].between(-30, 0, inclusive="both")
     ]
     png_path = None
     for df_data, prefix in [
