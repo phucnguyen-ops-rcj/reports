@@ -5,6 +5,7 @@ from datetime import datetime
 from itertools import islice
 import logging
 from pathlib import Path
+import re
 import time
 from typing import Any, Iterable
 
@@ -20,6 +21,7 @@ from src.utils.constants import ANALYSIS_DATA_COLUMNS
 DEFAULT_PERIOD_MS = 24 * 60 * 60 * 1000
 DEFAULT_BATCH_SIZE = 100
 logger = logging.getLogger(__name__)
+REDIS_EXCHANGE_PREFIXES = {"BIN", "BYB", "GAT", "KUC", "OKX"}
 
 
 def _ordinal_suffix(day: int) -> str:
@@ -46,6 +48,37 @@ def metric_delta(metric: dict[str, Any], *, absolute: bool = False) -> float:
     last = float(metric.get("last", 0) or 0)
     delta = last - first
     return abs(delta) if absolute else delta
+
+
+def redis_metric_delta(metric: dict[str, Any], *, absolute: bool = False) -> float:
+    delta = float(metric.get("delta", 0) or 0)
+    return abs(delta) if absolute else delta
+
+
+def normalize_redis_strategy(strategy: str) -> str:
+    compact = str(strategy).strip().upper()
+    if compact == "KUCHP":
+        return "strategy5"
+    if compact == "KUCPOSDIFF":
+        return "strategy11"
+
+    match = re.fullmatch(r"([A-Z]+?)(\d+)?", compact)
+    if not match:
+        return compact.lower()
+
+    prefix, digits = match.groups()
+    if digits is None:
+        return "strategy1" if prefix in REDIS_EXCHANGE_PREFIXES else compact.lower()
+    if digits == "42":
+        return "kucc4-2" if prefix == "KUC" else "strategy4-2"
+    if digits == "92":
+        return "kucc9-2" if prefix == "KUC" else "strategy9-2"
+    if digits == "4":
+        return "kucc4" if prefix == "KUC" else "strategy4"
+
+    if digits in {"2", "3", "5", "7", "8", "9", "10", "11", "12", "13"}:
+        return f"strategy{digits}"
+    return compact.lower()
 
 
 def build_analysis_rows(
@@ -88,6 +121,42 @@ def build_analysis_rows(
     return rows
 
 
+def build_analysis_rows_from_redis(
+    payload: dict[str, dict[str, Any]],
+    *,
+    market: str,
+    symbol: str,
+) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for raw_strategy, metrics in sorted(payload.items()):
+        strategy = normalize_redis_strategy(raw_strategy)
+        net_position = redis_metric_delta(metrics.get("Netpos", {}))
+        rpnl = redis_metric_delta(metrics.get("Rpnl", {}))
+        unpnl = redis_metric_delta(metrics.get("Upnl", {}))
+        rpnlwfees = redis_metric_delta(metrics.get("RpnlWFees", {}))
+        npnl = rpnlwfees + unpnl
+
+        # Redis exploration keys currently expose PnL and net position but not
+        # the volume, trade count, or net position dollar series used by the API.
+        rows.append(
+            {
+                "market": market,
+                "strategy": strategy,
+                "symbol": symbol,
+                "volume_$": 0.0,
+                "net_position": round(net_position, 4),
+                "net_position_$": 0.0,
+                "rpnl": round(rpnl, 4),
+                "unpnl": round(unpnl, 4),
+                "rpnlwfees": round(rpnlwfees, 4),
+                "npnl_r+un": round(npnl, 4),
+                "npnl/volume_%": "0.0000%",
+                "trade_count": 0,
+            }
+        )
+    return rows
+
+
 def fetch_market_rows(
     *,
     trading_client: RcjTradingClient,
@@ -127,6 +196,54 @@ def build_market_analysis_dataframe(
         batch_size=batch_size,
     )
     return pd.DataFrame(rows, columns=ANALYSIS_DATA_COLUMNS)
+
+
+def build_market_analysis_dataframe_from_redis(
+    *,
+    market: str,
+    symbols: list[str],
+    period_ms: int = DEFAULT_PERIOD_MS,
+    redis_client: RedisClient | None = None,
+) -> pd.DataFrame:
+    client = redis_client or RedisClient(execution_mode="ssh", ssh_host="T1_newuser1")
+    should_close = redis_client is None
+    try:
+        rows: list[dict[str, Any]] = []
+        for symbol in symbols:
+            payload = client.get_strategy_metrics_for_market_symbol(
+                market,
+                symbol,
+                period_ms=period_ms,
+            )
+            rows.extend(
+                build_analysis_rows_from_redis(payload, market=market, symbol=symbol)
+            )
+    finally:
+        if should_close:
+            client.close()
+
+    if not rows:
+        return pd.DataFrame(columns=ANALYSIS_DATA_COLUMNS)
+
+    df = pd.DataFrame(rows, columns=ANALYSIS_DATA_COLUMNS)
+    numeric_cols = [
+        "volume_$",
+        "net_position",
+        "net_position_$",
+        "rpnl",
+        "unpnl",
+        "rpnlwfees",
+        "npnl_r+un",
+        "trade_count",
+    ]
+    grouped = (
+        df.groupby(["market", "strategy", "symbol"], as_index=False)[numeric_cols]
+        .sum()
+        .loc[:, ["market", "strategy", "symbol", *numeric_cols]]
+    )
+    grouped["npnl/volume_%"] = "0.0000%"
+    grouped["trade_count"] = grouped["trade_count"].astype(int)
+    return grouped.loc[:, ANALYSIS_DATA_COLUMNS]
 
 
 def build_analysis_dataframe(
@@ -214,4 +331,10 @@ if __name__ == "__main__":
     df = build_market_analysis_dataframe(
         period_ms=24 * 60 * 60 * 1000, market="spot", symbols=["BTC"]
     )
+    print("api")
     print(df)
+    redis_df = build_market_analysis_dataframe_from_redis(
+        period_ms=24 * 60 * 60 * 1000, market="spot", symbols=["BTC"]
+    )
+    print("redis")
+    print(redis_df)
