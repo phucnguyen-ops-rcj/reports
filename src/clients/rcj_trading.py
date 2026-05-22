@@ -115,7 +115,7 @@ if __name__ == "__main__":
     client = RcjTradingClient()
     print(
         client.get_analyze(
-            symbols=["BLUAI"],
+            symbols=["PROVE"],
             analyze_type=RcjTradingAnalyzeType.PERP,
             period_ms=24 * 60 * 60 * 1000,
         )

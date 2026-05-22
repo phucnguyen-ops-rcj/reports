@@ -66,7 +66,7 @@ def build_analysis_rows(
             rpnl = metric_delta(metrics.get("rpnl", {}))
             unpnl = metric_delta(metrics.get("upnl", {}))
             rpnlwfees = metric_delta(metrics.get("rpnlWFees", {}))
-            npnl = rpnl + unpnl
+            npnl = rpnlwfees + unpnl
             npnl_ratio = 0.0 if volume == 0 else (npnl / volume) * 100
 
             rows.append(
@@ -212,6 +212,6 @@ if __name__ == "__main__":
         level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
     )
     df = build_market_analysis_dataframe(
-        period_ms=24 * 60 * 60 * 1000, market="perp", symbols=["BLUAI"]
+        period_ms=24 * 60 * 60 * 1000, market="spot", symbols=["BTC"]
     )
     print(df)
