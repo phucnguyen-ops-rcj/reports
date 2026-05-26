@@ -156,6 +156,49 @@ class KucoinClient:
             "timestamp_ms": self._to_int(data.get("time")),
         }
 
+    def get_spot_today_trading_volume(
+        self,
+        symbol: str,
+    ) -> float:
+        start_at, end_at = _today_window_bounds_seconds()
+        return self._sum_spot_kline_turnover(
+            symbol.upper(),
+            start_at=start_at,
+            end_at=end_at,
+            candle_type="1min",
+        )
+
+    def get_futures_today_trading_volume(self, contract_id: str) -> float:
+        start_at_ms, end_at_ms = _today_window_bounds_ms()
+        payload = self._get(
+            self.futures_base_url,
+            "/api/v1/kline/query",
+            params={
+                "symbol": contract_id.upper(),
+                "granularity": "1",
+                "from": str(start_at_ms),
+                "to": str(end_at_ms),
+            },
+        )
+        if str(payload.get("code")) not in {"200", "200000"}:
+            raise ValueError(
+                f"KuCoin futures today trading volume error for {contract_id.upper()}: {payload}"
+            )
+
+        data = payload.get("data")
+        if not isinstance(data, list):
+            raise ValueError("KuCoin returned an unexpected futures kline shape.")
+
+        total_volume = 0.0
+        for row in data:
+            if not isinstance(row, list) or len(row) < 7:
+                continue
+            candle_ts = self._to_int(row[0])
+            if candle_ts is None or candle_ts < start_at_ms or candle_ts > end_at_ms:
+                continue
+            total_volume += self._to_float(row[6]) or 0.0
+        return total_volume
+
     # ---------- Private: history fetching ----------
 
     def _fetch_history_spot(
@@ -314,6 +357,43 @@ class KucoinClient:
             raise ValueError(f"KuCoin futures error for {contract_id}: {j}")
         return self._to_float(j.get("data", {}).get("turnoverOf24h")) or 0.0
 
+    def _sum_spot_kline_turnover(
+        self,
+        symbol: str,
+        *,
+        start_at: int,
+        end_at: int,
+        candle_type: str,
+    ) -> float:
+        payload = self._get(
+            self.spot_base_url,
+            "/api/v1/market/candles",
+            params={
+                "symbol": symbol,
+                "type": candle_type,
+                "startAt": str(start_at),
+                "endAt": str(end_at),
+            },
+        )
+        if str(payload.get("code")) != "200000":
+            raise ValueError(
+                f"KuCoin spot trading volume error for {symbol}: {payload}"
+            )
+
+        data = payload.get("data")
+        if not isinstance(data, list):
+            raise ValueError("KuCoin returned an unexpected spot kline shape.")
+
+        total_volume = 0.0
+        for row in data:
+            if not isinstance(row, list) or len(row) < 7:
+                continue
+            candle_ts = self._to_int(row[0])
+            if candle_ts is None or candle_ts < start_at or candle_ts > end_at:
+                continue
+            total_volume += self._to_float(row[6]) or 0.0
+        return total_volume
+
     def _get(
         self, base_url: str, endpoint: str, params: dict[str, str] | None = None
     ) -> Any:
@@ -408,8 +488,23 @@ def _resolve_report_end(
     return timestamp.to_pydatetime()
 
 
+def _today_window_bounds_seconds() -> tuple[int, int]:
+    start_dt = datetime.now(timezone.utc).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
+    end_dt = datetime.now(timezone.utc)
+    return int(start_dt.timestamp()), int(end_dt.timestamp())
+
+
+def _today_window_bounds_ms() -> tuple[int, int]:
+    start_dt = datetime.now(timezone.utc).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
+    end_dt = datetime.now(timezone.utc)
+    return int(start_dt.timestamp() * 1000), int(end_dt.timestamp() * 1000)
+
+
 if __name__ == "__main__":
     client = KucoinClient()
-    df = client.get_history_volume(["CHIP"])
-    print(df.usd_volume_24h.sum())
-    print(df)
+    print(client.get_spot_today_trading_volume("PIEVERSE-USDT"))
+    print(client.get_futures_today_trading_volume("XBTUSDTM"))

@@ -7,16 +7,19 @@ A complete guide for calling the Mini Service API.
 ## Getting Started
 
 All requests go through the server. Contact admin for:
+
 - The server URL: http://18.176.93.228
 - Your Bearer token: 3a71078c84c18f3310df39284341b4584e18d5284db906c8f5dbb721d5d9eed2
 
 Every authenticated request must include:
+
 ```
 Authorization: Bearer 3a71078c84c18f3310df39284341b4584e18d5284db906c8f5dbb721d5d9eed2
 Content-Type: application/json
 ```
 
 **Example:**
+
 ```bash
 curl -X POST http://18.176.93.228/get-balance \
   -H "Authorization: Bearer 3a71078c84c18f3310df39284341b4584e18d5284db906c8f5dbb721d5d9eed2" \
@@ -30,18 +33,18 @@ curl -X POST http://18.176.93.228/get-balance \
 
 ## HTTP Status Codes
 
-| Code | Meaning | Action |
-|------|---------|--------|
-| **200** | Success | Operation completed |
-| **400** | Bad request | Fix your input — check the `message` field |
-| **401** | Unauthorized | Check your `Authorization` header / token |
-| **403** | Forbidden | Your token does not have access to this endpoint |
-| **404** | Not found | Resource doesn't exist (or endpoint typo) |
-| **405** | Method not allowed | Wrong HTTP method (GET vs POST) |
-| **409** | Conflict | Resource already exists (use update instead of setup) |
-| **500** | Server error | Check with admin — server logs have details |
+| Code          | Meaning             | Action                                                    |
+| ------------- | ------------------- | --------------------------------------------------------- |
+| **200** | Success             | Operation completed                                       |
+| **400** | Bad request         | Fix your input — check the `message` field             |
+| **401** | Unauthorized        | Check your `Authorization` header / token               |
+| **403** | Forbidden           | Your token does not have access to this endpoint          |
+| **404** | Not found           | Resource doesn't exist (or endpoint typo)                 |
+| **405** | Method not allowed  | Wrong HTTP method (GET vs POST)                           |
+| **409** | Conflict            | Resource already exists (use update instead of setup)     |
+| **500** | Server error        | Check with admin — server logs have details              |
 | **503** | Service unreachable | Server cannot reach the service — admin must investigate |
-| **504** | Service timed out | Slow response — try again or contact admin |
+| **504** | Service timeout     | Slow response — try again or contact admin               |
 
 ---
 
@@ -50,6 +53,7 @@ curl -X POST http://18.176.93.228/get-balance \
 All responses are JSON.
 
 **Success:**
+
 ```json
 {
   "code": 200,
@@ -59,6 +63,7 @@ All responses are JSON.
 ```
 
 **Error:**
+
 ```json
 {
   "code": 400,
@@ -73,31 +78,34 @@ The `request_id` is unique per request — give it to admin if you need help deb
 
 ## Common Error Messages
 
-| Message | What It Means | How to Fix |
-|---|---|---|
-| `unauthorized` | Bad/missing token | Add `Authorization: Bearer <TOKEN>` header |
-| `forbidden` | Token not allowed on this endpoint | Use the correct token for this endpoint |
-| `JSON object body required` | No request body or invalid JSON | Send a valid JSON body |
-| `Missing field: X` | Required field X is missing | Add field X to your payload |
-| `Invalid market 'X'` | `market` value is not `spot` or `perp` | Use `"market": "spot"` or `"market": "perp"` |
-| `Invalid tier 'X'` | `tier` value not valid | Use `"a"`, `"b"`, `"c"`, or `"s"` |
-| `Unknown exchange '...'` | Exchange not supported | Check supported exchanges list below |
-| `Config not found for X` | Symbol X has no config | Run `setup_*` first |
-| `already exists` | Config already exists | Use `update_*` instead of `setup_*` |
-| `check with admin` | Endpoint doesn't exist (typo) | Check endpoint URL |
-| `internal error` | Unexpected server error | Send `request_id` to admin |
+| Message                       | What It Means                                | How to Fix                                       |
+| ----------------------------- | -------------------------------------------- | ------------------------------------------------ |
+| `unauthorized`              | Bad/missing token                            | Add `Authorization: Bearer <TOKEN>` header     |
+| `forbidden`                 | Token not allowed on this endpoint           | Use the correct token for this endpoint          |
+| `JSON object body required` | No request body or invalid JSON              | Send a valid JSON body                           |
+| `Missing field: X`          | Required field X is missing                  | Add field X to your payload                      |
+| `Invalid market 'X'`        | `market` value is not `spot` or `perp` | Use `"market": "spot"` or `"market": "perp"` |
+| `Invalid tier 'X'`          | `tier` value not valid                     | Use `"a"`, `"b"`, `"c"`, or `"s"`        |
+| `Unknown exchange '...'`    | Exchange not supported                       | Check supported exchanges list below             |
+| `Config not found for X`    | Symbol X has no config                       | Run `setup_*` first                            |
+| `already exists`            | Config already exists                        | Use `update_*` instead of `setup_*`          |
+| `check with admin`          | Endpoint doesn't exist (typo)                | Check endpoint URL                               |
+| `internal error`            | Unexpected server error                      | Send `request_id` to admin                     |
 
 ---
 
 ## Supported Exchanges
 
 ### get-balance
+
 `kc`, `kcf`, `kucoin`, `kucoinf`, `bybit`, `byb`, `okx`, `gate`, `gateio`, `binance`, `bin`, `binf`, `binancef`, `bitget`, `mexc`, `fintrade`, `fintradef`
 
 ### Arbitrage strategy
+
 `kucoin`, `gate`, `binance`, `bybit`
 
 ### Stacker / New listing
+
 `kucoin`, `binance`, `gate`, `bybit`
 
 ---
@@ -105,11 +113,13 @@ The `request_id` is unique per request — give it to admin if you need help deb
 ## Endpoints
 
 ### 1. GET /health
+
 No auth needed. Quick health check.
 
 ```bash
 curl http://18.176.93.228/health
 ```
+
 Response: `{"ok": true, "ts": 1776308962}`
 
 ---
@@ -119,14 +129,16 @@ Response: `{"ok": true, "ts": 1776308962}`
 Get balance for a specific account.
 
 **Payload:**
-| Field | Type | Required | Description |
-|---|---|---|---|
-| exchange | string | yes | Exchange name (e.g. `kucoin`, `bybit`) |
-| account | string | yes | `main`, `trading`, or sub-account alias |
-| token | string | yes | Token symbol (e.g. `USDT`, `BTC`) |
-| market | string | required for futures | `spot` or `perp` (only for `kcf`, `binf`, `fintradef`) |
+
+| Field    | Type   | Required             | Description                                                      |
+| -------- | ------ | -------------------- | ---------------------------------------------------------------- |
+| exchange | string | yes                  | Exchange name (e.g.`kucoin`, `bybit`)                        |
+| account  | string | yes                  | `main`, `trading`, or sub-account alias                      |
+| token    | string | yes                  | Token symbol (e.g.`USDT`, `BTC`)                             |
+| market   | string | required for futures | `spot` or `perp` (only for `kcf`, `binf`, `fintradef`) |
 
 **Examples:**
+
 ```bash
 # KuCoin main account
 curl -X POST http://18.176.93.228/get-balance \
@@ -162,16 +174,18 @@ curl -X POST http://18.176.93.228/get-balance \
 Move funds between accounts/exchanges.
 
 **Payload:**
-| Field | Type | Required | Description |
-|---|---|---|---|
-| mode | string | yes | Transfer mode (see modes below) |
-| token | string | yes | Token symbol |
-| from_exchange | string | yes | Source exchange |
-| amount | number | yes | Amount (positive number) |
-| sub_account_name | string | required for kcf modes | Sub-account name |
-| to_exchange | string | required for `withdraw` | Destination exchange |
+
+| Field            | Type   | Required                  | Description                     |
+| ---------------- | ------ | ------------------------- | ------------------------------- |
+| mode             | string | yes                       | Transfer mode (see modes below) |
+| token            | string | yes                       | Token symbol                    |
+| from_exchange    | string | yes                       | Source exchange                 |
+| amount           | number | yes                       | Amount (positive number)        |
+| sub_account_name | string | required for kcf modes    | Sub-account name                |
+| to_exchange      | string | required for `withdraw` | Destination exchange            |
 
 **Modes:**
+
 - `sub_to_main` — sub to main (kc requires `sub_account_name`)
 - `main_to_sub` — main to sub (kc requires `sub_account_name`)
 - `withdraw` — withdraw to another exchange (requires `to_exchange`)
@@ -182,6 +196,7 @@ Move funds between accounts/exchanges.
 - `trading_to_funding` — OKX only
 
 **Example:**
+
 ```bash
 curl -X POST http://18.176.93.228/run-transfer \
   -H "Authorization: Bearer 3a71078c84c18f3310df39284341b4584e18d5284db906c8f5dbb721d5d9eed2" \
@@ -196,11 +211,13 @@ curl -X POST http://18.176.93.228/run-transfer \
 Stream the strategy monitor in real-time (SSE).
 
 **Payload:**
-| Field | Type | Required | Description |
-|---|---|---|---|
-| update_time | int | no | Refresh interval in seconds (default: 10) |
+
+| Field       | Type | Required | Description                               |
+| ----------- | ---- | -------- | ----------------------------------------- |
+| update_time | int  | no       | Refresh interval in seconds (default: 10) |
 
 **Example:**
+
 ```bash
 curl -N -X POST http://18.176.93.228/run-monitor \
   -H "Authorization: Bearer 3a71078c84c18f3310df39284341b4584e18d5284db906c8f5dbb721d5d9eed2" \
@@ -218,6 +235,7 @@ curl -N -X POST http://18.176.93.228/run-monitor \
 Set up a new listing config.
 
 **Payload (spot — needs all 16 fields):**
+
 ```bash
 curl -X POST http://18.176.93.228/setup_new_listing_config \
   -H "Authorization: Bearer 3a71078c84c18f3310df39284341b4584e18d5284db906c8f5dbb721d5d9eed2" \
@@ -243,6 +261,7 @@ curl -X POST http://18.176.93.228/setup_new_listing_config \
 ```
 
 **Payload (perp — only needs 4 fields):**
+
 ```bash
 curl -X POST http://18.176.93.228/setup_new_listing_config \
   -H "Authorization: Bearer 3a71078c84c18f3310df39284341b4584e18d5284db906c8f5dbb721d5d9eed2" \
@@ -256,6 +275,7 @@ curl -X POST http://18.176.93.228/setup_new_listing_config \
 ```
 
 **Valid values:**
+
 - `market`: `spot`, `perp`
 - `strategy`: `slow_mm`, `mid_mm`, `fast_mm`
 - `tier`: `s`, `1`, `2`, `3` (spot only)
@@ -275,24 +295,26 @@ Configure stacker strategy (creates 1 feed + 4 gateway + 4 strategy files).
 > **Ask admin for the correct `feed_host` and `gateway_host` values.**
 
 **Payload:**
-| Field | Type | Required | Description |
-|---|---|---|---|
-| exchanges | string | yes | `kucoin`, `binance`, `gate`, `bybit` |
-| base_ccy | string | yes | Base currency (e.g. `RAVE`) |
-| quote_ccy | string | yes | Quote currency (e.g. `USDT`) |
-| market | string | no | `spot` (default) or `perp` |
-| feed_host | string | yes | Full feed host:port — **ask admin** |
-| gateway_host | string | yes | Full gateway host:port — **ask admin** |
-| tick_size | number | yes | Price tick size |
-| quantity_step_size | number | yes | Quantity step size |
-| min_price | number | yes | Minimum price |
-| max_price | number | yes | Maximum price |
-| min_quantity | number | yes | Minimum order quantity |
-| max_quantity | number | yes | Maximum order quantity |
-| buy_stackers | string | yes | Proto-text stacker list: `[{price: X original_quantity: Y}, ...]` |
-| sell_stackers | string | yes | Proto-text stacker list: `[{price: X original_quantity: Y}, ...]` |
+
+| Field              | Type   | Required | Description                                                        |
+| ------------------ | ------ | -------- | ------------------------------------------------------------------ |
+| exchanges          | string | yes      | `kucoin`, `binance`, `gate`, `bybit`                       |
+| base_ccy           | string | yes      | Base currency (e.g.`RAVE`)                                       |
+| quote_ccy          | string | yes      | Quote currency (e.g.`USDT`)                                      |
+| market             | string | no       | `spot` (default) or `perp`                                     |
+| feed_host          | string | yes      | Full feed host:port —**ask admin**                          |
+| gateway_host       | string | yes      | Full gateway host:port —**ask admin**                       |
+| tick_size          | number | yes      | Price tick size                                                    |
+| quantity_step_size | number | yes      | Quantity step size                                                 |
+| min_price          | number | yes      | Minimum price                                                      |
+| max_price          | number | yes      | Maximum price                                                      |
+| min_quantity       | number | yes      | Minimum order quantity                                             |
+| max_quantity       | number | yes      | Maximum order quantity                                             |
+| buy_stackers       | string | yes      | Proto-text stacker list:`[{price: X original_quantity: Y}, ...]` |
+| sell_stackers      | string | yes      | Proto-text stacker list:`[{price: X original_quantity: Y}, ...]` |
 
 **Example:**
+
 ```bash
 curl -X POST http://18.176.93.228/setup_stacker_config \
   -H "Authorization: Bearer 3a71078c84c18f3310df39284341b4584e18d5284db906c8f5dbb721d5d9eed2" \
@@ -316,6 +338,7 @@ curl -X POST http://18.176.93.228/setup_stacker_config \
 ```
 
 **Response:**
+
 ```json
 {
   "code": 200,
@@ -335,25 +358,27 @@ curl -X POST http://18.176.93.228/setup_stacker_config \
 Update an existing stacker config. Only fields you provide are changed.
 
 **Payload:**
-| Field | Type | Required | Description |
-|---|---|---|---|
-| exchanges | string | yes | Exchange name (to identify the config) |
-| base_ccy | string | yes | Base currency (to identify the config) |
-| quote_ccy | string | yes | Quote currency (to identify the config) |
-| feed_host | string | no | New feed host:port |
-| gateway_host | string | no | New gateway host:port |
-| tick_size | number | no | New price tick size |
-| quantity_step_size | number | no | New quantity step size |
-| min_price | number | no | New minimum price |
-| max_price | number | no | New maximum price |
-| min_quantity | number | no | New minimum order quantity |
-| max_quantity | number | no | New maximum order quantity |
-| buy_stackers | array | no | Full new buy list |
-| sell_stackers | array | no | Full new sell list |
+
+| Field              | Type   | Required | Description                             |
+| ------------------ | ------ | -------- | --------------------------------------- |
+| exchanges          | string | yes      | Exchange name (to identify the config)  |
+| base_ccy           | string | yes      | Base currency (to identify the config)  |
+| quote_ccy          | string | yes      | Quote currency (to identify the config) |
+| feed_host          | string | no       | New feed host:port                      |
+| gateway_host       | string | no       | New gateway host:port                   |
+| tick_size          | number | no       | New price tick size                     |
+| quantity_step_size | number | no       | New quantity step size                  |
+| min_price          | number | no       | New minimum price                       |
+| max_price          | number | no       | New maximum price                       |
+| min_quantity       | number | no       | New minimum order quantity              |
+| max_quantity       | number | no       | New maximum order quantity              |
+| buy_stackers       | array  | no       | Full new buy list                       |
+| sell_stackers      | array  | no       | Full new sell list                      |
 
 > At least one optional field must be provided. Must call `/setup_stacker_config` first.
 
 **Example:**
+
 ```bash
 curl -X POST http://18.176.93.228/update_stacker_config \
   -H "Authorization: Bearer 3a71078c84c18f3310df39284341b4584e18d5284db906c8f5dbb721d5d9eed2" \
@@ -374,16 +399,18 @@ curl -X POST http://18.176.93.228/update_stacker_config \
 Start a volatility model strategy (runs in background).
 
 **Payload:**
-| Field | Type | Required | Description |
-|---|---|---|---|
-| symbol | string | yes | `BASE-QUOTE` format |
-| market | string | yes | `spot` or `perp` |
-| exchange | string | yes | Exchange name |
-| exchange_data | string | yes | Data source exchange |
-| risk_tol | string | yes | `low`, `medium`, `high` |
-| strategy | string | yes | `slow_mm`, `mid_mm`, `fast_mm` |
+
+| Field         | Type   | Required | Description                          |
+| ------------- | ------ | -------- | ------------------------------------ |
+| symbol        | string | yes      | `BASE-QUOTE` format                |
+| market        | string | yes      | `spot` or `perp`                 |
+| exchange      | string | yes      | Exchange name                        |
+| exchange_data | string | yes      | Data source exchange                 |
+| risk_tol      | string | yes      | `low`, `medium`, `high`        |
+| strategy      | string | yes      | `slow_mm`, `mid_mm`, `fast_mm` |
 
 **Example:**
+
 ```bash
 curl -X POST http://18.176.93.228/start_volatility_model \
   -H "Authorization: Bearer 3a71078c84c18f3310df39284341b4584e18d5284db906c8f5dbb721d5d9eed2" \
@@ -398,19 +425,21 @@ curl -X POST http://18.176.93.228/start_volatility_model \
 Write a symbol's market config to Redis.
 
 **Payload:**
-| Field | Type | Required | Description |
-|---|---|---|---|
-| base_currency | string | yes | Base currency (e.g. `ARCSOL`) |
-| quote_currency | string | yes | Quote currency (e.g. `USDT`) |
-| market | string | yes | `spot` or `perp` |
-| price_tick | number | yes | Minimum price increment |
-| size_tick | number | yes | Minimum size increment |
-| min_size | number | yes | Minimum order size |
-| multiplier | number | yes | Contract multiplier (use `1` for spot) |
-| contract_size | number | yes | Contract size (use `1` for spot) |
-| first_date | number | yes | Listing timestamp in milliseconds |
+
+| Field          | Type   | Required | Description                              |
+| -------------- | ------ | -------- | ---------------------------------------- |
+| base_currency  | string | yes      | Base currency (e.g.`ARCSOL`)           |
+| quote_currency | string | yes      | Quote currency (e.g.`USDT`)            |
+| market         | string | yes      | `spot` or `perp`                     |
+| price_tick     | number | yes      | Minimum price increment                  |
+| size_tick      | number | yes      | Minimum size increment                   |
+| min_size       | number | yes      | Minimum order size                       |
+| multiplier     | number | yes      | Contract multiplier (use `1` for spot) |
+| contract_size  | number | yes      | Contract size (use `1` for spot)       |
+| first_date     | number | yes      | Listing timestamp in milliseconds        |
 
 **Example:**
+
 ```bash
 curl -X POST http://18.176.93.228/set_symbol_config \
   -H "Authorization: Bearer 3a71078c84c18f3310df39284341b4584e18d5284db906c8f5dbb721d5d9eed2" \
@@ -448,15 +477,16 @@ curl -X GET http://18.176.93.228/check_volume_strat_inventory \
 #### POST /setup_volume_config
 
 **Payload:**
-| Field | Type | Required | Description |
-|---|---|---|---|
-| market | string | yes | `spot` or `perp` |
-| tier | string | yes | `a`, `b`, `c`, or `s` |
-| base_ccy | string | yes | Base currency |
-| quote_ccy | string | yes | Quote currency |
-| price_tick | number | yes | Price tick value |
-| price_tick_size | number | yes | Price tick size |
-| qty_unit | number | yes | Quantity unit |
+
+| Field           | Type   | Required | Description                   |
+| --------------- | ------ | -------- | ----------------------------- |
+| market          | string | yes      | `spot` or `perp`          |
+| tier            | string | yes      | `a`, `b`, `c`, or `s` |
+| base_ccy        | string | yes      | Base currency                 |
+| quote_ccy       | string | yes      | Quote currency                |
+| price_tick      | number | yes      | Price tick value              |
+| price_tick_size | number | yes      | Price tick size               |
+| qty_unit        | number | yes      | Quantity unit                 |
 
 ```bash
 curl -X POST http://18.176.93.228/setup_volume_config \
@@ -468,14 +498,15 @@ curl -X POST http://18.176.93.228/setup_volume_config \
 #### POST /update_volume_config
 
 **Payload:**
-| Field | Type | Required | Description |
-|---|---|---|---|
-| trade_symbol | string | yes | Format: `BASE-QUOTE` |
-| market | string | yes | `spot` or `perp` |
-| tier | string | no | If provided, reloads template |
-| price_tick | number | no | Update price_tick |
-| price_tick_size | number | no | Update price_tick_size |
-| qty_unit | number | no | Update qty_unit |
+
+| Field           | Type   | Required | Description                   |
+| --------------- | ------ | -------- | ----------------------------- |
+| trade_symbol    | string | yes      | Format:`BASE-QUOTE`         |
+| market          | string | yes      | `spot` or `perp`          |
+| tier            | string | no       | If provided, reloads template |
+| price_tick      | number | no       | Update price_tick             |
+| price_tick_size | number | no       | Update price_tick_size        |
+| qty_unit        | number | no       | Update qty_unit               |
 
 ```bash
 curl -X POST http://18.176.93.228/update_volume_config \
@@ -487,10 +518,11 @@ curl -X POST http://18.176.93.228/update_volume_config \
 #### POST /remove_volume_strat_config
 
 **Payload:**
-| Field | Type | Required | Description |
-|---|---|---|---|
-| symbol | string | yes | Format: `BASE-QUOTE` |
-| market | string | yes | `spot` or `perp` |
+
+| Field  | Type   | Required | Description           |
+| ------ | ------ | -------- | --------------------- |
+| symbol | string | yes      | Format:`BASE-QUOTE` |
+| market | string | yes      | `spot` or `perp`  |
 
 ```bash
 curl -X POST http://18.176.93.228/remove_volume_strat_config \
@@ -506,11 +538,12 @@ curl -X POST http://18.176.93.228/remove_volume_strat_config \
 #### POST /setup_1s_quoting_config
 
 **Payload:**
-| Field | Type | Required | Description |
-|---|---|---|---|
-| base_ccy | string | yes | Base currency |
-| quote_ccy | string | yes | Quote currency |
-| market | string | yes | `spot` or `perp` |
+
+| Field     | Type   | Required | Description          |
+| --------- | ------ | -------- | -------------------- |
+| base_ccy  | string | yes      | Base currency        |
+| quote_ccy | string | yes      | Quote currency       |
+| market    | string | yes      | `spot` or `perp` |
 
 ```bash
 curl -X POST http://18.176.93.228/setup_1s_quoting_config \
@@ -522,11 +555,12 @@ curl -X POST http://18.176.93.228/setup_1s_quoting_config \
 #### POST /update_1s_quoting_config
 
 **Payload:**
-| Field | Type | Required | Description |
-|---|---|---|---|
-| trade_symbol | string | yes | Format: `BASE-QUOTE` |
-| market | string | yes | `spot` or `perp` |
-| (any config field) | any | no | Any other field to update |
+
+| Field              | Type   | Required | Description               |
+| ------------------ | ------ | -------- | ------------------------- |
+| trade_symbol       | string | yes      | Format:`BASE-QUOTE`     |
+| market             | string | yes      | `spot` or `perp`      |
+| (any config field) | any    | no       | Any other field to update |
 
 ```bash
 curl -X POST http://18.176.93.228/update_1s_quoting_config \
@@ -538,10 +572,11 @@ curl -X POST http://18.176.93.228/update_1s_quoting_config \
 #### POST /remove_1s_quoting_config
 
 **Payload:**
-| Field | Type | Required | Description |
-|---|---|---|---|
-| symbol | string | yes | Format: `BASE-QUOTE` |
-| market | string | yes | `spot` or `perp` |
+
+| Field  | Type   | Required | Description           |
+| ------ | ------ | -------- | --------------------- |
+| symbol | string | yes      | Format:`BASE-QUOTE` |
+| market | string | yes      | `spot` or `perp`  |
 
 ```bash
 curl -X POST http://18.176.93.228/remove_1s_quoting_config \
@@ -557,16 +592,17 @@ curl -X POST http://18.176.93.228/remove_1s_quoting_config \
 #### POST /setup_arbitrage_strategy
 
 **Payload:**
-| Field | Type | Required | Description |
-|---|---|---|---|
-| exchanges | string | yes | Comma-separated: `kucoin`, `gate`, `binance`, `bybit` |
-| base_ccy | string | yes | Comma-separated, must match exchange count |
-| quote | string | yes | Comma-separated, must match exchange count |
-| market | string | yes | `spot` or `perp` |
-| taker_arb_min_bps | number | no | Default: 5 |
-| maker_arb_min_bps | number | no | Default: 20000 |
-| max_order_amount | number | no | Default: 50 |
-| min_order_amount | number | no | Default: 20 |
+
+| Field             | Type   | Required | Description                                                  |
+| ----------------- | ------ | -------- | ------------------------------------------------------------ |
+| exchanges         | string | yes      | Comma-separated:`kucoin`, `gate`, `binance`, `bybit` |
+| base_ccy          | string | yes      | Comma-separated, must match exchange count                   |
+| quote             | string | yes      | Comma-separated, must match exchange count                   |
+| market            | string | yes      | `spot` or `perp`                                         |
+| taker_arb_min_bps | number | no       | Default: 5                                                   |
+| maker_arb_min_bps | number | no       | Default: 20000                                               |
+| max_order_amount  | number | no       | Default: 50                                                  |
+| min_order_amount  | number | no       | Default: 20                                                  |
 
 ```bash
 curl -X POST http://18.176.93.228/setup_arbitrage_strategy \
@@ -578,14 +614,15 @@ curl -X POST http://18.176.93.228/setup_arbitrage_strategy \
 #### POST /update_arbitrage_strategy
 
 **Payload:**
-| Field | Type | Required | Description |
-|---|---|---|---|
-| base_ccy | string | yes | Base currency of the existing config |
-| market | string | yes | `spot` or `perp` |
-| taker_arb_min_bps | number | no | |
-| maker_arb_min_bps | number | no | |
-| max_order_amount | number | no | |
-| min_order_amount | number | no | |
+
+| Field             | Type   | Required | Description                          |
+| ----------------- | ------ | -------- | ------------------------------------ |
+| base_ccy          | string | yes      | Base currency of the existing config |
+| market            | string | yes      | `spot` or `perp`                 |
+| taker_arb_min_bps | number | no       |                                      |
+| maker_arb_min_bps | number | no       |                                      |
+| max_order_amount  | number | no       |                                      |
+| min_order_amount  | number | no       |                                      |
 
 ```bash
 curl -X POST http://18.176.93.228/update_arbitrage_strategy \
@@ -597,10 +634,11 @@ curl -X POST http://18.176.93.228/update_arbitrage_strategy \
 #### POST /remove_arbitrage_strategy
 
 **Payload:**
-| Field | Type | Required | Description |
-|---|---|---|---|
-| base_ccy | string | yes | Base currency of the config to remove |
-| market | string | yes | `spot` or `perp` |
+
+| Field    | Type   | Required | Description                           |
+| -------- | ------ | -------- | ------------------------------------- |
+| base_ccy | string | yes      | Base currency of the config to remove |
+| market   | string | yes      | `spot` or `perp`                  |
 
 ```bash
 curl -X POST http://18.176.93.228/remove_arbitrage_strategy \
@@ -618,14 +656,15 @@ Generate a gateway config file for a new listing.
 > **Ask admin for `host`, `feed_host`, and `account_id` values.**
 
 **Payload:**
-| Field | Type | Required | Description |
-|---|---|---|---|
-| gateway_name | string | yes | Name for the generated file (no `.txtpb` extension) |
-| market | string | yes | `spot` or `perp` |
-| host | string | yes | Gateway host:port — **ask admin** |
-| feed_host | string | yes | Feed host:port — **ask admin** |
-| account_id | string | yes | Gateway account ID |
-| exchange | string | no | Default: `kucoin` |
+
+| Field        | Type   | Required | Description                                           |
+| ------------ | ------ | -------- | ----------------------------------------------------- |
+| gateway_name | string | yes      | Name for the generated file (no `.txtpb` extension) |
+| market       | string | yes      | `spot` or `perp`                                  |
+| host         | string | yes      | Gateway host:port —**ask admin**               |
+| feed_host    | string | yes      | Feed host:port —**ask admin**                  |
+| account_id   | string | yes      | Gateway account ID                                    |
+| exchange     | string | no       | Default:`kucoin`                                    |
 
 ```bash
 curl -X POST http://18.176.93.228/setup_new_listing_gateway \
@@ -649,13 +688,14 @@ Set up feed subscription and strategy config files for a new listing.
 > **Ask admin for `feed_host` and `gateway_host`.**
 
 **Payload:**
-| Field | Type | Required | Description |
-|---|---|---|---|
-| base_ccy | string | yes | Base currency |
-| quote_ccy | string | yes | Quote currency |
-| market | string | yes | `spot` or `perp` |
-| gateway_host | string | yes | **Ask admin** |
-| feed_host | string | yes | **Ask admin** |
+
+| Field        | Type   | Required | Description          |
+| ------------ | ------ | -------- | -------------------- |
+| base_ccy     | string | yes      | Base currency        |
+| quote_ccy    | string | yes      | Quote currency       |
+| market       | string | yes      | `spot` or `perp` |
+| gateway_host | string | yes      | **Ask admin**  |
+| feed_host    | string | yes      | **Ask admin**  |
 
 ```bash
 curl -X POST http://18.176.93.228/setup_listing_strategy_gateway_feed \
@@ -677,10 +717,11 @@ All setup endpoints return `409` if the program already exists. All remove endpo
 #### POST /setup_new_listing_gateway_supervisorctl
 
 **Payload:**
-| Field | Type | Required | Description |
-|---|---|---|---|
-| program_name | string | yes | Unique supervisor program name |
-| config_path | string | yes | Full path to the gateway `.txtpb` config file |
+
+| Field        | Type   | Required | Description                                     |
+| ------------ | ------ | -------- | ----------------------------------------------- |
+| program_name | string | yes      | Unique supervisor program name                  |
+| config_path  | string | yes      | Full path to the gateway `.txtpb` config file |
 
 ```bash
 curl -X POST http://18.176.93.228/setup_new_listing_gateway_supervisorctl \
@@ -741,19 +782,23 @@ curl -X POST http://18.176.93.228/remove_new_listing_strategy_supervisorctl \
 Start, stop, or restart a named supervisorctl process.
 
 #### POST /feed_control
+
 `name` must contain `feed`.
 
 #### POST /strategy_control
+
 `name` must contain `strat2`.
 
 #### POST /gateway_control
+
 `name` must contain `gateway`.
 
 **Payload (all three):**
-| Field | Type | Required | Description |
-|---|---|---|---|
-| method | string | yes | `start`, `stop`, or `restart` |
-| name | string | yes | Supervisorctl program name |
+
+| Field  | Type   | Required | Description                         |
+| ------ | ------ | -------- | ----------------------------------- |
+| method | string | yes      | `start`, `stop`, or `restart` |
+| name   | string | yes      | Supervisorctl program name          |
 
 ```bash
 curl -X POST http://18.176.93.228/feed_control \
@@ -763,6 +808,7 @@ curl -X POST http://18.176.93.228/feed_control \
 ```
 
 **Response:**
+
 ```json
 {
   "code": 200,
@@ -783,6 +829,7 @@ Create a new simple arbitrage config file. Returns `409` if it already exists �
 `maker_exchange`, `taker_exchange`, `maker_market`, `taker_market`, `base_ccy`, `quote_ccy`, `maker_symbol`, `taker_symbol`, `target_inventory`, `max_inventory`, `rebalance_threshold`, `spread_bps`, `order_size`, `max_orders`, `cooldown_ms`, `maker_enabled`, `taker_enabled`, `withdraw`
 
 **Conditional fields in `params`:**
+
 - `perp_closing_mode` — required if either market is `perp`
 - `maker_min_order_size` — required if `maker_enabled` is true
 - `taker_min_order_size` — required if `taker_enabled` is true
@@ -799,6 +846,7 @@ curl -X POST http://18.176.93.228/setup_simple_arbitrage_config \
 ```
 
 **Response:**
+
 ```json
 {"code": 200, "message": "success", "configs": {"config": "path/to/config.json"}}
 ```
@@ -839,6 +887,7 @@ curl -X POST http://18.176.93.228/setup_simple_trader_config \
 ```
 
 **Response:**
+
 ```json
 {"code": 200, "message": "success", "configs": {"config": "path/to/config.json"}}
 ```
@@ -862,6 +911,7 @@ curl -X POST http://18.176.93.228/update_simple_trader_config \
 ## Common Workflows
 
 ### Workflow 1: Set up new listing
+
 ```bash
 # 1. Register symbol config in Redis
 curl -X POST http://18.176.93.228/set_symbol_config \
@@ -883,6 +933,7 @@ curl -X POST http://18.176.93.228/start_volatility_model \
 ```
 
 ### Workflow 2: Set up volume strategy
+
 ```bash
 # 1. Create config
 curl -X POST http://18.176.93.228/setup_volume_config \
@@ -904,6 +955,7 @@ curl -X POST http://18.176.93.228/remove_volume_strat_config \
 ```
 
 ### Workflow 3: Check balances
+
 ```bash
 # Main account
 curl -X POST http://18.176.93.228/get-balance \
@@ -923,26 +975,28 @@ curl -X POST http://18.176.93.228/get-balance \
 
 ## Troubleshooting
 
-| Problem | Likely Cause | Solution |
-|---|---|---|
-| `401 unauthorized` | Wrong/missing token | Check `Authorization: Bearer <TOKEN>` header |
-| `403 forbidden` | Token not allowed on this endpoint | Use the correct token for this endpoint type |
-| `404 check with admin` | Endpoint URL typo | Verify endpoint name spelling |
-| `400 Missing field: market` | Forgot to pass `market` | Add `"market": "spot"` or `"market": "perp"` |
-| `404 Config not found` | Trying to update/remove non-existent config | Run `setup_*` first |
-| `409 already exists` | Trying to create duplicate | Use `update_*` instead |
-| `500 internal error` | Server error | Send `request_id` to admin |
-| `503 Service unreachable` | Cannot reach the service | Tell admin |
-| `504 Service timed out` | Exchange API slow | Retry, or tell admin if persists |
+| Problem                       | Likely Cause                                | Solution                                         |
+| ----------------------------- | ------------------------------------------- | ------------------------------------------------ |
+| `401 unauthorized`          | Wrong/missing token                         | Check `Authorization: Bearer <TOKEN>` header   |
+| `403 forbidden`             | Token not allowed on this endpoint          | Use the correct token for this endpoint type     |
+| `404 check with admin`      | Endpoint URL typo                           | Verify endpoint name spelling                    |
+| `400 Missing field: market` | Forgot to pass `market`                   | Add `"market": "spot"` or `"market": "perp"` |
+| `404 Config not found`      | Trying to update/remove non-existent config | Run `setup_*` first                            |
+| `409 already exists`        | Trying to create duplicate                  | Use `update_*` instead                         |
+| `500 internal error`        | Server error                                | Send `request_id` to admin                     |
+| `503 Service unreachable`   | Cannot reach the service                    | Tell admin                                       |
+| `504 Service timed out`     | Exchange API slow                           | Retry, or tell admin if persists                 |
 
 ---
 
 ## Getting Help
 
 When asking admin for help, always include:
+
 1. The full `curl` command you ran (redact any sensitive values)
 2. The complete JSON response (with `request_id`)
 3. Approximate time of the request
 
 Example:
+
 > "I called `/setup_volume_config` at 14:30 with `request_id=abc123def456` and got `{"code": 500, "message": "internal error"}`. Can you check?"
