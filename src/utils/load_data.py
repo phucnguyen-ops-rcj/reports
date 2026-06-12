@@ -29,6 +29,7 @@ def load_pnl_data(
         out_dir = Path(app_settings.input_dir) / "net_pnl"
         save_csv(df, out_dir, "")
     df = wrangle_pnl_data(df)
+    # df = df[df["mapped_symbol"].isin(MONITORING_SYMBOLS)].reset_index(drop=True)
     end_time = time.time()
     logger.info(f"{len(df)} rows loaded in {end_time - start_time:.2f} seconds.")
     return df
