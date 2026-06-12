@@ -22,6 +22,8 @@ from src.utils.visualization import net_pnl_to_png_styled
 
 logger = logging.getLogger(__name__)
 
+LARGE_PROFIT_THRESHOLD = 20_000
+
 
 def build_group_summary(df, by_cols):
     summary_df = aggregate_metric_columns(df, by_cols, FINAL_COLUMNS[1:])
@@ -103,6 +105,14 @@ def _analyze_symbol_losses(df):
     return loss_sym_df, loss_symbols, severe_symbols
 
 
+def _analyze_large_profit_symbols(df):
+    """Identify symbols with NPNL above the large-profit threshold."""
+    sym_sum = build_group_summary(df, ["mapped_symbol"])
+    large_profit_sym_df = sym_sum[sym_sum["npnl_r+un"] > LARGE_PROFIT_THRESHOLD].copy()
+    large_profit_sym_df.sort_values(by="npnl_r+un", inplace=True, ascending=False)
+    return large_profit_sym_df["mapped_symbol"].tolist()
+
+
 def _build_symbol_strategy_detail(df, loss_symbols):
     """Deep dive into strategy-level details for loss symbols."""
     sym_loss_df = df[df["mapped_symbol"].isin(loss_symbols)].copy()
@@ -171,6 +181,7 @@ def main():
 
         # Analyze symbol losses
         loss_sym_df, loss_symbols, severe_symbols = _analyze_symbol_losses(df)
+        large_profit_symbols = _analyze_large_profit_symbols(df)
 
         # Build final table
         final_df = pd.concat(
@@ -190,6 +201,7 @@ def main():
             total_npnl,
             loss_base_strats,
             severe_symbols,
+            large_profit_symbols,
             loss_symbols,
             loss_sym_strats,
         )

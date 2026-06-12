@@ -93,6 +93,7 @@ def build_daily_report(
     total_npnl: float,
     loss_base_strats: list[str],
     severe_symbols: list[str],
+    large_profit_symbols: list[str],
     loss_symbols: list[str],
     loss_sym_strats: pd.DataFrame,
 ) -> str:
@@ -102,6 +103,14 @@ def build_daily_report(
         )
     else:
         severe_line = "No symbol with 24H NPNL < -3k"
+
+    if large_profit_symbols:
+        large_profit_line = (
+            "Symbols with 24H NPNL > +20k: "
+            f"{format_symbol_list(large_profit_symbols)}"
+        )
+    else:
+        large_profit_line = "No symbol with 24H NPNL > +20k"
 
     if loss_base_strats:
         loss_strat_line = (
@@ -127,6 +136,8 @@ def build_daily_report(
         f"Total NPNL: {format_signed_number(total_npnl)}",
         "",
         severe_line,
+        "",
+        large_profit_line,
         "",
         loss_strat_line,
         "",
