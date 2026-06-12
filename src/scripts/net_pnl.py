@@ -110,7 +110,21 @@ def _analyze_large_profit_symbols(df):
     sym_sum = build_group_summary(df, ["mapped_symbol"])
     large_profit_sym_df = sym_sum[sym_sum["npnl_r+un"] > LARGE_PROFIT_THRESHOLD].copy()
     large_profit_sym_df.sort_values(by="npnl_r+un", inplace=True, ascending=False)
-    return large_profit_sym_df["mapped_symbol"].tolist()
+    large_profit_symbols = large_profit_sym_df["mapped_symbol"].tolist()
+    return large_profit_sym_df, large_profit_symbols
+
+
+def _build_final_table(strategy_summary_df, loss_sym_df, large_profit_sym_df):
+    """Combine strategy summaries with notable symbol results."""
+    return pd.concat(
+        [
+            strategy_summary_df,
+            loss_sym_df.rename(columns={"mapped_symbol": "strategy"}),
+            large_profit_sym_df.rename(columns={"mapped_symbol": "strategy"}),
+        ],
+        ignore_index=True,
+        sort=False,
+    )
 
 
 def _build_symbol_strategy_detail(df, loss_symbols):
@@ -181,16 +195,13 @@ def main():
 
         # Analyze symbol losses
         loss_sym_df, loss_symbols, severe_symbols = _analyze_symbol_losses(df)
-        large_profit_symbols = _analyze_large_profit_symbols(df)
+        large_profit_sym_df, large_profit_symbols = _analyze_large_profit_symbols(df)
 
         # Build final table
-        final_df = pd.concat(
-            [
-                w_category_strat_sum_df,
-                loss_sym_df.rename(columns={"mapped_symbol": "strategy"}),
-            ],
-            ignore_index=True,
-            sort=False,
+        final_df = _build_final_table(
+            w_category_strat_sum_df,
+            loss_sym_df,
+            large_profit_sym_df,
         )
 
         # Deep dive into symbol-strategy details

@@ -1,6 +1,6 @@
 import pandas as pd
 
-from src.scripts.net_pnl import _analyze_large_profit_symbols
+from src.scripts.net_pnl import _analyze_large_profit_symbols, _build_final_table
 from src.utils.format_message import build_daily_report
 
 
@@ -17,7 +17,24 @@ def test_analyze_large_profit_symbols_sorts_highest_profit_first():
         }
     )
 
-    assert _analyze_large_profit_symbols(df) == ["H", "ETH"]
+    large_profit_sym_df, large_profit_symbols = _analyze_large_profit_symbols(df)
+
+    assert large_profit_symbols == ["H", "ETH"]
+    assert large_profit_sym_df["npnl_r+un"].tolist() == [25_000.0, 23_000.0]
+
+
+def test_build_final_table_includes_large_profit_symbols():
+    strategy_summary_df = pd.DataFrame(
+        {"strategy": ["strategy8"], "npnl_r+un": [30_000.0]}
+    )
+    loss_sym_df = pd.DataFrame({"mapped_symbol": ["ESPORTS"], "npnl_r+un": [-3_100.0]})
+    large_profit_sym_df = pd.DataFrame(
+        {"mapped_symbol": ["H", "ETH"], "npnl_r+un": [25_000.0, 23_000.0]}
+    )
+
+    final_df = _build_final_table(strategy_summary_df, loss_sym_df, large_profit_sym_df)
+
+    assert final_df["strategy"].tolist() == ["strategy8", "ESPORTS", "H", "ETH"]
 
 
 def test_build_daily_report_includes_large_profit_symbols():

@@ -8,6 +8,7 @@ from src.scripts.net_pnl import (
     _analyze_base_strategy_losses,
     _analyze_large_profit_symbols,
     _analyze_symbol_losses,
+    _build_final_table,
     _build_strategy_summary_table,
     _build_symbol_strategy_detail,
 )
@@ -32,15 +33,11 @@ def task_analyze(df: pd.DataFrame) -> tuple:
     loss_base_strats = _analyze_base_strategy_losses(df)
     w_category_strat_sum_df = _build_strategy_summary_table(df)
     loss_sym_df, loss_symbols, severe_symbols = _analyze_symbol_losses(df)
-    large_profit_symbols = _analyze_large_profit_symbols(df)
-    # combine strategy summary and symbol losses into final table
-    final_df = pd.concat(
-        [
-            w_category_strat_sum_df,
-            loss_sym_df.rename(columns={"mapped_symbol": "strategy"}),
-        ],
-        ignore_index=True,
-        sort=False,
+    large_profit_sym_df, large_profit_symbols = _analyze_large_profit_symbols(df)
+    final_df = _build_final_table(
+        w_category_strat_sum_df,
+        loss_sym_df,
+        large_profit_sym_df,
     )
     loss_sym_strats = _build_symbol_strategy_detail(df, loss_symbols)
     report_text = build_daily_report(
