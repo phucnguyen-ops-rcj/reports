@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from src.clients.third_parties.coingecko import GlobalMarketSummary
-from src.utils.constants import CATEGORY_STRATEGY_MAPPING
+from src.utils.constants import CATEGORY_STRATEGY_MAPPING, THRESHOLDS
 from src.settings import app_settings
 import pandas as pd
 from datetime import datetime
@@ -97,6 +97,9 @@ def build_daily_report(
     loss_symbols: list[str],
     loss_sym_strats: pd.DataFrame,
 ) -> str:
+    large_profit_threshold_k = THRESHOLDS["large_profit_pnl"] / 1000
+    large_profit_label = f"+{large_profit_threshold_k:g}k"
+
     if severe_symbols:
         severe_line = (
             f"Symbols with 24H NPNL < -3k: {format_symbol_list(severe_symbols)}"
@@ -106,11 +109,11 @@ def build_daily_report(
 
     if large_profit_symbols:
         large_profit_line = (
-            "Symbols with 24H NPNL > +20k: "
+            f"Symbols with 24H NPNL > {large_profit_label}: "
             f"{format_symbol_list(large_profit_symbols)}"
         )
     else:
-        large_profit_line = "No symbol with 24H NPNL > +20k"
+        large_profit_line = f"No symbol with 24H NPNL > {large_profit_label}"
 
     if loss_base_strats:
         loss_strat_line = (

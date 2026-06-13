@@ -65,6 +65,7 @@
         "rpnlwfees"
     ],
     "thresholds": {
-        "loss_pnl": -1000
+        "loss_pnl": -1000,
+        "large_profit_pnl": 5000
     }
 }

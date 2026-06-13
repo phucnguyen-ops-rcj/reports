@@ -22,8 +22,6 @@ from src.utils.visualization import net_pnl_to_png_styled
 
 logger = logging.getLogger(__name__)
 
-LARGE_PROFIT_THRESHOLD = 20_000
-
 
 def build_group_summary(df, by_cols):
     summary_df = aggregate_metric_columns(df, by_cols, FINAL_COLUMNS[1:])
@@ -99,6 +97,12 @@ def _analyze_symbol_losses(df):
         "npnl_r+un",
         THRESHOLDS["loss_pnl"],
     )
+    loss_sym_df = _add_symbol_strategy_breakdown(
+        df,
+        loss_sym_df,
+        threshold=THRESHOLDS["loss_pnl"],
+        direction="below",
+    )
     loss_symbols = loss_sym_df["mapped_symbol"].tolist()
     severe_sym_df = filter_rows_below_threshold(sym_sum, "npnl_r+un", -3000)
     severe_symbols = severe_sym_df["mapped_symbol"].tolist()
@@ -106,12 +110,54 @@ def _analyze_symbol_losses(df):
 
 
 def _analyze_large_profit_symbols(df):
-    """Identify symbols with NPNL above the large-profit threshold."""
+    """Identify symbols with large profits and attach their strategy breakdown."""
     sym_sum = build_group_summary(df, ["mapped_symbol"])
-    large_profit_sym_df = sym_sum[sym_sum["npnl_r+un"] > LARGE_PROFIT_THRESHOLD].copy()
+    large_profit_sym_df = sym_sum[
+        sym_sum["npnl_r+un"] > THRESHOLDS["large_profit_pnl"]
+    ].copy()
     large_profit_sym_df.sort_values(by="npnl_r+un", inplace=True, ascending=False)
+    large_profit_sym_df = _add_symbol_strategy_breakdown(
+        df,
+        large_profit_sym_df,
+        threshold=THRESHOLDS["large_profit_pnl"],
+        direction="above",
+    )
     large_profit_symbols = large_profit_sym_df["mapped_symbol"].tolist()
     return large_profit_sym_df, large_profit_symbols
+
+
+def _add_symbol_strategy_breakdown(df, symbol_summary_df, *, threshold, direction):
+    """Attach qualifying strategy names and P&L totals to symbol summary rows."""
+    result = symbol_summary_df.copy()
+    symbol_strategies = build_group_summary(df, ["mapped_symbol", "strategy"])
+    if direction == "below":
+        symbol_strategies = filter_rows_below_threshold(
+            symbol_strategies,
+            "npnl_r+un",
+            threshold,
+        )
+    else:
+        symbol_strategies = symbol_strategies[
+            symbol_strategies["npnl_r+un"] > threshold
+        ].copy()
+    symbol_strategies["strategy"] = symbol_strategies["strategy"].map(
+        _abbreviate_strategy
+    )
+    symbol_strategies["npnl_r+un"] = symbol_strategies["npnl_r+un"].round().astype(int)
+    breakdown = symbol_strategies.groupby("mapped_symbol", sort=False).agg(
+        category=("strategy", list),
+        category_total_pnl=("npnl_r+un", list),
+    )
+    return result.merge(breakdown, on="mapped_symbol", how="left")
+
+
+def _abbreviate_strategy(strategy):
+    """Shorten known strategy prefixes while preserving numeric suffixes."""
+    if strategy.startswith("strategy"):
+        return f"s{strategy.removeprefix('strategy')}"
+    if strategy.startswith("kucc"):
+        return f"k{strategy.removeprefix('kucc')}"
+    return strategy
 
 
 def _build_final_table(strategy_summary_df, loss_sym_df, large_profit_sym_df):
