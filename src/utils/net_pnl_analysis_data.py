@@ -16,6 +16,7 @@ from src.clients.rcj_trading import (
     RcjTradingAnalyzeType,
     RcjTradingClient,
 )
+from src.settings import get_settings
 from src.utils.constants import ANALYSIS_DATA_COLUMNS
 
 DEFAULT_PERIOD_MS = 24 * 60 * 60 * 1000
@@ -41,6 +42,67 @@ def batched(items: Iterable[str], size: int) -> Iterable[list[str]]:
     iterator = iter(items)
     while batch := list(islice(iterator, size)):
         yield batch
+
+
+def load_symbols_by_market_from_input(
+    input_path: str | Path,
+) -> dict[str, list[str]]:
+    """Load unique spot and perp symbols from the configured net P&L input CSV."""
+    input_df = pd.read_csv(input_path)
+    source_columns = {
+        str(column).strip().lower(): column for column in input_df.columns
+    }
+    if {"market", "symbol"} <= source_columns.keys():
+        input_df = input_df.loc[
+            :, [source_columns["market"], source_columns["symbol"]]
+        ].rename(
+            columns={
+                source_columns["market"]: "market",
+                source_columns["symbol"]: "symbol",
+            }
+        )
+    elif len(input_df.columns) == len(ANALYSIS_DATA_COLUMNS):
+        input_df.columns = ANALYSIS_DATA_COLUMNS
+        input_df = input_df.loc[:, ["market", "symbol"]]
+    else:
+        raise ValueError(
+            f"{input_path} must contain market and symbol columns or match the "
+            "configured net P&L column order."
+        )
+    input_df = input_df.dropna()
+    input_df["market"] = input_df["market"].astype(str).str.strip().str.lower()
+    input_df["symbol"] = input_df["symbol"].astype(str).str.strip()
+    input_df = input_df[input_df["symbol"] != ""]
+    return {
+        market: sorted(
+            input_df.loc[input_df["market"] == market, "symbol"].drop_duplicates()
+        )
+        for market in ("spot", "perp")
+    }
+
+
+def get_symbols_by_market_with_fallback(
+    redis_client: RedisClient,
+    market: str,
+    input_path: str | Path,
+) -> list[str]:
+    """Load market symbols from Redis, falling back to the net P&L input CSV."""
+    try:
+        symbols = redis_client.get_symbols_by_market(market)  # pyrefly: ignore
+        if symbols:
+            return symbols
+        logger.warning("Redis returned no %s symbols; using %s.", market, input_path)
+    except Exception:
+        logger.warning(
+            "Failed to load %s symbols from Redis; using %s.",
+            market,
+            input_path,
+            exc_info=True,
+        )
+
+    symbols = load_symbols_by_market_from_input(input_path)[market]
+    logger.info("Loaded %s %s symbols from %s.", len(symbols), market, input_path)
+    return symbols
 
 
 def metric_delta(metric: dict[str, Any], *, absolute: bool = False) -> float:
@@ -253,11 +315,16 @@ def build_analysis_dataframe(
 ) -> pd.DataFrame:
     redis_client = RedisClient(execution_mode="ssh", ssh_host="T1_newuser1")
     trading_client = RcjTradingClient()
+    input_path = get_settings().net_pnl_input_path
     try:
         spot_start = time.time()
-        spot_symbols = redis_client.get_symbols_by_market("spot")
+        spot_symbols = get_symbols_by_market_with_fallback(
+            redis_client,
+            "spot",
+            input_path,
+        )
         logger.info(
-            "Loaded %s spot symbols from Redis in %.2f seconds.",
+            "Loaded %s spot symbols in %.2f seconds.",
             len(spot_symbols),
             time.time() - spot_start,
         )
@@ -269,9 +336,13 @@ def build_analysis_dataframe(
             batch_size=batch_size,
         )
         perp_start = time.time()
-        perp_symbols = redis_client.get_symbols_by_market("perp")
+        perp_symbols = get_symbols_by_market_with_fallback(
+            redis_client,
+            "perp",
+            input_path,
+        )
         logger.info(
-            "Loaded %s perp symbols from Redis in %.2f seconds.",
+            "Loaded %s perp symbols in %.2f seconds.",
             len(perp_symbols),
             time.time() - perp_start,
         )

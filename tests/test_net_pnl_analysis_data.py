@@ -3,6 +3,8 @@ from __future__ import annotations
 from src.utils.net_pnl_analysis_data import (
     build_analysis_rows,
     build_market_analysis_dataframe,
+    get_symbols_by_market_with_fallback,
+    load_symbols_by_market_from_input,
     metric_delta,
 )
 
@@ -92,3 +94,50 @@ def test_build_market_analysis_dataframe_for_given_symbols():
             "trade_count": 2,
         }
     ]
+
+
+def test_load_symbols_by_market_from_input(tmp_path):
+    input_path = tmp_path / "trades.csv"
+    input_path.write_text(
+        "Market,Symbol\n"
+        "spot,ETH\n"
+        "spot,BTC\n"
+        "spot,ETH\n"
+        "perp,SOL\n"
+        "perp,BTC\n"
+    )
+
+    assert load_symbols_by_market_from_input(input_path) == {
+        "spot": ["BTC", "ETH"],
+        "perp": ["BTC", "SOL"],
+    }
+
+
+def test_get_symbols_by_market_falls_back_to_input_when_redis_fails(tmp_path):
+    class FailingRedisClient:
+        def get_symbols_by_market(self, market):
+            raise ConnectionError(f"Redis unavailable for {market}")
+
+    input_path = tmp_path / "trades.csv"
+    input_path.write_text("market,symbol\nspot,BTC\nperp,SOL\n")
+
+    assert get_symbols_by_market_with_fallback(
+        FailingRedisClient(),  # pyrefly: ignore
+        "spot",
+        input_path,
+    ) == ["BTC"]
+
+
+def test_get_symbols_by_market_falls_back_when_redis_is_empty(tmp_path):
+    class EmptyRedisClient:
+        def get_symbols_by_market(self, market):
+            return []
+
+    input_path = tmp_path / "trades.csv"
+    input_path.write_text("market,symbol\nspot,BTC\nperp,SOL\n")
+
+    assert get_symbols_by_market_with_fallback(
+        EmptyRedisClient(),  # pyrefly: ignore
+        "perp",
+        input_path,
+    ) == ["SOL"]
