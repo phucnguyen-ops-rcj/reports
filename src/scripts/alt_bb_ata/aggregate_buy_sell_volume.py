@@ -17,7 +17,7 @@ from src.scripts.alt_bb_ata.report_config import load_alt_report_section
 DEFAULT_OUTPUT_DIR = Path("results/alt_bb_ata")
 DEFAULT_IMAGE_NAME = "aggregate_buy_sell_volume.png"
 DEFAULT_TIMEZONE = "UTC"
-SUPPORTED_SYMBOLS = {"ALT"}
+SUPPORTED_SYMBOLS = {"ALT", "BB", "ATA"}
 BUY_COLOR = "#59b45a"
 SELL_COLOR = "#f06a78"
 GRID_COLOR = "#d2d8df"

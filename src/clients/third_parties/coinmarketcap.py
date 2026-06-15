@@ -199,7 +199,10 @@ class CoinMarketCapClient:
             rows.append(
                 {
                     "timestamp": timestamp,
-                    "date": pd.to_datetime(timestamp, unit="ms", utc=True),
+                    # CoinMarketCap timestamps each daily bucket at its start,
+                    # while reports label completed buckets by the next boundary.
+                    "date": pd.to_datetime(timestamp, unit="ms", utc=True)
+                    + pd.Timedelta(days=1),
                     "symbol": chart_payload.get("selected_coin_symbol"),
                     "coin_name": chart_payload.get("selected_coin_name"),
                     "exchange": chart_payload.get("selected_exchange"),

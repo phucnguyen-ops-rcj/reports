@@ -109,5 +109,189 @@
         "filename": "bybit_altusdt_volume.png"
       }
     ]
+  },
+  "BB": {
+    "aggregate_buy_sell_volume": {
+      "price_symbol": "BBUSDT",
+      "trade_measurements": [
+        "binance_binancecpp_BB_USDT_3_trade",
+        "binance_binancecpp_BB_USDT_trade",
+        "binance_binancecpp_BB_USDC_trade",
+        "bybit_bybitcpp_BB_USDT_1_trade",
+        "kucoin_kucoincpp_BB_USDT_1_wo_vol_trade"
+      ]
+    },
+    "liquidity_table": [
+      {
+        "exchange": "binance",
+        "exchange_label": "Binance",
+        "pair": "BBUSDC",
+        "public_symbol": "BBUSDC",
+        "trade_measurements": [
+          "binance_binancecpp_BB_USDC_trade"
+        ],
+        "spread_bps": 30
+      },
+      {
+        "exchange": "binance",
+        "exchange_label": "Binance",
+        "pair": "BBUSDT",
+        "public_symbol": "BBUSDT",
+        "trade_measurements": [
+          "binance_binancecpp_BB_USDT_3_trade",
+          "binance_binancecpp_BB_USDT_trade"
+        ],
+        "spread_bps": 20
+      },
+      {
+        "exchange": "bybit",
+        "exchange_label": "Bybit",
+        "pair": "BBUSDT",
+        "public_symbol": "BBUSDT",
+        "trade_measurements": [
+          "bybit_bybitcpp_BB_USDT_1_trade"
+        ],
+        "spread_bps": 20
+      },
+      {
+        "exchange": "kucoin",
+        "exchange_label": "Kucoin",
+        "pair": "BBUSDT",
+        "public_symbol": "BB-USDT",
+        "trade_measurements": [
+          "kucoin_kucoincpp_BB_USDT_1_wo_vol_trade"
+        ],
+        "spread_bps": 20
+      }
+    ],
+    "volume_per_exchange": [
+      {
+        "page_no": 2,
+        "page_count": 6,
+        "label": "Binance BBUSDT",
+        "trade_measurements": [
+          "binance_binancecpp_BB_USDT_3_trade",
+          "binance_binancecpp_BB_USDT_trade"
+        ],
+        "filename": "binance_bbusdt_volume.png"
+      },
+      {
+        "page_no": 3,
+        "page_count": 6,
+        "label": "Binance BBUSDC",
+        "trade_measurements": [
+          "binance_binancecpp_BB_USDC_trade"
+        ],
+        "filename": "binance_bbusdc_volume.png"
+      },
+      {
+        "page_no": 4,
+        "page_count": 6,
+        "label": "KuCoin BBUSDT",
+        "trade_measurements": [
+          "kucoin_kucoincpp_BB_USDT_1_wo_vol_trade"
+        ],
+        "filename": "kucoin_bbusdt_volume.png"
+      },
+      {
+        "page_no": 5,
+        "page_count": 6,
+        "label": "Gate BBUSDT",
+        "trade_measurements": [
+          "gateio_gateiocpp_BB_USDT_1_trade"
+        ],
+        "filename": "gate_bbusdt_volume.png"
+      },
+      {
+        "page_no": 6,
+        "page_count": 6,
+        "label": "Bybit BBUSDT",
+        "trade_measurements": [
+          "bybit_bybitcpp_BB_USDT_1_trade"
+        ],
+        "filename": "bybit_bbusdt_volume.png"
+      }
+    ]
+  },
+  "ATA": {
+    "aggregate_buy_sell_volume": {
+      "price_symbol": "ATAUSDT",
+      "trade_measurements": [
+        "binance_binancecpp_arb_2_ATA_USDT_trade",
+        "binance_binancecpp_arb_ATA_USDT_trade",
+        "gateio_gateiocpp_arb_ATA_USDT_trade"
+      ]
+    },
+    "liquidity_table": [
+      {
+        "exchange": "binance",
+        "exchange_label": "Binance",
+        "pair": "ATAUSDT",
+        "public_symbol": "ATAUSDT",
+        "trade_measurements": [
+          "binance_binancecpp_arb_2_ATA_USDT_trade",
+          "binance_binancecpp_arb_ATA_USDT_trade"
+        ],
+        "spread_bps": 20
+      },
+      {
+        "exchange": "gateio",
+        "exchange_label": "Gate",
+        "pair": "ATAUSDT",
+        "public_symbol": "ATA_USDT",
+        "trade_measurements": [
+          "gateio_gateiocpp_arb_ATA_USDT_trade"
+        ],
+        "spread_bps": 40
+      }
+    ],
+    "volume_per_exchange": [
+      {
+        "page_no": 2,
+        "page_count": 6,
+        "label": "Binance ATAUSDT",
+        "trade_measurements": [
+          "binance_binancecpp_arb_2_ATA_USDT_trade",
+          "binance_binancecpp_arb_ATA_USDT_trade"
+        ],
+        "filename": "binance_atausdt_volume.png"
+      },
+      {
+        "page_no": 3,
+        "page_count": 6,
+        "label": "Binance ATAUSDC",
+        "trade_measurements": [
+          "binance_binancecpp_ATA_USDC_trade"
+        ],
+        "filename": "binance_atausdc_volume.png"
+      },
+      {
+        "page_no": 4,
+        "page_count": 6,
+        "label": "KuCoin ATAUSDT",
+        "trade_measurements": [
+          "kucoin_kucoincpp_arb_ATA_USDT_trade"
+        ],
+        "filename": "kucoin_atausdt_volume.png"
+      },
+      {
+        "page_no": 5,
+        "page_count": 6,
+        "label": "Gate ATAUSDT",
+        "trade_measurements": [
+          "gateio_gateiocpp_arb_ATA_USDT_trade"
+        ],
+        "filename": "gate_atausdt_volume.png"
+      },
+      {
+        "page_no": 6,
+        "page_count": 6,
+        "label": "Bybit ATAUSDT",
+        "trade_measurements": [
+          "bybit_bybitcpp_arb_ATA_USDT_trade"
+        ],
+        "filename": "bybit_atausdt_volume.png"
+      }
+    ]
   }
 }
