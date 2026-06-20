@@ -3,6 +3,7 @@ import pandas as pd
 from src.scripts.net_pnl import (
     _analyze_large_profit_symbols,
     _analyze_symbol_losses,
+    _build_png_table,
     _build_final_table,
 )
 from src.utils.format_message import build_daily_report
@@ -52,7 +53,7 @@ def test_analyze_large_profit_symbols_sorts_highest_profit_first():
         ["s3"],
         ["s4"],
     ]
-    assert large_profit_sym_df["category_total_pnl"].tolist() == [
+    assert large_profit_sym_df["category_total_npnl"].tolist() == [
         [15_000, 6_000],
         [23_000],
         [20_000],
@@ -78,7 +79,7 @@ def test_analyze_symbol_losses_includes_strategy_breakdown():
     assert loss_symbols == ["ETH"]
     assert severe_symbols == ["ETH"]
     assert loss_sym_df["category"].tolist() == [["k4", "s4", "s9-2"]]
-    assert loss_sym_df["category_total_pnl"].tolist() == [[-1_200, -1_601, -1_400]]
+    assert loss_sym_df["category_total_npnl"].tolist() == [[-1_200, -1_601, -1_400]]
 
 
 def test_build_final_table_includes_large_profit_symbols():
@@ -93,6 +94,26 @@ def test_build_final_table_includes_large_profit_symbols():
     final_df = _build_final_table(strategy_summary_df, loss_sym_df, large_profit_sym_df)
 
     assert final_df["strategy"].tolist() == ["strategy8", "ESPORTS", "H", "ETH"]
+
+
+def test_build_png_table_formats_only_scalar_category_total_npnl():
+    final_df = pd.DataFrame(
+        {
+            "strategy": ["strategy1", "ETH"],
+            "category_total_npnl": [-10_365.040000000003, [-1_200, -1_601]],
+        }
+    )
+
+    png_df = _build_png_table(final_df)
+
+    assert png_df["category_total_npnl"].tolist() == [
+        "-10,365.04",
+        [-1_200, -1_601],
+    ]
+    assert final_df["category_total_npnl"].tolist() == [
+        -10_365.040000000003,
+        [-1_200, -1_601],
+    ]
 
 
 def test_build_daily_report_includes_large_profit_symbols():

@@ -146,7 +146,7 @@ def _add_symbol_strategy_breakdown(df, symbol_summary_df, *, threshold, directio
     symbol_strategies["npnl_r+un"] = symbol_strategies["npnl_r+un"].round().astype(int)
     breakdown = symbol_strategies.groupby("mapped_symbol", sort=False).agg(
         category=("strategy", list),
-        category_total_pnl=("npnl_r+un", list),
+        category_total_npnl=("npnl_r+un", list),
     )
     return result.merge(breakdown, on="mapped_symbol", how="left")
 
@@ -173,6 +173,21 @@ def _build_final_table(strategy_summary_df, loss_sym_df, large_profit_sym_df):
     )
 
 
+def _format_category_total_npnl_for_png(value):
+    if isinstance(value, (int, float)) and pd.notna(value):
+        return f"{value:,.2f}"
+    return value
+
+
+def _build_png_table(final_df):
+    png_df = final_df.copy()
+    if "category_total_npnl" in png_df.columns:
+        png_df["category_total_npnl"] = png_df["category_total_npnl"].apply(
+            _format_category_total_npnl_for_png
+        )
+    return png_df
+
+
 def _build_symbol_strategy_detail(df, loss_symbols):
     """Deep dive into strategy-level details for loss symbols."""
     sym_loss_df = df[df["mapped_symbol"].isin(loss_symbols)].copy()
@@ -195,8 +210,9 @@ def _generate_and_send_report(
     csv_path = save_csv(final_df, out_dir, prefix="")
     logger.info(f"CSV saved to: {csv_path}")
 
+    png_df = _build_png_table(final_df)
     png_path = net_pnl_to_png_styled(
-        final_df, out_dir / "daily_net_pnl_by_strategy.png", highlight_col="npnl_r+un"
+        png_df, out_dir / "daily_net_pnl_by_strategy.png", highlight_col="npnl_r+un"
     )
     logger.info(f"PNG saved to: {png_path}")
     if not app_settings.enable_signal_notifications:
