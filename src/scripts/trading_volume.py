@@ -68,10 +68,6 @@ def analyze_trading_volume(df):
         lambda row: exchange_requirement_volume[row["base"]],
         axis=1,
     )
-    # if days_since_listing > 14 days -> requirement = 2000000
-    volume_summary.loc[volume_summary["days_since_listing"] > 14, "requirement"] = (
-        2000000
-    )
     volume_summary["meets_requirement"] = (
         volume_summary["average_up_to_date"] >= volume_summary["requirement"]
     )

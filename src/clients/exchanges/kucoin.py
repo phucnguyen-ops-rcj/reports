@@ -222,16 +222,28 @@ class KucoinClient:
             )
             if str(j.get("code")) != "200000":
                 raise ValueError(f"KuCoin spot kline error for {symbol}: {j}")
-            return [
-                {
-                    "date": datetime.fromtimestamp(int(row[0]), tz=timezone.utc),
-                    "product": "spot",
-                    "base": base,
-                    "usd_volume_24h": (self._to_float(row[6]) or 0.0)
-                    * 2,  # turnover = USDT notional
-                }
-                for row in (j.get("data") or [])
-            ]
+            relist_day_start = self._spot_trading_start_day_start(symbol)
+            rows: list[dict[str, Any]] = []
+            for row in j.get("data") or []:
+                if not isinstance(row, list) or len(row) < 7:
+                    continue
+                candle_ts = self._to_int(row[0])
+                if candle_ts is None:
+                    continue
+                # Reused spot symbols can expose old candles.
+                # tradingStartTime marks the current listing.
+                if relist_day_start is not None and candle_ts < relist_day_start:
+                    continue
+                rows.append(
+                    {
+                        "date": datetime.fromtimestamp(candle_ts, tz=timezone.utc),
+                        "product": "spot",
+                        "base": base,
+                        "usd_volume_24h": (self._to_float(row[6]) or 0.0)
+                        * 2,  # turnover = USDT notional
+                    }
+                )
+            return rows
         except Exception:
             # Return one error row per day in the range so the token is still represented
             return [
@@ -243,6 +255,27 @@ class KucoinClient:
                 }
                 for i in range((end_dt - start_dt).days)
             ]
+
+    def _spot_trading_start_day_start(self, symbol: str) -> int | None:
+        """Return UTC midnight seconds for the current KuCoin spot listing, if exposed."""
+        try:
+            payload = self._get(self.spot_base_url, f"/api/v2/symbols/{symbol}")
+        except Exception:
+            return None
+        if str(payload.get("code")) != "200000":
+            return None
+
+        data = payload.get("data")
+        if not isinstance(data, dict):
+            return None
+        trading_start_ms = self._to_int(data.get("tradingStartTime"))
+        if trading_start_ms is None:
+            return None
+
+        trading_start = datetime.fromtimestamp(trading_start_ms / 1000, tz=timezone.utc)
+        return int(
+            trading_start.replace(hour=0, minute=0, second=0, microsecond=0).timestamp()
+        )
 
     def _fetch_history_futures(
         self, contract_id: str, start_dt: datetime, end_dt: datetime
@@ -506,5 +539,5 @@ def _today_window_bounds_ms() -> tuple[int, int]:
 
 if __name__ == "__main__":
     client = KucoinClient()
-    print(client.get_spot_today_trading_volume("PIEVERSE-USDT"))
-    print(client.get_futures_today_trading_volume("XBTUSDTM"))
+    print(client.get_spot_today_trading_volume("GRAM-USDT"))
+    # print(client.get_futures_today_trading_volume("XBTUSDTM"))
