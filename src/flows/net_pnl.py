@@ -9,6 +9,7 @@ from src.scripts.net_pnl import (
     _analyze_large_profit_symbols,
     _analyze_symbol_losses,
     _build_final_table,
+    _build_png_table,
     _build_strategy_summary_table,
     _build_symbol_strategy_detail,
 )
@@ -58,8 +59,9 @@ def task_save(report_text: str, final_df: pd.DataFrame) -> tuple:
     logger.info(f"Report text saved to: {text_path}")
     csv_path = save_csv(final_df, out_dir, prefix="")
     logger.info(f"CSV saved to: {csv_path}")
+    png_df = _build_png_table(final_df)
     png_path = net_pnl_to_png_styled(
-        final_df, out_dir / "daily_net_pnl_by_strategy.png", highlight_col="npnl_r+un"
+        png_df, out_dir / "daily_net_pnl_by_strategy.png", highlight_col="npnl_r+un"
     )
     logger.info(f"PNG saved to: {png_path}")
     return png_path, csv_path, text_path
