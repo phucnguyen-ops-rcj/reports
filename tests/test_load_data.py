@@ -10,9 +10,12 @@ from src.utils.load_data import load_pnl_data, load_trading_volume_data
 def test_load_pnl_data_local_reads_csv(monkeypatch):
     captured: dict[str, object] = {}
     raw_df = pd.DataFrame([["spot", "strategy1", "BTC", 1, 0, 0, 0, 0, 0, 0, "0%", 0]])
-    wrangled_df = pd.DataFrame({"ok": [1]})
+    wrangled_df = pd.DataFrame(
+        {"mapped_symbol": ["BTC", "NOT_MONITORED"], "ok": [1, 2]}
+    )
 
     monkeypatch.setattr("src.utils.load_data.pd.read_csv", lambda path: raw_df)
+    monkeypatch.setattr("src.utils.load_data.MONITORING_SYMBOLS", ["BTC"])
 
     def fake_wrangle(df):
         captured["df"] = df
@@ -23,13 +26,15 @@ def test_load_pnl_data_local_reads_csv(monkeypatch):
     result = load_pnl_data("local", "data/sample.csv")
 
     assert captured["df"] is raw_df
-    assert result.equals(wrangled_df)
+    assert result.equals(wrangled_df.iloc[[0]].reset_index(drop=True))
 
 
 def test_load_pnl_data_api_fetches_and_saves(monkeypatch):
     captured: dict[str, object] = {}
     api_df = pd.DataFrame([{"market": "spot"}])
-    wrangled_df = pd.DataFrame({"ok": [1]})
+    wrangled_df = pd.DataFrame(
+        {"mapped_symbol": ["ETH", "NOT_MONITORED"], "ok": [1, 2]}
+    )
 
     monkeypatch.setattr(
         "src.utils.load_data.build_analysis_dataframe",
@@ -41,6 +46,7 @@ def test_load_pnl_data_api_fetches_and_saves(monkeypatch):
         return Path("data/net_pnl/generated.csv")
 
     monkeypatch.setattr("src.utils.load_data.save_csv", fake_save_csv)
+    monkeypatch.setattr("src.utils.load_data.MONITORING_SYMBOLS", ["ETH"])
 
     def fake_wrangle(df):
         captured["wrangle_df"] = df
@@ -55,7 +61,7 @@ def test_load_pnl_data_api_fetches_and_saves(monkeypatch):
     assert out_dir == Path("data") / "net_pnl"
     assert prefix == ""
     assert captured["wrangle_df"] is api_df
-    assert result.equals(wrangled_df)
+    assert result.equals(wrangled_df.iloc[[0]].reset_index(drop=True))
 
 
 def test_load_trading_volume_data_local_reads_csv(monkeypatch):
