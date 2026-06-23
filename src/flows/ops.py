@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import time
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Literal
@@ -21,6 +22,9 @@ from src.clients.signal import SignalClient
 from src.scripts.new_listing import load_config, resolve_config_path, run_new_listing
 from src.settings import app_settings
 from src.utils.ops_response import format_ops_response_body
+
+STACKER_STATUS_DELAY_SECONDS = 10
+VOLUME_FILLS_DELAY_SECONDS = 60
 
 
 def parse_json_object(value: str, parameter_name: str) -> dict[str, Any]:
@@ -111,6 +115,9 @@ def build_ops_signal_message(
     payload: dict[str, Any],
     response_body: str,
 ) -> str:
+    if endpoint == "/get_stacker_accepted_orders":
+        return response_body
+
     payload_json = json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False)
     return (
         f"{describe_ops_signal_action(endpoint, payload)}\n\n"
@@ -153,6 +160,17 @@ def past_tense_action(action: str) -> str:
         "restart": "Restarted",
     }
     return mapping.get(normalized, normalized.title() or "Ran")
+
+
+def build_volume_strategy_payload(symbol: str, quote_ccy: str) -> dict[str, Any]:
+    return {
+        "base_currency": base_from_symbol(symbol, quote_ccy),
+        "quote_currency": quote_ccy.upper(),
+    }
+
+
+def build_stacker_status_payload(symbol: str, quote_ccy: str) -> dict[str, Any]:
+    return {"symbol": normalize_symbol(symbol, quote_ccy)}
 
 
 @flow(name="Ops API Request", log_prints=True)
@@ -356,10 +374,7 @@ def volume_strategy_fills_flow(
     execution_mode: Literal["ssh", "local"] = DEFAULT_OPS_EXECUTION_MODE,
     ssh_host: str = DEFAULT_OPS_SSH_HOST,
 ) -> dict[str, Any]:
-    payload: dict[str, Any] = {
-        "base_currency": base_from_symbol(symbol, quote_ccy),
-        "quote_currency": quote_ccy.upper(),
-    }
+    payload = build_volume_strategy_payload(symbol, quote_ccy)
     if date:
         payload["date"] = date
     return call_ops_api_task(
@@ -382,11 +397,8 @@ def start_volume_strategy_flow(
     execution_mode: Literal["ssh", "local"] = DEFAULT_OPS_EXECUTION_MODE,
     ssh_host: str = DEFAULT_OPS_SSH_HOST,
 ) -> dict[str, Any]:
-    payload = {
-        "base_currency": base_from_symbol(symbol, quote_ccy),
-        "quote_currency": quote_ccy.upper(),
-    }
-    return call_ops_api_task(
+    payload = build_volume_strategy_payload(symbol, quote_ccy)
+    response = call_ops_api_task(
         endpoint="/start_volume_strategy",
         payload=payload,
         base_endpoint=base_endpoint,
@@ -395,6 +407,22 @@ def start_volume_strategy_flow(
         ssh_host=ssh_host,
         send_signal_to_group=True,
     )
+    logger = get_run_logger()
+    logger.info(
+        "Waiting %s seconds before checking volume strategy fills.",
+        VOLUME_FILLS_DELAY_SECONDS,
+    )
+    time.sleep(VOLUME_FILLS_DELAY_SECONDS)
+    call_ops_api_task(
+        endpoint="/get_volume_strategy_fills",
+        payload=build_volume_strategy_payload(symbol, quote_ccy),
+        base_endpoint=base_endpoint,
+        timeout_seconds=timeout_seconds,
+        execution_mode=execution_mode,
+        ssh_host=ssh_host,
+        send_signal_to_group=True,
+    )
+    return response
 
 
 @flow(name="Stacker Status", log_prints=True)
@@ -407,7 +435,7 @@ def stacker_status_flow(
     execution_mode: Literal["ssh", "local"] = DEFAULT_OPS_EXECUTION_MODE,
     ssh_host: str = DEFAULT_OPS_SSH_HOST,
 ) -> dict[str, Any]:
-    payload: dict[str, Any] = {"symbol": normalize_symbol(symbol, quote_ccy)}
+    payload = build_stacker_status_payload(symbol, quote_ccy)
     if date:
         payload["date"] = date
     return call_ops_api_task(
@@ -436,7 +464,7 @@ def stacker_launch_flow(
         "quote_ccy": quote_ccy.upper(),
         "stacker_level": stacker_level,
     }
-    return call_ops_api_task(
+    response = call_ops_api_task(
         endpoint="/launch_stacker",
         payload=payload,
         base_endpoint=base_endpoint,
@@ -445,6 +473,22 @@ def stacker_launch_flow(
         ssh_host=ssh_host,
         send_signal_to_group=True,
     )
+    logger = get_run_logger()
+    logger.info(
+        "Waiting %s seconds before checking stacker status.",
+        STACKER_STATUS_DELAY_SECONDS,
+    )
+    time.sleep(STACKER_STATUS_DELAY_SECONDS)
+    call_ops_api_task(
+        endpoint="/get_stacker_accepted_orders",
+        payload=build_stacker_status_payload(symbol, quote_ccy),
+        base_endpoint=base_endpoint,
+        timeout_seconds=timeout_seconds,
+        execution_mode=execution_mode,
+        ssh_host=ssh_host,
+        send_signal_to_group=True,
+    )
+    return response
 
 
 @flow(name="Setup Stacker Config", log_prints=True)

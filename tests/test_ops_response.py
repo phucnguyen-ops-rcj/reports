@@ -52,8 +52,34 @@ NEW_ORDER_STATUS_ACCEPTED = 26"""
 
     assert (
         formatted
-        == """✅ success
+        == """kucoincpp_ATWO_USDT_twkpi_st_1.txtpb.INFO:
+NEW_ORDER_STATUS_ACCEPTED = 26
+NEW_ORDER_STATUS_REJECTED = 0"""
+    )
+
+
+def test_format_ops_response_body_compacts_stacker_status_blocks():
+    body = """✅ success
 ==================================================================
-kucoincpp_ATWO_USDT_twkpi_st_1.txtpb.INFO:
-NEW_ORDER_STATUS_ACCEPTED = 26"""
+kucoincpp_ARX_USDT_twkpi_st_1.txtpb.INFO:
+NEW_ORDER_STATUS_ACCEPTED = 26
+OnGatewayMessage new_order_response { status: NEW_ORDER_STATUS_ACCEPTED order_id: 1782127219110786 symbol { base_currency: "ARX" quote_currency: "USDT" instrument_type: INSTRUMENT_TYPE_SPOT } } gateway_ts: 1782127219132905546
+NEW_ORDER_STATUS_REJECTED = 0
+==================================================================
+kucoincpp_ARX_USDT_twkpi_st_2.txtpb.INFO:
+NEW_ORDER_STATUS_ACCEPTED = 26
+OnGatewayMessage new_order_response { status: NEW_ORDER_STATUS_ACCEPTED order_id: 1782127219110787 symbol { base_currency: "ARX" quote_currency: "USDT" instrument_type: INSTRUMENT_TYPE_SPOT } } gateway_ts: 1782127219142425495
+NEW_ORDER_STATUS_REJECTED = 1
+OnGatewayMessage new_order_response { status: NEW_ORDER_STATUS_REJECTED order_id: 1782127219110788 symbol { base_currency: "ARX" quote_currency: "USDT" instrument_type: INSTRUMENT_TYPE_SPOT } } gateway_ts: 1782127219156152815"""
+
+    formatted = format_ops_response_body("/get_stacker_accepted_orders", body)
+
+    assert (
+        formatted
+        == """kucoincpp_ARX_USDT_twkpi_st_1.txtpb.INFO:
+NEW_ORDER_STATUS_ACCEPTED = 26
+NEW_ORDER_STATUS_REJECTED = 0
+kucoincpp_ARX_USDT_twkpi_st_2.txtpb.INFO:
+NEW_ORDER_STATUS_ACCEPTED = 26
+NEW_ORDER_STATUS_REJECTED = 1"""
     )

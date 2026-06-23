@@ -43,7 +43,54 @@ def format_ops_response_body(endpoint: str, body: str) -> str:
         return json.dumps(payload, indent=2, ensure_ascii=False)
 
     cleaned_body = strip_ssh_motd(body).rstrip()
+    if endpoint == "/get_stacker_accepted_orders":
+        return format_stacker_status_response(cleaned_body)
     return cleaned_body or "<empty response>"
+
+
+def format_stacker_status_response(body: str) -> str:
+    blocks: list[str] = []
+    header: str | None = None
+    counts = {
+        "NEW_ORDER_STATUS_ACCEPTED": 0,
+        "NEW_ORDER_STATUS_REJECTED": 0,
+    }
+
+    def flush_block() -> None:
+        if header is None:
+            return
+        blocks.append(
+            "\n".join(
+                [
+                    header,
+                    f"NEW_ORDER_STATUS_ACCEPTED = {counts['NEW_ORDER_STATUS_ACCEPTED']}",
+                    f"NEW_ORDER_STATUS_REJECTED = {counts['NEW_ORDER_STATUS_REJECTED']}",
+                ]
+            )
+        )
+
+    for raw_line in body.splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("=") or line == "✅ success":
+            continue
+        if line.endswith(".txtpb.INFO:"):
+            flush_block()
+            header = line
+            counts = {
+                "NEW_ORDER_STATUS_ACCEPTED": 0,
+                "NEW_ORDER_STATUS_REJECTED": 0,
+            }
+            continue
+
+        match = re.fullmatch(
+            r"(NEW_ORDER_STATUS_(?:ACCEPTED|REJECTED))\s*=\s*(\d+)",
+            line,
+        )
+        if match and header is not None:
+            counts[match.group(1)] = int(match.group(2))
+
+    flush_block()
+    return "\n".join(blocks) or body or "<empty response>"
 
 
 def extract_json_payload(body: str) -> dict[str, Any] | list[Any] | None:
