@@ -11,6 +11,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 ENV_FILE = Path(__file__).resolve().parents[1] / ".env"
 
 
+def required_env(name: str) -> str:
+    return os.environ[name]
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=ENV_FILE,
@@ -23,21 +27,29 @@ class Settings(BaseSettings):
     )
 
     # Signal messaging
-    signal_base_url: str
-    signal_sender: str
+    signal_base_url: str = Field(
+        default_factory=lambda: required_env("SIGNAL_BASE_URL")
+    )
+    signal_sender: str = Field(default_factory=lambda: required_env("SIGNAL_SENDER"))
     signal_recipient: str | None = Field(default=None)
-    signal_group_id: str
+    signal_group_id: str = Field(
+        default_factory=lambda: required_env("SIGNAL_GROUP_ID")
+    )
 
     # CoinGecko API
-    coingecko_base_url: str
+    coingecko_base_url: str = Field(
+        default_factory=lambda: required_env("COINGECKO_BASE_URL")
+    )
     coingecko_api_key: str = Field(
         default_factory=lambda: os.environ["COINGECKO_API_KEY"]
     )
 
     # influxDB
-    influxdb_base_url: str
+    influxdb_base_url: str = Field(
+        default_factory=lambda: required_env("INFLUXDB_BASE_URL")
+    )
     influxdb_token: str = Field(default_factory=lambda: os.environ["INFLUXDB_TOKEN"])
-    influxdb_org: str
+    influxdb_org: str = Field(default_factory=lambda: required_env("INFLUXDB_ORG"))
 
     # Redis
     redis_host: str = Field(default="172.31.33.22")
@@ -47,8 +59,12 @@ class Settings(BaseSettings):
     redis_db: int = Field(default=0)
 
     # KuCoin API
-    kucoin_spot_base_url: str
-    kucoin_future_base_url: str
+    kucoin_spot_base_url: str = Field(
+        default_factory=lambda: required_env("KUCOIN_SPOT_BASE_URL")
+    )
+    kucoin_future_base_url: str = Field(
+        default_factory=lambda: required_env("KUCOIN_FUTURE_BASE_URL")
+    )
 
     # ALT report third-party sources
     binance_base_url: str = Field(default="https://api.binance.com")

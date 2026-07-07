@@ -27,6 +27,7 @@ dependencies = [
     "snapshot-selenium>=0.0.2",
     "selenium>=4.44.0",
     "python-docx>=1.2.0",
+    "pandas-stubs~=3.0.2",
 ]
 
 [project.scripts]

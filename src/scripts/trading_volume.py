@@ -62,7 +62,7 @@ def analyze_trading_volume(df):
     )  # no longer needed after computing days_since_listing
 
     # add requirement volume by exchange, base token, and product type
-    # NOTE: if multiple exchanges are added in future, group by exchange and extend REQUIREMENT_VOLUME accordingly
+    # NOTE: if multiple exchanges are added in the future, group by exchange and extend REQUIREMENT_VOLUME accordingly
     exchange_requirement_volume = REQUIREMENT_VOLUME.get("kucoin")
     volume_summary["requirement"] = volume_summary.apply(
         lambda row: exchange_requirement_volume[row["base"]],

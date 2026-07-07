@@ -27,6 +27,7 @@ wheels/
 
 .claude/
 .codex/
+.idea/
 
 # Prefect PID files
 server.log
