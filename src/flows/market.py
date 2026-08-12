@@ -41,7 +41,7 @@ def send_market_signal(report: str) -> None:
     logger.info("Market report sent via Signal successfully.")
 
 
-@flow(name="Market")
+@flow(name="Market", retries=2)
 def market_flow() -> Path:
     report = fetch_market_summary()
     text_path = save_market_report(report)

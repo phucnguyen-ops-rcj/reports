@@ -55,7 +55,7 @@
         "exchange": "kucoin",
         "exchange_label": "Kucoin",
         "pair": "ALTUSDT",
-        "public_symbol": "KALT-USDT",
+        "public_symbol": "ALT-USDT",
         "trade_measurements": [
           "kucoin_kucoincpp_KALT_USDT_wo_vol_trade"
         ],

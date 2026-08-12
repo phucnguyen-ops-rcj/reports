@@ -58,7 +58,7 @@ def task_send_signal(png_path: Path, prefix: str = "") -> None:
     logger.info("Trading volume report sent via Signal successfully.")
 
 
-@flow(name="Trading Volume")
+@flow(name="Trading Volume", retries=2)
 def trading_volume_flow(
     source: Literal["api", "local"] = app_settings.source,
     input_path: str = app_settings.trading_volume_input_path,
