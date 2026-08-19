@@ -7,7 +7,7 @@ from urllib.parse import urlencode
 import urllib.error
 import urllib.request
 
-from src.settings import app_settings
+from src.settings import get_settings
 
 
 class RcjTradingAnalyzeType(StrEnum):
@@ -24,12 +24,15 @@ class RcjTradingClient:
         self,
         *,
         base_url: str | None = None,
-        timeout: float = 10.0,
+        timeout: float | None = None,
         user_agent: str = "reports/1.0",
     ) -> None:
-        resolved_base_url = base_url or app_settings.rcj_trading_base_url
+        settings = get_settings()
+        resolved_base_url = base_url or settings.rcj_trading_base_url
         self.base_url = resolved_base_url.rstrip("/")
-        self.timeout = timeout
+        self.timeout = (
+            timeout if timeout is not None else settings.rcj_trading_timeout_seconds
+        )
         self.user_agent = user_agent
 
     def get_analyze(

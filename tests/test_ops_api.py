@@ -10,6 +10,7 @@ from src.clients.ops_api import OpsApiClient, OpsApiResponse
 from src.flows.ops import (
     build_ops_signal_message,
     call_ops_api_task,
+    mirror_control_flow,
     stacker_launch_flow,
     start_volume_strategy_flow,
 )
@@ -184,6 +185,34 @@ def test_stacker_launch_flow_checks_status_after_delay(monkeypatch):
     assert calls[1]["send_signal_to_group"] is True
 
 
+def test_stacker_launch_flow_includes_non_blank_box(monkeypatch):
+    calls: list[dict[str, object]] = []
+
+    def fake_call_ops_api_task(**kwargs):
+        calls.append(kwargs)
+        return {"status": 200, "endpoint": kwargs["endpoint"]}
+
+    monkeypatch.setattr("src.flows.ops.call_ops_api_task", fake_call_ops_api_task)
+    monkeypatch.setattr("src.flows.ops.time.sleep", lambda seconds: None)
+    monkeypatch.setattr(
+        "src.flows.ops.get_run_logger",
+        lambda: SimpleNamespace(info=lambda *args, **kwargs: None),
+    )
+
+    stacker_launch_flow.fn("ARX-USDT", stacker_level=2, box=" T11 ")
+
+    assert calls[0]["payload"] == {
+        "base_ccy": "ARX",
+        "quote_ccy": "USDT",
+        "stacker_level": 2,
+        "box": "T11",
+    }
+    assert calls[1]["payload"] == {
+        "symbol": "ARX-USDT",
+        "box": "T11",
+    }
+
+
 def test_start_volume_strategy_flow_checks_fills_after_delay(monkeypatch):
     calls: list[dict[str, object]] = []
     sleeps: list[int] = []
@@ -220,3 +249,47 @@ def test_start_volume_strategy_flow_checks_fills_after_delay(monkeypatch):
     }
     assert calls[0]["send_signal_to_group"] is True
     assert calls[1]["send_signal_to_group"] is True
+
+
+def test_start_volume_strategy_flow_includes_box_in_both_requests(monkeypatch):
+    calls: list[dict[str, object]] = []
+
+    def fake_call_ops_api_task(**kwargs):
+        calls.append(kwargs)
+        return {"status": 200, "endpoint": kwargs["endpoint"]}
+
+    monkeypatch.setattr("src.flows.ops.call_ops_api_task", fake_call_ops_api_task)
+    monkeypatch.setattr("src.flows.ops.time.sleep", lambda seconds: None)
+    monkeypatch.setattr(
+        "src.flows.ops.get_run_logger",
+        lambda: SimpleNamespace(info=lambda *args, **kwargs: None),
+    )
+
+    start_volume_strategy_flow.fn("ARX-USDT", box=" T11 ")
+
+    expected_payload = {
+        "base_currency": "ARX",
+        "quote_currency": "USDT",
+        "box": "T11",
+    }
+    assert calls[0]["payload"] == expected_payload
+    assert calls[1]["payload"] == expected_payload
+
+
+def test_mirror_control_flow_includes_non_blank_box(monkeypatch):
+    calls: list[dict[str, object]] = []
+
+    def fake_call_ops_api_task(**kwargs):
+        calls.append(kwargs)
+        return {"status": 200, "endpoint": kwargs["endpoint"]}
+
+    monkeypatch.setattr("src.flows.ops.call_ops_api_task", fake_call_ops_api_task)
+
+    mirror_control_flow.fn("ARX-USDT", box=" T11 ")
+
+    assert calls[0]["endpoint"] == "/strategy_control"
+    assert calls[0]["payload"] == {
+        "method": "start",
+        "name": "mirror_spot_listings_strat2_ARXUSDT",
+        "box": "T11",
+    }

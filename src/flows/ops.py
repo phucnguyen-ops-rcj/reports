@@ -162,15 +162,25 @@ def past_tense_action(action: str) -> str:
     return mapping.get(normalized, normalized.title() or "Ran")
 
 
-def build_volume_strategy_payload(symbol: str, quote_ccy: str) -> dict[str, Any]:
-    return {
+def build_volume_strategy_payload(
+    symbol: str, quote_ccy: str, box: str = ""
+) -> dict[str, Any]:
+    payload = {
         "base_currency": base_from_symbol(symbol, quote_ccy),
         "quote_currency": quote_ccy.upper(),
     }
+    if box.strip():
+        payload["box"] = box.strip()
+    return payload
 
 
-def build_stacker_status_payload(symbol: str, quote_ccy: str) -> dict[str, Any]:
-    return {"symbol": normalize_symbol(symbol, quote_ccy)}
+def build_stacker_status_payload(
+    symbol: str, quote_ccy: str, box: str = ""
+) -> dict[str, Any]:
+    payload = {"symbol": normalize_symbol(symbol, quote_ccy)}
+    if box.strip():
+        payload["box"] = box.strip()
+    return payload
 
 
 @flow(name="Ops API Request", log_prints=True)
@@ -369,12 +379,13 @@ def volume_strategy_fills_flow(
     symbol: str,
     date: str = "",
     quote_ccy: str = "USDT",
+    box: str = "",
     base_endpoint: str = DEFAULT_OPS_BASE_ENDPOINT,
     timeout_seconds: int = DEFAULT_OPS_TIMEOUT_SECONDS,
     execution_mode: Literal["ssh", "local"] = DEFAULT_OPS_EXECUTION_MODE,
     ssh_host: str = DEFAULT_OPS_SSH_HOST,
 ) -> dict[str, Any]:
-    payload = build_volume_strategy_payload(symbol, quote_ccy)
+    payload = build_volume_strategy_payload(symbol, quote_ccy, box)
     if date:
         payload["date"] = date
     return call_ops_api_task(
@@ -392,12 +403,13 @@ def volume_strategy_fills_flow(
 def start_volume_strategy_flow(
     symbol: str,
     quote_ccy: str = "USDT",
+    box: str = "",
     base_endpoint: str = DEFAULT_OPS_BASE_ENDPOINT,
     timeout_seconds: int = DEFAULT_OPS_TIMEOUT_SECONDS,
     execution_mode: Literal["ssh", "local"] = DEFAULT_OPS_EXECUTION_MODE,
     ssh_host: str = DEFAULT_OPS_SSH_HOST,
 ) -> dict[str, Any]:
-    payload = build_volume_strategy_payload(symbol, quote_ccy)
+    payload = build_volume_strategy_payload(symbol, quote_ccy, box)
     response = call_ops_api_task(
         endpoint="/start_volume_strategy",
         payload=payload,
@@ -415,7 +427,7 @@ def start_volume_strategy_flow(
     time.sleep(VOLUME_FILLS_DELAY_SECONDS)
     call_ops_api_task(
         endpoint="/get_volume_strategy_fills",
-        payload=build_volume_strategy_payload(symbol, quote_ccy),
+        payload=build_volume_strategy_payload(symbol, quote_ccy, box),
         base_endpoint=base_endpoint,
         timeout_seconds=timeout_seconds,
         execution_mode=execution_mode,
@@ -430,12 +442,13 @@ def stacker_status_flow(
     symbol: str,
     date: str = "",
     quote_ccy: str = "USDT",
+    box: str = "",
     base_endpoint: str = DEFAULT_OPS_BASE_ENDPOINT,
     timeout_seconds: int = DEFAULT_OPS_TIMEOUT_SECONDS,
     execution_mode: Literal["ssh", "local"] = DEFAULT_OPS_EXECUTION_MODE,
     ssh_host: str = DEFAULT_OPS_SSH_HOST,
 ) -> dict[str, Any]:
-    payload = build_stacker_status_payload(symbol, quote_ccy)
+    payload = build_stacker_status_payload(symbol, quote_ccy, box)
     if date:
         payload["date"] = date
     return call_ops_api_task(
@@ -454,6 +467,7 @@ def stacker_launch_flow(
     symbol: str,
     stacker_level: int = 1,
     quote_ccy: str = "USDT",
+    box: str = "",
     base_endpoint: str = DEFAULT_OPS_BASE_ENDPOINT,
     timeout_seconds: int = DEFAULT_OPS_TIMEOUT_SECONDS,
     execution_mode: Literal["ssh", "local"] = DEFAULT_OPS_EXECUTION_MODE,
@@ -464,6 +478,8 @@ def stacker_launch_flow(
         "quote_ccy": quote_ccy.upper(),
         "stacker_level": stacker_level,
     }
+    if box.strip():
+        payload["box"] = box.strip()
     response = call_ops_api_task(
         endpoint="/launch_stacker",
         payload=payload,
@@ -481,7 +497,7 @@ def stacker_launch_flow(
     time.sleep(STACKER_STATUS_DELAY_SECONDS)
     call_ops_api_task(
         endpoint="/get_stacker_accepted_orders",
-        payload=build_stacker_status_payload(symbol, quote_ccy),
+        payload=build_stacker_status_payload(symbol, quote_ccy, box),
         base_endpoint=base_endpoint,
         timeout_seconds=timeout_seconds,
         execution_mode=execution_mode,
@@ -593,6 +609,7 @@ def mirror_control_flow(
     exchange: str = "kucoin",
     market: Literal["spot", "perp"] = "spot",
     quote_ccy: str = "USDT",
+    box: str = "",
     base_endpoint: str = DEFAULT_OPS_BASE_ENDPOINT,
     timeout_seconds: int = DEFAULT_OPS_TIMEOUT_SECONDS,
     execution_mode: Literal["ssh", "local"] = DEFAULT_OPS_EXECUTION_MODE,
@@ -608,6 +625,8 @@ def mirror_control_flow(
         "name": name_override
         or mirror_process_name(component, symbol, exchange, market, quote_ccy),
     }
+    if box.strip():
+        payload["box"] = box.strip()
     return call_ops_api_task(
         endpoint=endpoint_by_component[component],
         payload=payload,

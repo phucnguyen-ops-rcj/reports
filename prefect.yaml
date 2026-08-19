@@ -81,6 +81,7 @@ deployments:
     symbol: KAIO
     date: ""
     quote_ccy: USDT
+    box: ""
     # execution_mode: ssh
     # ssh_host: T1_newuser1
   work_pool:
@@ -96,6 +97,7 @@ deployments:
   parameters:
     symbol: KAIO
     quote_ccy: USDT
+    box: ""
     # execution_mode: ssh
     # ssh_host: T1_newuser1
   work_pool:
@@ -112,6 +114,7 @@ deployments:
     symbol: BILL
     date: ""
     quote_ccy: USDT
+    box: ""
     # execution_mode: ssh
     # ssh_host: T1_newuser1
   work_pool:
@@ -128,6 +131,7 @@ deployments:
     symbol: BILL
     stacker_level: 1
     quote_ccy: USDT
+    box: ""
     # execution_mode: ssh
     # ssh_host: T1_newuser1
   work_pool:
@@ -205,6 +209,7 @@ deployments:
     exchange: kucoin
     market: spot
     quote_ccy: USDT
+    box: ""
     # execution_mode: ssh
     # ssh_host: T1_newuser1
   work_pool:

@@ -49,7 +49,7 @@ def test_get_analyze_builds_expected_request(monkeypatch):
         "version": ["Net"],
     }
     assert captured["method"] == "GET"
-    assert captured["timeout"] == 10.0
+    assert captured["timeout"] == 30.0
     assert payload == {"ok": True}
 
 

@@ -38,3 +38,6 @@ def test_child_flows_try_three_times_before_failing():
     assert daily.market_flow.retries == 2
     assert daily.trading_volume_flow.retries == 2
     assert daily.net_pnl_flow.retries == 2
+    assert daily.market_flow.retry_delay_seconds == 30
+    assert daily.trading_volume_flow.retry_delay_seconds == 30
+    assert daily.net_pnl_flow.retry_delay_seconds == 30

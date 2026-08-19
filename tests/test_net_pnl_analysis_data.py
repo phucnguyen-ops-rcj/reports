@@ -1,12 +1,45 @@
 from __future__ import annotations
 
+import pytest
+
 from src.utils.net_pnl_analysis_data import (
+    DEFAULT_BATCH_SIZE,
     build_analysis_rows,
     build_market_analysis_dataframe,
+    fetch_market_rows,
     get_symbols_by_market_with_fallback,
     load_symbols_by_market_from_input,
     metric_delta,
 )
+
+
+def test_default_batch_size_is_50():
+    assert DEFAULT_BATCH_SIZE == 50
+
+
+def test_fetch_market_rows_timeout_includes_market_and_batch():
+    class IntermittentTradingClient:
+        call_count = 0
+
+        def get_analyze(self, *, symbols, period_ms, analyze_type):
+            self.call_count += 1
+            if self.call_count == 2:
+                raise TimeoutError("The read operation timed out")
+            return {}
+
+    symbols = [f"SYMBOL_{index}" for index in range(51)]
+
+    with pytest.raises(
+        TimeoutError,
+        match=r"market=perp, batch=2, symbols=\[SYMBOL_50\]",
+    ):
+        fetch_market_rows(
+            trading_client=IntermittentTradingClient(),  # pyrefly: ignore
+            market="perp",
+            symbols=symbols,
+            period_ms=3_600,
+            batch_size=DEFAULT_BATCH_SIZE,
+        )
 
 
 def test_metric_delta_supports_absolute_mode():

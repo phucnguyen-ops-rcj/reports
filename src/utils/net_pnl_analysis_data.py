@@ -20,7 +20,7 @@ from src.settings import get_settings
 from src.utils.constants import ANALYSIS_DATA_COLUMNS
 
 DEFAULT_PERIOD_MS = 24 * 60 * 60 * 1000
-DEFAULT_BATCH_SIZE = 100
+DEFAULT_BATCH_SIZE = 50
 logger = logging.getLogger(__name__)
 REDIS_EXCHANGE_PREFIXES = {"BIN", "BYB", "GAT", "KUC", "OKX"}
 
@@ -231,12 +231,19 @@ def fetch_market_rows(
         RcjTradingAnalyzeType.SPOT if market == "spot" else RcjTradingAnalyzeType.PERP
     )
     rows: list[dict[str, Any]] = []
-    for symbol_batch in batched(symbols, batch_size):
-        payload = trading_client.get_analyze(
-            symbols=symbol_batch,
-            period_ms=period_ms,
-            analyze_type=analyze_type,
-        )
+    for batch_number, symbol_batch in enumerate(batched(symbols, batch_size), start=1):
+        try:
+            payload = trading_client.get_analyze(
+                symbols=symbol_batch,
+                period_ms=period_ms,
+                analyze_type=analyze_type,
+            )
+        except TimeoutError as exc:
+            batch_symbols = ",".join(symbol_batch)
+            raise TimeoutError(
+                f"RCJ Trading analyze request timed out for market={market}, "
+                f"batch={batch_number}, symbols=[{batch_symbols}]"
+            ) from exc
         rows.extend(build_analysis_rows(payload, market=market))
     return rows
 

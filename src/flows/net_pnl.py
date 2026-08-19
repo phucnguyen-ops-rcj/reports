@@ -83,7 +83,7 @@ def task_send_signal(report_text: str, png_path: Path) -> None:
     logger.info("PnL report sent via Signal successfully.")
 
 
-@flow(name="Net PnL", retries=2)
+@flow(name="Net PnL", retries=2, retry_delay_seconds=30)
 def net_pnl_flow(
     source: Literal["api", "local"] = app_settings.source,
     input_path: str = app_settings.net_pnl_input_path,

@@ -79,6 +79,7 @@ class Settings(BaseSettings):
     coinshares_base_url: str = Field(default="https://researchblog.coinshares.com")
     farside_base_url: str = Field(default="https://farside.co.uk")
     rcj_trading_base_url: str = Field(default="https://1rf9t4k2tc.xyz")
+    rcj_trading_timeout_seconds: float = Field(default=30.0, gt=0)
 
     # RCJ ops API
     rcj_ops_bearer_token: str = Field(
