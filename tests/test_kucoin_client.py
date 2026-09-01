@@ -84,3 +84,40 @@ def test_fetch_history_spot_keeps_all_candles_without_trading_start_time():
         "2026-06-15",
     ]
     assert [row["usd_volume_24h"] for row in rows] == [40.0, 60.0]
+
+
+def test_get_history_volume_preserves_explicit_spot_pair():
+    client = KucoinClient(
+        spot_base_url="https://spot.test",
+        futures_base_url="https://futures.test",
+    )
+    calls: list[tuple[str, str]] = []
+
+    def fake_fetch_history_spot(symbol, base, start_dt, end_dt):
+        calls.append((symbol, base))
+        return []
+
+    client._fetch_history_spot = fake_fetch_history_spot  # type: ignore[method-assign]
+
+    client.get_history_volume(["ETH-USDG", "BTC"], days=1)
+
+    assert calls == [("ETH-USDG", "ETH-USDG"), ("BTC-USDT", "BTC")]
+
+
+def test_fetch_rows_preserves_explicit_spot_pair():
+    client = KucoinClient(
+        spot_base_url="https://spot.test",
+        futures_base_url="https://futures.test",
+    )
+    queried_symbols: list[str] = []
+
+    def fake_spot_turnover_24h(symbol: str) -> float:
+        queried_symbols.append(symbol)
+        return 100.0
+
+    client._spot_turnover_24h = fake_spot_turnover_24h  # type: ignore[method-assign]
+
+    rows = client._fetch_rows(["ETH-USDG", "BTC"])
+
+    assert queried_symbols == ["ETH-USDG", "BTC-USDT"]
+    assert [row["base"] for row in rows] == ["ETH-USDG", "BTC"]

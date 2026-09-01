@@ -1,0 +1,85 @@
+---
+# Prefect Cloud Hobby manifest. Keep this subset at five deployments.
+name: reports
+prefect-version: 3.6.27
+
+build: null
+push: null
+
+# The process worker currently runs from this checkout. Update this path when
+# moving the worker to a Linux host, for example /opt/reports.
+pull:
+- prefect.deployments.steps.set_working_directory:
+    directory: /Users/nguyentienphuc/rcj/reports
+
+deployments:
+- name: daily-morning
+  entrypoint: src/flows/daily.py:daily_flow
+  parameters: {}
+  work_pool:
+    name: reports-cloud
+  schedules:
+  - cron: 30 9 * * *
+    timezone: "Asia/Singapore"
+    day_or: true
+
+- name: daily-net-pnl
+  entrypoint: src/flows/net_pnl.py:net_pnl_flow
+  parameters: {}
+  work_pool:
+    name: reports-cloud
+  schedules: []
+
+- name: stacker-launch
+  tags:
+  - ops
+  - stacker
+  - manual
+  description: Manually launch stacker for a symbol.
+  entrypoint: src/flows/ops.py:stacker_launch_flow
+  parameters:
+    symbol: BILL
+    stacker_level: 1
+    quote_ccy: USDT
+    box: ""
+  work_pool:
+    name: reports-cloud
+  schedules: []
+
+- name: volatility-start-model
+  tags:
+  - ops
+  - volatility
+  - manual
+  description: Start the volatility model for a symbol after the token is live.
+  entrypoint: src/flows/ops.py:volatility_model_flow
+  parameters:
+    symbol: KAIO
+    market: spot
+    exchange: kucoin
+    exchange_data: kucoin
+    risk_tol: low
+    strategy: slow_mm
+  work_pool:
+    name: reports-cloud
+  schedules: []
+
+- name: mirror-control
+  tags:
+  - ops
+  - mirror
+  - manual
+  description: Start, stop, or restart gateway/feed/strategy mirror processes.
+  entrypoint: src/flows/ops.py:mirror_control_flow
+  parameters:
+    symbol: BILL
+    component: strategy
+    method: start
+    name_override: ""
+    exchange: kucoin
+    market: spot
+    quote_ccy: USDT
+    box: ""
+  work_pool:
+    name: reports-cloud
+  schedules: []

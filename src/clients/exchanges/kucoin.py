@@ -38,7 +38,8 @@ class KucoinClient:
 
         Each token is resolved as:
           - perp  if it ends with "USDTM" (e.g. "BTCUSDTM")
-          - spot  otherwise              (e.g. "BTC" → "BTC-USDT")
+          - spot pair if it contains "-" (e.g. "ETH-USDG" stays "ETH-USDG")
+          - spot base otherwise           (e.g. "BTC" → "BTC-USDT")
 
         Returns columns: date (date), product (str), base (str), usd_volume_24h (float)
         Errors per token/day are stored as NaN in usd_volume_24h.
@@ -55,7 +56,7 @@ class KucoinClient:
             if self._is_perp(raw):
                 rows = self._fetch_history_futures(raw, start_dt, end_dt)
             else:
-                symbol = f"{raw}-USDT"
+                symbol = self._resolve_spot_symbol(raw)
                 rows = self._fetch_history_spot(symbol, raw, start_dt, end_dt)
             all_rows.extend(rows)
 
@@ -69,7 +70,8 @@ class KucoinClient:
 
         Each token is resolved as:
           - perp  if it ends with "USDTM" (e.g. "BTCUSDTM")
-          - spot  otherwise              (e.g. "BTC" → "BTC-USDT")
+          - spot pair if it contains "-" (e.g. "ETH-USDG" stays "ETH-USDG")
+          - spot base otherwise           (e.g. "BTC" → "BTC-USDT")
 
         Returns columns: timestamp_utc (datetime), product (str), base (str), usd_volume_24h (float)
         Errors per token are stored as NaN in usd_volume_24h.
@@ -350,7 +352,7 @@ class KucoinClient:
                         }
                     )
             else:
-                symbol = f"{raw}-USDT"
+                symbol = self._resolve_spot_symbol(raw)
                 try:
                     vol = self._spot_turnover_24h(symbol)
                     rows.append(
@@ -462,6 +464,11 @@ class KucoinClient:
     def _is_perp(symbol: str) -> bool:
         """True if symbol is a KuCoin perpetual futures contract (ends with USDTM)."""
         return symbol.endswith("USDTM")
+
+    @staticmethod
+    def _resolve_spot_symbol(symbol: str) -> str:
+        """Preserve explicit KuCoin pairs; default bare spot symbols to USDT."""
+        return symbol if "-" in symbol else f"{symbol}-USDT"
 
     @staticmethod
     def _to_float(value: Any) -> float | None:

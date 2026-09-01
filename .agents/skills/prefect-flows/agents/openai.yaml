@@ -1,0 +1,4 @@
+interface:
+  display_name: "Prefect Flows"
+  short_description: "Build and maintain repository Prefect flows"
+  default_prompt: "Use $prefect-flows to add or update a flow in src/flows and keep its deployment and tests consistent."

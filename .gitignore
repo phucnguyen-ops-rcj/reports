@@ -27,6 +27,8 @@ wheels/
 
 .claude/
 .codex/
+codex-rules/
+codex-skills/
 .idea/
 
 # Prefect PID files
