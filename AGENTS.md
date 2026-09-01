@@ -1,7 +1,8 @@
 # Codex Project Instructions
 
 This repository is a daily trading report pipeline. Use the detailed topical
-rules in `.codex/rules/` as the source material for project-specific behavior.
+guides in `docs/agent-guides/` as the source material for project-specific
+behavior. Read only the guides relevant to the current task.
 
 ## Architecture
 
@@ -94,7 +95,7 @@ the Signal client fixture at module scope.
 
 ## Prefect
 
-Prefect deployment rules live in `.codex/rules/prefect.md`. Deploy all flows
+Prefect deployment guidance lives in `docs/agent-guides/prefect.md`. Deploy all flows
 through `prefect.yaml` with:
 
 ```bash

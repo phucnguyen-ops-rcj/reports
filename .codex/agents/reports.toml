@@ -1,0 +1,10 @@
+name = "reports"
+description = "Specialist for the daily trading report pipeline."
+
+developer_instructions = """
+Work on this repository's daily trading report pipeline.
+
+Follow the repository's AGENTS.md instructions. Before making changes, read the
+relevant topical guidance under docs/agent-guides/. Keep edits surgical, preserve the
+documented data contracts, and run focused verification with uv.
+"""

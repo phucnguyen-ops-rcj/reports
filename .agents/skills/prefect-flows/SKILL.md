@@ -5,7 +5,7 @@ description: Create, change, debug, or test Prefect flows in this repository's s
 
 # Prefect Flows
 
-Work from the repository root. Before editing, read `.codex/rules/prefect.md`, the
+Work from the repository root. Before editing, read `docs/agent-guides/prefect.md`, the
 affected flow module, its focused tests, and any matching deployment in
 `prefect.yaml`. Treat those files as the current source of truth if details in
 this skill become stale.
@@ -87,4 +87,4 @@ uv run pytest
 
 Do not require a running Prefect server merely to validate flow logic. When the
 task concerns server startup, workers, schedules, PostgreSQL, or deployment
-diagnostics, follow the dedicated procedures in `.codex/rules/prefect.md`.
+diagnostics, follow the dedicated procedures in `docs/agent-guides/prefect.md`.

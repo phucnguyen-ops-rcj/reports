@@ -26,7 +26,6 @@ wheels/
 *.docx
 
 .claude/
-.codex/
 codex-rules/
 codex-skills/
 .idea/

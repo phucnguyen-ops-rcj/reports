@@ -1,0 +1,22 @@
+# Prompt before running project commands through uv outside the sandbox.
+prefix_rule(
+    pattern = ["uv", "run"],
+    decision = "prompt",
+    justification = "Project commands may access live APIs or Signal; confirm before unsandboxed execution.",
+    match = [
+        "uv run -m src.scripts.net_pnl",
+        "uv run -m src.scripts.market",
+        "uv run -m src.scripts.trading_volume",
+        "uv run market",
+        "uv run net_pnl",
+        "uv run trading_volume",
+        "uv run pytest",
+        "uv run pytest tests/test_signal_client.py",
+        "uv run pytest tests/test_signal_client.py::test_send_text_message_to_recipient",
+    ],
+    not_match = [
+        "uv sync",
+        "uv --directory . run pytest",
+        "python -m pytest",
+    ],
+)
