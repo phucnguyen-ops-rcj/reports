@@ -55,7 +55,7 @@ class Settings(BaseSettings):
     redis_host: str = Field(default="172.31.33.22")
     redis_port: int = Field(default=6380)
     redis_username: str = Field(default="newuser1")
-    redis_password: str = Field(default_factory=lambda: os.environ["REDISCLI_AUTH"])
+    redis_password: str = Field(validation_alias="REDISCLI_AUTH")
     redis_db: int = Field(default=0)
 
     # KuCoin API
@@ -83,7 +83,7 @@ class Settings(BaseSettings):
 
     # RCJ ops API
     rcj_ops_bearer_token: str = Field(
-        default_factory=lambda: os.environ.get("RCJ_OPS_BEARER_TOKEN", "")
+        default="", validation_alias="RCJ_OPS_BEARER_TOKEN"
     )
     rcj_ops_base_endpoint: str = Field(default="http://18.176.93.228")
     rcj_ops_timeout_seconds: int = Field(default=60)
