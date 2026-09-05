@@ -48,6 +48,21 @@
   untracked.
 - Killing all Prefect processes: `pkill -f "prefect server start" && pkill -f "prefect worker start"`
 
+## zeabur.sh
+
+- `./zeabur.sh` or `./zeabur.sh foreground` keeps the parent process in the
+  foreground for the Zeabur service supervisor, while supervising the Prefect
+  server and both workers.
+- `./zeabur.sh start` and `./zeabur.sh restart` stop stale Prefect processes,
+  then start the server and workers with `nohup` in the background without
+  redeploying flows.
+- `./zeabur.sh redeploy` performs a background restart and deploys every entry
+  in `prefect.yaml` before starting the workers.
+- `./zeabur.sh stop` stops PID-tracked processes and matching orphan Prefect
+  processes. `./zeabur.sh status` reports server, worker, and API health.
+- Zeabur background logs and PID files use the same `logs/prefect/` and
+  `logs/pid/` directories as the local manager.
+
 ## SQLite fallback and lock errors
 
 `sqlite3.OperationalError: database is locked` usually means Prefect is still using SQLite or multiple server processes are writing simultaneously. Prefer fixing the Postgres env var first, then ensure only one server is running. The fresh start path kills orphans with `pkill -f "prefect server start"` before launching.
