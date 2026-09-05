@@ -41,14 +41,14 @@ class Settings(BaseSettings):
         default_factory=lambda: required_env("COINGECKO_BASE_URL")
     )
     coingecko_api_key: str = Field(
-        default_factory=lambda: os.environ["COINGECKO_API_KEY"]
+        default_factory=lambda: required_env("COINGECKO_API_KEY")
     )
 
     # influxDB
     influxdb_base_url: str = Field(
         default_factory=lambda: required_env("INFLUXDB_BASE_URL")
     )
-    influxdb_token: str = Field(default_factory=lambda: os.environ["INFLUXDB_TOKEN"])
+    influxdb_token: str = Field(default_factory=lambda: required_env("INFLUXDB_TOKEN"))
     influxdb_org: str = Field(default_factory=lambda: required_env("INFLUXDB_ORG"))
 
     # Redis
