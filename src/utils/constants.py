@@ -2,9 +2,9 @@ import json
 from pathlib import Path
 
 _net_pnl_config_file = Path(__file__).resolve().parents[1] / "config" / "net_pnl.json"
-# _trading_volume_config_file = Path(__file__).resolve().parents[1] / "config" / "trading_volume.json"
-_trading_volume_config_file = Path(
-    "/Users/nguyentienphuc/rcj/ops_bot/.docker-data/trading_volume.json"
+_reports_root = Path(__file__).resolve().parents[2]
+_trading_volume_config_file = (
+    _reports_root.parent / "ops-bot" / ".docker-data" / "trading_volume.json"
 )
 
 with open(_net_pnl_config_file) as f:

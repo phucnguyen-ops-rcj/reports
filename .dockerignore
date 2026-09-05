@@ -1,0 +1,16 @@
+**
+
+!pyproject.toml
+!uv.lock
+!README.md
+!prefect.yaml
+
+!src/
+!src/**
+src/**/__pycache__/
+src/**/*.pyc
+
+!deploy/
+!deploy/zeabur/
+!deploy/zeabur/Dockerfile.prefect
+!deploy/zeabur/start-prefect.sh
