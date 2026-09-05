@@ -4,6 +4,7 @@ set -Eeuo pipefail
 
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$repo_dir"
+export REPORTS_REPO_DIR="$repo_dir"
 
 env_file="${ENV_FILE:-${repo_dir}/.env}"
 

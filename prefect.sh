@@ -9,6 +9,7 @@ set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$REPO_DIR"
+export REPORTS_REPO_DIR="$REPO_DIR"
 
 PREFECT_SERVER_HOST="0.0.0.0"
 PREFECT_SERVER_PORT="4200"
