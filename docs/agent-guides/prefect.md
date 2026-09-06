@@ -50,9 +50,9 @@
 
 ## zeabur.sh
 
-- `./zeabur.sh` or `./zeabur.sh foreground` keeps the parent process in the
-  foreground for the Zeabur service supervisor, while supervising the Prefect
-  server and both workers.
+- `./zeabur.sh` performs a background restart and deploys every entry in
+  `prefect.yaml`. Use `./zeabur.sh foreground` to keep the parent process in the
+  foreground when Zeabur is supervising this script as the service entrypoint.
 - `./zeabur.sh start` and `./zeabur.sh restart` stop stale Prefect processes,
   then start the server and workers with `nohup` in the background without
   redeploying flows.

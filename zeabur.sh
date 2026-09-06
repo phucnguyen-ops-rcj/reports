@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Manage the self-hosted Prefect server and workers on Zeabur.
 # Usage:
-#   ./zeabur.sh              # foreground mode for the Zeabur service supervisor
+#   ./zeabur.sh              # background restart and deploy all flows
+#   ./zeabur.sh foreground   # foreground mode for the Zeabur service supervisor
 #   ./zeabur.sh start        # restart server/workers in the background
 #   ./zeabur.sh restart      # alias for start
 #   ./zeabur.sh redeploy     # background restart and deploy all flows
@@ -324,7 +325,7 @@ run_foreground() {
     return "$exit_code"
 }
 
-case "${1:-foreground}" in
+case "${1:-redeploy}" in
     foreground|run)
         run_foreground
         ;;
