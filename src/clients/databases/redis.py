@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import os
 import shlex
 import subprocess
 import time
@@ -10,6 +9,8 @@ from dataclasses import dataclass
 from typing import Any, Literal
 
 import redis
+
+from src.settings import get_settings
 
 
 @dataclass(frozen=True)
@@ -24,13 +25,14 @@ class RedisConfig:
     ssh_workdir: str = "/home/newuser1/work/new_project/training/reports"
 
     @classmethod
-    def from_env(cls) -> RedisConfig:
+    def from_settings(cls) -> RedisConfig:
+        settings = get_settings()
         return cls(
-            host=cls.host,
-            port=cls.port,
-            username=cls.username,
-            password=os.environ.get("REDISCLI_AUTH") or cls.password,
-            db=cls.db,
+            host=settings.redis_host,
+            port=settings.redis_port,
+            username=settings.redis_username,
+            password=settings.redis_password,
+            db=settings.redis_db,
             execution_mode=cls.execution_mode,
             ssh_host=cls.ssh_host,
             ssh_workdir=cls.ssh_workdir,
@@ -52,7 +54,7 @@ class RedisClient:
         ssh_workdir: str | None = None,
         client: redis.Redis | object | None = None,
     ) -> None:
-        config = RedisConfig.from_env()
+        config = RedisConfig.from_settings()
         self.execution_mode = (
             execution_mode if execution_mode is not None else config.execution_mode
         )

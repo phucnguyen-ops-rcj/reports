@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import json
 import subprocess
+from types import SimpleNamespace
 
-from src.clients.databases.redis import RedisClient
+from src.clients.databases.redis import RedisClient, RedisConfig
 
 
 class FakeRedis:
@@ -22,6 +23,25 @@ class FakeRedis:
 
     def close(self):
         return None
+
+
+def test_redis_config_reads_connection_values_from_settings(monkeypatch):
+    settings = SimpleNamespace(
+        redis_host="redis.internal",
+        redis_port=6381,
+        redis_username="reports",
+        redis_password="secret-from-settings",
+        redis_db=2,
+    )
+    monkeypatch.setattr("src.clients.databases.redis.get_settings", lambda: settings)
+
+    config = RedisConfig.from_settings()
+
+    assert config.host == "redis.internal"
+    assert config.port == 6381
+    assert config.username == "reports"
+    assert config.password == "secret-from-settings"
+    assert config.db == 2
 
 
 def test_get_symbols_by_market():
