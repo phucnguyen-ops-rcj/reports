@@ -38,6 +38,7 @@
         "strategy11": "Liquidity",
         "strategy12": "Arb",
         "strategy13": "RFQ",
+        "strategy14": "Abnormal",
         "kucc4": "Volume",
         "kucc4-2": "Volume"
     },
