@@ -83,6 +83,8 @@
   ```
   Top-level keys map to worker infrastructure options (`working_dir`, `pip_packages`), not env vars.
 
-## Known warnings (harmless, from Prefect internals)
+## Dependency compatibility
 
-- `WheneverDeprecationWarning: py_datetime() is deprecated` — from `prefect/types/_datetime.py` and `prefect/server/schemas/schedules.py`. Not your code, no fix needed.
+- Keep Prefect at `>=3.6.29,<3.7`. Version 3.6.29 fixes task-run recorder
+  conflicts on `(flow_run_id, task_key, dynamic_key)` and uses the current
+  `whenever` datetime API on Python 3.14.
