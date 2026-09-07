@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import time
 from typing import Any
 from urllib.parse import urlencode
 import urllib.error
@@ -188,14 +187,13 @@ class CoinMarketCapClient:
             {timestamp for points in series_map.values() for timestamp in points.keys()}
         )
         rows = []
+        price_series_name = str(
+            chart_payload.get("price_series_name") or "bitcoin price"
+        ).lower()
         for timestamp in timestamps:
             long_value = series_map.get("long", {}).get(timestamp)
             short_value = series_map.get("short", {}).get(timestamp)
-            price_value = (
-                series_map.get("bitcoin price", {}).get(timestamp)
-                if "bitcoin price" in series_map
-                else None
-            )
+            price_value = series_map.get(price_series_name, {}).get(timestamp)
             rows.append(
                 {
                     "timestamp": timestamp,
@@ -294,173 +292,97 @@ class CoinMarketCapClient:
         symbol: str | None,
         exchange: str | None,
     ) -> dict[str, Any]:
-        try:
-            from selenium import webdriver
-            from selenium.webdriver.chrome.options import Options
-        except ImportError as exc:
+        coin = self._resolve_liquidation_filter(
+            "/data-api/v3/liquidations/crypto/list",
+            symbol,
+            all_labels={"all", "all coins"},
+            fields=("id", "name", "symbol", "slug"),
+            filter_name="coin",
+        )
+        selected_exchange = self._resolve_liquidation_filter(
+            "/data-api/v3/liquidations/exchange/list",
+            exchange,
+            all_labels={"all", "all exchanges"},
+            fields=("id", "name", "slug"),
+            filter_name="exchange",
+        )
+        params = {"range": "1y"}
+        if coin:
+            params["coinIds"] = str(coin["id"])
+        if selected_exchange:
+            params["exchangeIds"] = str(selected_exchange["id"])
+
+        payload = self._get_public_json(
+            "/data-api/v3/liquidations/chart",
+            params=params,
+        )
+        data = payload.get("data") if isinstance(payload, dict) else None
+        bars = data.get("bars") if isinstance(data, dict) else None
+        if not isinstance(bars, list):
             raise RuntimeError(
-                "Selenium is required to load CoinMarketCap liquidation charts."
-            ) from exc
-
-        options = Options()
-        options.add_argument("--headless=new")
-        options.add_argument("--disable-gpu")
-        options.add_argument("--no-sandbox")
-        options.add_argument("--window-size=1600,1200")
-        driver = webdriver.Chrome(options=options)
-        try:
-            driver.get(self.liquidations_page_url)
-            deadline = time.time() + self.timeout
-            while time.time() < deadline:
-                ready = driver.execute_script(
-                    """
-return Boolean(
-  document.querySelector('.chart-wrapper') &&
-  document.querySelectorAll('[role="combobox"]').length >= 2
-);
-"""
-                )
-                if ready:
-                    break
-                time.sleep(0.25)
-            else:
-                raise RuntimeError(
-                    "CoinMarketCap liquidation page did not finish rendering."
-                )
-            script = """
-const normalize = (value) => String(value ?? "").trim().toLowerCase();
-const getSelectProps = (index) => {
-  const el = document.querySelectorAll('[role="combobox"]')[index];
-  if (!el) return null;
-  const fiberKey = Object.keys(el).find((key) => key.startsWith('__reactFiber$'));
-  let fiber = fiberKey ? el[fiberKey] : null;
-  for (let i = 0; fiber && i < 20; i += 1, fiber = fiber.return) {
-    const typeName = fiber.type && (fiber.type.displayName || fiber.type.name);
-    if (typeName === 'CMCUI_Select') {
-      return fiber.memoizedProps || null;
-    }
-  }
-  return null;
-};
-const selectOption = (index, query) => {
-  if (!query) return null;
-  const props = getSelectProps(index);
-  if (!props || !Array.isArray(props.options) || typeof props.onChange !== 'function') {
-    return { error: 'select props unavailable' };
-  }
-  const target = props.options.find((option) => {
-    if (!option || typeof option !== 'object') return false;
-    const haystacks = [
-      option.value,
-      option.name,
-      option.symbol,
-      option.id,
-    ].map(normalize);
-    return haystacks.includes(normalize(query));
-  });
-  if (!target) {
-    return { error: `option not found: ${query}` };
-  }
-  props.onChange([target.value]);
-  return { value: target.value, name: target.name || null, symbol: target.symbol || null };
-};
-const getChartPayload = () => {
-  const chartEl = document.querySelector('.chart-wrapper');
-  if (!chartEl) return null;
-  const chartFiberKey = Object.keys(chartEl).find((key) => key.startsWith('__reactFiber$'));
-  const chartFiber = chartFiberKey ? chartEl[chartFiberKey] : null;
-  const props = chartFiber && chartFiber.return ? chartFiber.return.memoizedProps : null;
-  const chartOptions = props && props.options ? props.options : null;
-  const coinProps = getSelectProps(0);
-  const exchangeProps = getSelectProps(1);
-  return {
-    selected_coin_name: coinProps && Array.isArray(coinProps.value) && coinProps.value[0] ? coinProps.value[0] : 'all',
-    selected_coin_symbol: coinProps && Array.isArray(coinProps.options)
-      ? ((coinProps.options.find((option) => option.value === (coinProps.value && coinProps.value[0])) || {}).symbol || null)
-      : null,
-    selected_exchange: exchangeProps && Array.isArray(exchangeProps.value) && exchangeProps.value[0] ? exchangeProps.value[0] : 'all',
-    price_series_name: chartOptions && Array.isArray(chartOptions.series) && chartOptions.series[2] ? chartOptions.series[2].name : null,
-    series: chartOptions ? chartOptions.series : null,
-  };
-};
-return { selectOption, getChartPayload };
-"""
-            driver.execute_script(
-                """
-window.__CMC_LIQUIDATIONS_HELPERS__ = (() => {
-%s
-})();
-"""
-                % script
+                "CoinMarketCap returned an unexpected liquidation chart shape."
             )
-            if symbol:
-                result = driver.execute_script(
-                    "return window.__CMC_LIQUIDATIONS_HELPERS__.selectOption(0, arguments[0]);",
-                    symbol,
-                )
-                if isinstance(result, dict) and result.get("error"):
-                    raise RuntimeError(
-                        f"CoinMarketCap coin selection failed: {result['error']}"
-                    )
-                self._wait_for_chart_selection(
-                    driver,
-                    expected_coin_name=result.get("value"),
-                    expected_exchange_name=None,
-                )
-            if exchange:
-                result = driver.execute_script(
-                    "return window.__CMC_LIQUIDATIONS_HELPERS__.selectOption(1, arguments[0]);",
-                    exchange,
-                )
-                if isinstance(result, dict) and result.get("error"):
-                    raise RuntimeError(
-                        f"CoinMarketCap exchange selection failed: {result['error']}"
-                    )
-                self._wait_for_chart_selection(
-                    driver,
-                    expected_coin_name=None,
-                    expected_exchange_name=result.get("value"),
-                )
-            chart_payload = driver.execute_script(
-                "return window.__CMC_LIQUIDATIONS_HELPERS__.getChartPayload();"
-            )
-        finally:
-            driver.quit()
 
-        if not isinstance(chart_payload, dict):
-            raise RuntimeError(
-                "CoinMarketCap liquidation chart could not be extracted from the page."
-            )
-        return chart_payload
+        def points(key: str, *, negate: bool = False) -> list[dict[str, Any]]:
+            values = []
+            for bar in bars:
+                if not isinstance(bar, dict) or bar.get("timestamp") is None:
+                    continue
+                value = self._to_float(bar.get(key))
+                values.append(
+                    {
+                        "x": int(bar["timestamp"]) * 1000,
+                        "y": -value if negate and value is not None else value,
+                    }
+                )
+            return values
 
-    def _wait_for_chart_selection(
+        coin_symbol = str(coin.get("symbol")) if coin and coin.get("symbol") else None
+        price_series_name = f"{coin_symbol or 'Bitcoin'} Price"
+        return {
+            "selected_coin_name": coin.get("name") if coin else "all",
+            "selected_coin_symbol": coin_symbol,
+            "selected_exchange": selected_exchange.get("name")
+            if selected_exchange
+            else "all",
+            "price_series_name": price_series_name,
+            "series": [
+                {"name": "Long", "data": points("totalLongs")},
+                {"name": "Short", "data": points("totalShorts", negate=True)},
+                {"name": price_series_name, "data": points("coinPrice")},
+            ],
+        }
+
+    def _resolve_liquidation_filter(
         self,
-        driver: Any,
+        endpoint: str,
+        query: str | None,
         *,
-        expected_coin_name: str | None,
-        expected_exchange_name: str | None,
-    ) -> None:
-        deadline = time.time() + self.timeout
-        while time.time() < deadline:
-            state = driver.execute_script(
-                "return window.__CMC_LIQUIDATIONS_HELPERS__.getChartPayload();"
+        all_labels: set[str],
+        fields: tuple[str, ...],
+        filter_name: str,
+    ) -> dict[str, Any] | None:
+        normalized_query = str(query or "").strip().lower()
+        if not normalized_query or normalized_query in all_labels:
+            return None
+
+        payload = self._get_public_json(endpoint, params={"range": "all"})
+        items = payload.get("data") if isinstance(payload, dict) else None
+        if not isinstance(items, list):
+            raise RuntimeError(
+                f"CoinMarketCap returned an unexpected liquidation {filter_name} list."
             )
-            if not isinstance(state, dict):
-                time.sleep(0.25)
+        for item in items:
+            if not isinstance(item, dict):
                 continue
-            coin_ok = (
-                expected_coin_name is None
-                or str(state.get("selected_coin_name")) == expected_coin_name
-            )
-            exchange_ok = (
-                expected_exchange_name is None
-                or str(state.get("selected_exchange")) == expected_exchange_name
-            )
-            series = state.get("series")
-            if coin_ok and exchange_ok and isinstance(series, list) and series:
-                return
-            time.sleep(0.25)
-        raise RuntimeError("CoinMarketCap chart selection did not settle in time.")
+            if any(
+                str(item.get(field, "")).strip().lower() == normalized_query
+                for field in fields
+            ):
+                return item
+        raise RuntimeError(
+            f"CoinMarketCap liquidation {filter_name} not found: {query}"
+        )
 
     def _headers(self) -> dict[str, str]:
         return {

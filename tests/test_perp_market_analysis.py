@@ -40,6 +40,44 @@ class FakeCoinMarketCapClient(CoinMarketCapClient):
         }
 
 
+class FakeCoinMarketCapPublicApiClient(CoinMarketCapClient):
+    def __init__(self) -> None:
+        super().__init__()
+        self.calls: list[tuple[str, dict[str, str] | None]] = []
+
+    def _get_public_json(
+        self,
+        endpoint: str,
+        params: dict[str, str] | None = None,
+    ) -> dict[str, object]:
+        self.calls.append((endpoint, params))
+        if endpoint.endswith("/crypto/list"):
+            return {
+                "data": [
+                    {
+                        "id": 29073,
+                        "name": "Altlayer",
+                        "symbol": "ALT",
+                        "slug": "altlayer",
+                    }
+                ]
+            }
+        if endpoint.endswith("/exchange/list"):
+            return {"data": [{"id": 270, "name": "Binance", "slug": "binance"}]}
+        return {
+            "data": {
+                "bars": [
+                    {
+                        "timestamp": "1781308800",
+                        "totalLongs": "100.0",
+                        "totalShorts": "40.0",
+                        "coinPrice": "0.02",
+                    }
+                ]
+            }
+        }
+
+
 def test_coinmarketcap_liquidation_dates_use_report_day_boundary() -> None:
     df = FakeCoinMarketCapClient().get_liquidation_chart(symbol="ALT")
 
@@ -47,6 +85,22 @@ def test_coinmarketcap_liquidation_dates_use_report_day_boundary() -> None:
         pd.Timestamp("2026-06-14", tz="UTC"),
         pd.Timestamp("2026-06-15", tz="UTC"),
     ]
+
+
+def test_coinmarketcap_liquidation_chart_uses_public_data_api() -> None:
+    client = FakeCoinMarketCapPublicApiClient()
+
+    df = client.get_liquidation_chart(symbol="ALT", exchange="Binance")
+
+    assert client.calls[-1] == (
+        "/data-api/v3/liquidations/chart",
+        {"range": "1y", "coinIds": "29073", "exchangeIds": "270"},
+    )
+    assert df.loc[0, "long_liquidation_usd"] == 100.0
+    assert df.loc[0, "short_liquidation_usd"] == 40.0
+    assert df.loc[0, "price_usd"] == 0.02
+    assert df.attrs["selected_coin_symbol"] == "ALT"
+    assert df.attrs["selected_exchange"] == "Binance"
 
 
 def test_build_liquidation_sentence_matches_report_date() -> None:
