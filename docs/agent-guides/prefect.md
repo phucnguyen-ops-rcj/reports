@@ -83,6 +83,14 @@
   ```
   Top-level keys map to worker infrastructure options (`working_dir`, `pip_packages`), not env vars.
 
+## Application logging
+
+- Both worker launchers set `PREFECT_LOGGING_EXTRA_LOGGERS=src` so standard
+  `src.*` module loggers are sent to the Prefect API and associated with runs.
+- They also set `PREFECT_LOGGING_ROOT_LEVEL=INFO` for workers and their flow-run
+  subprocesses so application `logger.info()` records reach the worker console.
+  These settings are scoped to workers and do not increase `server.log` verbosity.
+
 ## Dependency compatibility
 
 - Keep Prefect at `>=3.6.29,<3.7`. Version 3.6.29 fixes task-run recorder

@@ -19,6 +19,8 @@ log_dir="${PREFECT_LOG_DIR:-${repo_dir}/logs/prefect}"
 pid_dir="${PREFECT_PID_DIR:-${repo_dir}/logs/pid}"
 server_pid_file="${pid_dir}/prefect_server.pid"
 pools=("daily-morning" "strategies")
+worker_logging_extra_loggers="${PREFECT_LOGGING_EXTRA_LOGGERS:-src}"
+worker_logging_root_level="${PREFECT_LOGGING_ROOT_LEVEL:-INFO}"
 
 load_env_value() {
     local name="$1"
@@ -229,7 +231,9 @@ start_workers_background() {
     for pool in "${pools[@]}"; do
         pid_file="$(worker_pid_file "$pool")"
         echo "Starting background worker for ${pool}..."
-        nohup uv run prefect worker start --pool "$pool" \
+        PREFECT_LOGGING_EXTRA_LOGGERS="$worker_logging_extra_loggers" \
+            PREFECT_LOGGING_ROOT_LEVEL="$worker_logging_root_level" \
+            nohup uv run prefect worker start --pool "$pool" \
             </dev/null >>"${log_dir}/worker_${pool}.log" 2>&1 &
         echo "$!" > "$pid_file"
     done
@@ -308,7 +312,9 @@ run_foreground() {
 
     echo "Starting Prefect workers..."
     for pool in "${pools[@]}"; do
-        uv run prefect worker start --pool "$pool" &
+        PREFECT_LOGGING_EXTRA_LOGGERS="$worker_logging_extra_loggers" \
+            PREFECT_LOGGING_ROOT_LEVEL="$worker_logging_root_level" \
+            uv run prefect worker start --pool "$pool" &
         echo "$!" > "$(worker_pid_file "$pool")"
         child_pids+=("$!")
     done

@@ -23,6 +23,8 @@ POOLS=(
     "daily-morning"
     "strategies"
 )
+WORKER_LOGGING_EXTRA_LOGGERS="${PREFECT_LOGGING_EXTRA_LOGGERS:-src}"
+WORKER_LOGGING_ROOT_LEVEL="${PREFECT_LOGGING_ROOT_LEVEL:-INFO}"
 SERVER_PID_FILE="$PID_DIR/prefect_server.pid"
 ENV_FILE="$REPO_DIR/.env"
 
@@ -145,7 +147,10 @@ _start_worker() {
         local pidfile
         pidfile="$(_worker_pid_file "$pool")"
         echo "Starting worker for $pool..."
-        nohup uv run prefect worker start --pool "$pool" >> "$PREFECT_LOG_DIR/worker_${pool}.log" 2>&1 &
+        PREFECT_LOGGING_EXTRA_LOGGERS="$WORKER_LOGGING_EXTRA_LOGGERS" \
+            PREFECT_LOGGING_ROOT_LEVEL="$WORKER_LOGGING_ROOT_LEVEL" \
+            nohup uv run prefect worker start --pool "$pool" \
+            >> "$PREFECT_LOG_DIR/worker_${pool}.log" 2>&1 &
         echo $! > "$pidfile"
         echo "Worker for $pool started (PID $(cat "$pidfile"))."
     done
