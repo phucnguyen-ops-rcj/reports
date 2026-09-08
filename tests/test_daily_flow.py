@@ -1,6 +1,6 @@
 from prefect.states import Completed, Failed
 
-from src.flows import daily
+from src.flows import daily, market, net_pnl, trading_volume
 
 
 def test_daily_flow_runs_all_child_flows_when_one_fails(monkeypatch):
@@ -41,3 +41,9 @@ def test_child_flows_try_three_times_before_failing():
     assert daily.market_flow.retry_delay_seconds == 30
     assert daily.trading_volume_flow.retry_delay_seconds == 30
     assert daily.net_pnl_flow.retry_delay_seconds == 30
+
+
+def test_signal_tasks_do_not_retry_partial_deliveries():
+    assert market.send_market_signal.retries == 0
+    assert net_pnl.task_send_signal.retries == 0
+    assert trading_volume.task_send_signal.retries == 0

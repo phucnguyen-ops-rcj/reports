@@ -27,7 +27,7 @@ def save_market_report(report: str) -> Path:
     return text_path
 
 
-@task(name="Send market via Signal", retries=1)
+@task(name="Send market via Signal")
 def send_market_signal(report: str) -> None:
     if not app_settings.enable_signal_notifications:
         return

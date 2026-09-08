@@ -39,7 +39,7 @@ def task_save(volume_summary: pd.DataFrame, prefix: str = "") -> tuple:
     return png_path, csv_path
 
 
-@task(name="Send volume via Signal", retries=1)
+@task(name="Send volume via Signal")
 def task_send_signal(png_path: Path, prefix: str = "") -> None:
     if not app_settings.enable_signal_notifications:
         return

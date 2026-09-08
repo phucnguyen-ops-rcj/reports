@@ -67,7 +67,7 @@ def task_save(report_text: str, final_df: pd.DataFrame) -> tuple:
     return png_path, csv_path, text_path
 
 
-@task(name="Send PnL via Signal", retries=1)
+@task(name="Send PnL via Signal")
 def task_send_signal(report_text: str, png_path: Path) -> None:
     if not app_settings.enable_signal_notifications:
         return
