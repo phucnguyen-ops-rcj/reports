@@ -139,7 +139,7 @@ Prefect UI: use `stacker-launch`; most runs only change `symbol` and
 curl -X POST http://18.176.93.228/launch_stacker \
   -H "Authorization: Bearer ${RCJ_OPS_BEARER_TOKEN}" \
   -H "Content-Type: application/json" \
-  -d '{"base_ccy": "METADAO", "quote_ccy": "USDT", "stacker_level": 1}'
+  -d '{"base_ccy": "LAPTOP", "quote_ccy": "USDT", "stacker_level": 4, "box": "T11"}'
 ```
 
 ## Check status
@@ -150,5 +150,5 @@ Prefect UI: use `stacker-status`; most runs only change `symbol`.
 curl -X POST http://18.176.93.228/get_stacker_accepted_orders \
  -H "Authorization: Bearer ${RCJ_OPS_BEARER_TOKEN}" \
  -H "Content-Type: application/json" \
- -d '{"symbol": "KAIO-USDT", "date": "20260504"}'
+ -d '{"symbol": "LAPTOP-USDT", "date": "20260909", "box": "T11"}'
 ```
