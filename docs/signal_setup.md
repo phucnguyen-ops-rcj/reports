@@ -27,7 +27,7 @@ http://127.0.0.1:8081
 Open this URL in a browser:
 
 ```text
-http://127.0.0.1:8081/v1/qrcodelink?device_name=signal-api
+https://rcj-signal-bot.zeabur.app/v1/qrcodelink?device_name=signal-api
 ```
 
 On your phone:
@@ -61,12 +61,12 @@ CAPTCHA=''
 curl -i -X POST \
   -H 'Content-Type: application/json' \
   -d "{\"captcha\":\"${CAPTCHA}\"}" \
-  'https://rcj-signal-bot.zeabur.app/v1/register/+84559854979'
+  'http://127.0.0.1:8081/v1/register/+84367678281'
   ```
 ### Step 2 — Verify with the code
 
 ```bash
-curl -X POST "http://127.0.0.1:8081/v1/register/+84559854979/verify/"
+curl -X POST "http://127.0.0.1:8081/v1/register/+84367678281/verify/123-456"
 ```
 
 Replace `123-456` with the code received via SMS or voice call.
